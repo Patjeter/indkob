@@ -71,3 +71,17 @@ begin
   end loop;
 end $$;
 grant usage, select on all sequences in schema public to authenticated;
+
+-- v30: retter (ingredienser = nøgler i kataloget)
+create table if not exists public.dishes (
+  id uuid primary key default gen_random_uuid(),
+  name_da text not null,
+  name_sq text,
+  items jsonb not null default '[]'::jsonb,   -- [{"key":"pasta","qty":1}, ...]
+  created_at timestamptz not null default now()
+);
+alter table public.dishes enable row level security;
+revoke all on public.dishes from anon;
+grant select, insert, update, delete on public.dishes to authenticated;
+create policy "kun familien" on public.dishes for all to authenticated using (public.is_family()) with check (public.is_family());
+alter publication supabase_realtime add table public.dishes;

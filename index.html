@@ -25,6 +25,7 @@
   --shadow:none}}
 body[data-tab=offers]{--tab:var(--deal)}
 body[data-tab=sugg]{--tab:#3f6fd8}
+body[data-tab=dishes]{--tab:#a0447a}
 @media (prefers-color-scheme:dark){body[data-tab=sugg]{--tab:#7ea2f2}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
@@ -58,13 +59,14 @@ ul{list-style:none;margin:0;padding:0}
 .tabs button[aria-selected=true]{color:var(--ink)}
 .tabs button[data-tab=list][aria-selected=true] .ic{background:var(--accent-soft);color:var(--accent)}
 .tabs button[data-tab=offers][aria-selected=true] .ic{background:var(--deal-soft);color:var(--deal)}
+.tabs button[data-tab=dishes][aria-selected=true] .ic{background:color-mix(in srgb,#a0447a 14%,transparent);color:#a0447a}
 .tabs button[data-tab=sugg][aria-selected=true] .ic{background:color-mix(in srgb,#3f6fd8 14%,transparent);color:#3f6fd8}
 .tabs .badge{position:absolute;top:0;left:50%;margin-left:10px;min-width:18px;height:18px;border-radius:9px;background:var(--warn);color:#fff;font-size:10.5px;font-weight:700;line-height:18px;padding:0 5px;border:2px solid var(--surface);box-sizing:content-box}
 
 .cols{display:block}
 @media (min-width:860px){
   body{padding-bottom:28px}.tabs{display:none}
-  .cols{display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:18px;align-items:start}.pane{display:block!important}
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;align-items:start}.pane{display:block!important}
   .panehead{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:700;margin:8px 4px 2px}
   .top .ticon{background:var(--accent)}
 }
@@ -216,10 +218,28 @@ li.editor::before{display:none}
 .aerr:empty{display:none}
 .abtn{border:0;border-radius:12px;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:16px;padding:13px;margin-top:4px}
 .abtn:disabled{opacity:.6}
+.dish .ings{display:block;font-size:12.5px;color:var(--ink2);line-height:1.35;margin-top:2px}
+.dish .st{display:block;font-size:12px;font-weight:600;margin-top:3px;color:var(--ink3)}
+.dish .st.ok{color:var(--accent)}
+.dishdet{display:block!important;padding:0 14px 12px 16px}
+.dishdet::before{display:none}
+.dishdet .ingl{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px}
+.ingchip{display:inline-flex;align-items:center;gap:6px;font-size:13px;background:var(--surface2);border-radius:999px;padding:5px 6px 5px 11px;border:0;color:var(--ink)}
+.ingchip.on{background:var(--accent-soft);color:var(--accent);padding-right:11px}
+.ingchip b{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--surface);font-weight:700;font-size:14px;line-height:1}
+.dbtns{display:flex;gap:8px;flex-wrap:wrap}
+.dbtn{font-size:13px;font-weight:700;border:0;border-radius:10px;padding:9px 14px;background:var(--surface2);color:var(--ink)}
+.dbtn.pri{background:var(--accent);color:var(--on-accent)}
+.dbtn.del{color:var(--warn)}
+.newdish{display:flex;justify-content:center;padding:6px 16px 16px}
+.dform{padding:6px 16px 16px;display:flex;flex-direction:column;gap:10px}
+.dform input{font:inherit;font-size:16px;border:0;border-radius:12px;background:var(--surface2);color:var(--ink);padding:11px 13px;outline:none;width:100%}
+.dform .lbl{font-size:12.5px;font-weight:600;color:var(--ink2)}
+.dform .ac{margin-top:0}
 </style>
 </head>
 <body data-tab="list">
-<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v29</span></div></header>
+<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v30</span></div></header>
 <div class="auth" id="auth" hidden>
   <form class="authcard" id="authForm" autocomplete="on">
     <div class="authicon" data-ic="cart"></div>
@@ -261,6 +281,16 @@ li.editor::before{display:none}
     </section>
   </div>
 
+  <div class="pane" id="pane-dishes" hidden>
+    <div class="panehead">Retter</div>
+    <section class="card">
+      <div class="sech"><h2>Jeres retter</h2><div class="s2">Gatimet tuaja · tryk + for at lægge det, der mangler, på listen</div></div>
+      <div id="dishes"></div>
+      <div id="dishForm"></div>
+      <div class="newdish"><button class="dbtn" id="newDish">+ Ny ret · Gatim i ri</button></div>
+    </section>
+  </div>
+
   <div class="pane" id="pane-sugg" hidden>
     <div class="panehead">Forslag</div>
     <section class="card">
@@ -276,10 +306,11 @@ li.editor::before{display:none}
 <nav class="tabs" role="tablist">
   <button role="tab" aria-selected="true" data-tab="list"><span class="ic" data-ic="cart"></span>Indkøbsliste<span class="badge" id="b-list" hidden></span></button>
   <button role="tab" aria-selected="false" data-tab="offers"><span class="ic" data-ic="tag"></span>Tilbud<span class="badge" id="b-offers" hidden></span></button>
+  <button role="tab" aria-selected="false" data-tab="dishes"><span class="ic" data-ic="pot"></span>Retter</button>
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
 </nav>
 
-<script src="config.js?v=29"></script>
+<script src="config.js?v=30"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const STORE_ORDER=["Lidl","365discount","Netto","REMA 1000","føtex","MENY","SuperBrugsen","Slagteren"];
@@ -290,7 +321,7 @@ const CAT=Object.fromEntries(CATS.map(c=>[c.id,c]));
 let BYKEY={};
 const cfg=window.INDKOB_CONFIG||{};
 const live=!!(cfg.url&&cfg.anonKey&&window.supabase);
-let items=[], bought={}, offers=[], sb=null;
+let items=[], bought={}, offers=[], dishes=[], sb=null;
 const $=s=>document.querySelector(s);
 const SV=(d,w=2)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const IC={
@@ -302,6 +333,7 @@ const IC={
   arrow:SV('<path d="M5 12h14M13 6l6 6-6 6"/>',2.4),
   check:SV('<path d="m5 12.5 4.5 4.5L19 7.5"/>',3),
   search:SV('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',2),
+  pot:SV('<path d="M4 10h16v4a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6v-4Z"/><path d="M2 10h20M9 6.5c0-1 .8-1.5.8-2.5M13 6.5c0-1 .8-1.5.8-2.5"/>',1.9),
   trash:SV('<path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/>',2)};
 const svgEl=n=>{const t=document.createElement("template"); t.innerHTML=IC[n]; return t.content.firstChild};
 document.querySelectorAll("[data-ic]").forEach(e=>e.innerHTML=IC[e.dataset.ic]);
@@ -331,7 +363,7 @@ function match(text){
 const local={load(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 async function loadAll(){
   {const c=local.load("indkob-catalog"); if(Array.isArray(c))setCatalog(c)}
-  if(!live){items=local.load("indkob-items")||[];bought=local.load("indkob-bought")||{};offers=local.load("indkob-offers")||[];(local.load("indkob-products")||[]).forEach(addProduct);$("#demo").hidden=false;render();return}
+  if(!live){dishes=local.load("indkob-dishes")||[];items=local.load("indkob-items")||[];bought=local.load("indkob-bought")||{};offers=local.load("indkob-offers")||[];(local.load("indkob-products")||[]).forEach(addProduct);$("#demo").hidden=false;render();return}
   const recovering=/type=recovery/.test(location.hash);
   sb=window.supabase.createClient(cfg.url,cfg.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   sb.auth.onAuthStateChange((ev)=>{
@@ -346,7 +378,8 @@ async function loadAll(){
 let loaded=false;
 async function loadData(){
   if(loaded)return; loaded=true;
-  const [a,b,o,pr,cg]=await Promise.all([sb.from("items").select("*").order("created_at"),sb.from("bought").select("key,at").order("at"),sb.from("offers").select("*").gte("valid_to",today()),sb.from("products").select("*"),sb.from("catalog").select("data").limit(5000)]);
+  const [a,b,o,pr,cg,ds]=await Promise.all([sb.from("items").select("*").order("created_at"),sb.from("bought").select("key,at").order("at"),sb.from("offers").select("*").gte("valid_to",today()),sb.from("products").select("*"),sb.from("catalog").select("data").limit(5000),sb.from("dishes").select("*").order("name_da")]);
+  dishes=ds.data||[];
   if(cg.data&&cg.data.length){setCatalog(cg.data.map(r=>r.data)); local.save("indkob-catalog",CATALOG.filter(e=>!e.own))}
   offers=o.data||[]; (pr.data||[]).forEach(addProduct);
   if(a.error){status("Kunne ikke hente listen");return}
@@ -357,6 +390,7 @@ async function loadData(){
     render();
   }).on("postgres_changes",{event:"*",schema:"public",table:"offers"},async()=>{const r=await sb.from("offers").select("*").gte("valid_to",today()); offers=r.data||offers; render()})
   .on("postgres_changes",{event:"*",schema:"public",table:"products"},p=>{if(p.new&&p.new.key){addProduct(p.new);render()}})
+  .on("postgres_changes",{event:"*",schema:"public",table:"dishes"},async()=>{const r=await sb.from("dishes").select("*").order("name_da"); dishes=r.data||dishes; renderDishes()})
   .on("postgres_changes",{event:"INSERT",schema:"public",table:"bought"},p=>{bought[p.new.key]=p.new.at.slice(0,10);render()}).subscribe();
 }
 const saveLocal=()=>{if(!live){local.save("indkob-items",items);local.save("indkob-bought",bought)}};
@@ -573,7 +607,7 @@ function catHead(id,count){
 }
 function group(id,count,lis,cls){const g=document.createElement("div"); g.className="grp c-"+((CAT[id]&&id)||"an");
   g.append(catHead(id,count)); const ul=document.createElement("ul"); if(cls)ul.className=cls; lis.forEach(l=>ul.append(l)); g.append(ul); return g}
-const HEAD={list:["Indkøbsliste","Lista e blerjes","cart"],offers:["Tilbud","Ofertat","tag"],sugg:["Forslag","Sugjerime","bulb"]};
+const HEAD={list:["Indkøbsliste","Lista e blerjes","cart"],offers:["Tilbud","Ofertat","tag"],dishes:["Retter","Gatimet","pot"],sugg:["Forslag","Sugjerime","bulb"]};
 let tab="list", info={};
 function setHead(){const [a,b,ic]=HEAD[tab]; $("#ttl").textContent=a; $("#tsub").textContent=b; $("#ticon").innerHTML=IC[ic];
   const x=info[tab]; $("#tinfo").innerHTML=x?`<b>${x[0]}</b>${x[1]}`:""}
@@ -605,7 +639,7 @@ function render(){
   });
   const open=items.filter(i=>!i.checked).length; const bl=$("#b-list"); bl.hidden=!open; bl.textContent=open;
   info.list=open?[`${open} ${open===1?"vare":"varer"}`,grand>0?`ca. ${kr(Math.round(grand))}`:""]:null;
-  renderSugg(); renderOffers(); setHead();
+  renderSugg(); renderOffers(); renderDishes(); setHead();
 }
 /* sandsynlighed for at varen købes inden for H dage, ud fra jeres egne mellemrum mellem køb.
    Testet på kvitteringerne: 14 dage (≥60 %) ~46 forslag, 74 % købes; 30 dage (≥60 %) ~81 forslag, 80 % købes */
@@ -706,6 +740,88 @@ function renderSugg(){
   });
 }
 
+/* ---------- retter ---------- */
+let openDish=null, editing=null;
+const saveDishesLocal=()=>{if(!live)local.save("indkob-dishes",dishes)};
+const ingName=k=>(BYKEY[k]&&BYKEY[k].da)||k;
+function onListKeys(){return new Set(items.filter(i=>!i.checked&&i.key).map(i=>i.key))}
+async function addDish(d){
+  const on=onListKeys(); const miss=(d.items||[]).filter(x=>!on.has(x.key)&&BYKEY[x.key]);
+  if(!miss.length){toast("Alt til "+d.name_da+" er allerede på listen");return}
+  for(const x of miss) await addItem(BYKEY[x.key].da,x.qty||1,BYKEY[x.key]);
+  const keys=new Set(miss.map(x=>x.key));
+  toast(`${d.name_da}: ${miss.length} ${miss.length===1?"vare":"varer"} lagt på listen`,()=>{const ids=items.filter(i=>!i.checked&&keys.has(i.key)).map(i=>i.id); remove(ids,true)});
+}
+async function saveDish(d){
+  if(live){
+    if(d.id){const {error}=await sb.from("dishes").update({name_da:d.name_da,name_sq:d.name_sq,items:d.items}).eq("id",d.id); if(error){status("Ret ikke gemt");return}}
+    else{const {data,error}=await sb.from("dishes").insert({name_da:d.name_da,name_sq:d.name_sq,items:d.items}).select().single(); if(error){status("Ret ikke gemt");return} d=data}
+  }else if(!d.id)d.id=uid();
+  const i=dishes.findIndex(x=>x.id===d.id); if(i>=0)dishes[i]=d; else dishes.push(d);
+  dishes.sort((a,b)=>a.name_da.localeCompare(b.name_da,"da")); saveDishesLocal(); editing=null; renderDishes();
+}
+async function deleteDish(d){
+  dishes=dishes.filter(x=>x.id!==d.id); openDish=null; renderDishes(); saveDishesLocal();
+  if(live){const {error}=await sb.from("dishes").delete().eq("id",d.id); if(error)status("Ikke slettet")}
+  toast(d.name_da+" slettet",()=>{const {id,...rest}=d; saveDish(live?rest:d)});
+}
+function renderDishes(){
+  const box=$("#dishes"); if(!box)return; box.innerHTML="";
+  const on=onListKeys();
+  if(!dishes.length){const e=document.createElement("div"); e.className="empty"; e.textContent="Ingen retter endnu. Tryk \"Ny ret\"."; box.append(e)}
+  const ul=document.createElement("ul"); ul.className="offerul";
+  dishes.forEach(d=>{
+    const li=document.createElement("li"); li.className="dish";
+    const t=document.createElement("div"); t.className="txt";
+    const nm=document.createElement("span"); nm.className="nm"; nm.textContent=d.name_da; t.append(nm);
+    const a=alt(d.name_sq&&d.name_sq!==d.name_da?d.name_sq:""); if(a)t.append(a);
+    const ks=(d.items||[]).map(x=>x.key);
+    const ing=document.createElement("span"); ing.className="ings"; ing.textContent=ks.map(ingName).join(" · "); t.append(ing);
+    const miss=ks.filter(k=>!on.has(k)).length;
+    const st=document.createElement("span"); st.className="st"+(miss?"":" ok"); st.textContent=miss?`${miss} af ${ks.length} mangler på listen`:"Alt er på listen ✓"; t.append(st);
+    t.onclick=()=>{openDish=openDish===d.id?null:d.id; editing=null; renderDishes()};
+    li.append(t);
+    if(miss){const b=document.createElement("button"); b.className="addbtn"; b.append(svgEl("plus")); b.setAttribute("aria-label","Læg ingredienser til "+d.name_da+" på listen"); b.onclick=()=>addDish(d); li.append(b)}
+    else{const o=document.createElement("span"); o.className="on"; o.append(svgEl("check")); li.append(o)}
+    ul.append(li);
+    if(openDish===d.id){
+      const det=document.createElement("li"); det.className="dishdet";
+      const wrap=document.createElement("div"); wrap.className="ingl";
+      ks.forEach(k=>{const c=document.createElement("button"); const isOn=on.has(k); c.className="ingchip"+(isOn?" on":""); c.append(document.createTextNode(ingName(k)));
+        if(!isOn){const pl=document.createElement("b"); pl.textContent="+"; c.append(pl); c.onclick=()=>{const e=BYKEY[k]; if(e){addItem(e.da,1,e); toast(e.da+" lagt på listen")}}} else c.disabled=true;
+        wrap.append(c)});
+      const btns=document.createElement("div"); btns.className="dbtns";
+      const ed=document.createElement("button"); ed.className="dbtn"; ed.textContent="Rediger · Ndrysho"; ed.onclick=()=>{editing={...d,items:[...(d.items||[])]}; renderDishes()};
+      const dl=document.createElement("button"); dl.className="dbtn del"; dl.textContent="Slet ret"; dl.onclick=()=>deleteDish(d);
+      btns.append(ed,dl); det.append(wrap,btns); ul.append(det);
+    }
+  });
+  box.append(ul);
+  renderDishForm();
+}
+function renderDishForm(){
+  const f=$("#dishForm"); f.innerHTML=""; $("#newDish").parentElement.hidden=!!editing;
+  if(!editing)return;
+  const d=editing;
+  const form=document.createElement("div"); form.className="dform";
+  const mk=(lbl,val,ph,on)=>{const l=document.createElement("label"); l.className="lbl"; l.textContent=lbl; const i=document.createElement("input"); i.value=val||""; i.placeholder=ph; i.oninput=()=>on(i.value); l.append(i); return l};
+  form.append(mk("Navn på dansk",d.name_da,"fx Pasta med kødsovs",v=>d.name_da=v), mk("Navn på albansk",d.name_sq,"p.sh. Makarona me mish",v=>d.name_sq=v));
+  const il=document.createElement("div"); il.className="lbl"; il.textContent="Ingredienser · Përbërësit"; form.append(il);
+  const chips=document.createElement("div"); chips.className="ingl";
+  const drawChips=()=>{chips.innerHTML=""; d.items.forEach((x,ix)=>{const c=document.createElement("button"); c.className="ingchip"; c.append(document.createTextNode(ingName(x.key))); const b=document.createElement("b"); b.textContent="×"; c.append(b); c.onclick=()=>{d.items.splice(ix,1); drawChips()}; chips.append(c)})};
+  drawChips(); form.append(chips);
+  const si=document.createElement("input"); si.placeholder="Tilføj ingrediens · Shto përbërës"; si.autocomplete="off"; si.setAttribute("autocapitalize","off");
+  const ac=document.createElement("ul"); ac.className="ac";
+  si.oninput=()=>{ac.innerHTML=""; suggestFor(si.value).slice(0,6).forEach(e=>{const li=document.createElement("li"); li.className="";
+    const t=document.createElement("div"); t.className="txt"; const n=document.createElement("span"); n.className="nm"; n.textContent=e.da; t.append(n); const a=alt(e.sq!==e.da?e.sq:""); if(a)t.append(a); li.append(t);
+    li.onclick=()=>{if(!d.items.some(x=>x.key===e.key))d.items.push({key:e.key,qty:1}); si.value=""; ac.innerHTML=""; drawChips(); si.focus()}; ac.append(li)})};
+  form.append(si,ac);
+  const btns=document.createElement("div"); btns.className="dbtns";
+  const ok=document.createElement("button"); ok.className="dbtn pri"; ok.textContent="Gem ret"; ok.onclick=()=>{if(!d.name_da||!d.name_da.trim()){toast("Skriv et navn på retten");return} if(!d.items.length){toast("Tilføj mindst én ingrediens");return} d.name_da=d.name_da.trim(); d.name_sq=(d.name_sq||"").trim()||null; saveDish(d)};
+  const no=document.createElement("button"); no.className="dbtn"; no.textContent="Annuller"; no.onclick=()=>{editing=null; renderDishes()};
+  btns.append(ok,no); form.append(btns); f.append(form);
+}
+$("#newDish").onclick=()=>{editing={name_da:"",name_sq:"",items:[]}; openDish=null; renderDishes(); setTimeout(()=>{const i=$("#dishForm input"); if(i)i.focus()},50)};
 /* ---------- hændelser ---------- */
 function suggestFor(text){
   const f=fold(text); if(!f)return [];
@@ -749,7 +865,7 @@ document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{suggFilter=b.
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
   tab=b.dataset.tab; document.body.dataset.tab=tab; setHead();
   document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
-  ["list","offers","sugg"].forEach(n=>$("#pane-"+n).hidden=b.dataset.tab!==n); window.scrollTo(0,0);
+  ["list","offers","dishes","sugg"].forEach(n=>$("#pane-"+n).hidden=b.dataset.tab!==n); window.scrollTo(0,0);
 });
 if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}
 const setTop=()=>document.documentElement.style.setProperty("--toph",$(".top").offsetHeight+"px");
