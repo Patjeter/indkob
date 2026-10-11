@@ -43,3 +43,31 @@ create table if not exists public.catalog (
 alter table public.catalog enable row level security;
 create policy "anon all catalog" on public.catalog for all to anon using (true) with check (true);
 grant all on public.catalog to anon;
+
+-- v25: lås databasen – kun indloggede brugere på familielisten har adgang
+create table if not exists public.family (email text primary key);
+alter table public.family enable row level security;
+revoke all on public.family from anon, authenticated;
+-- insert into public.family(email) values ('<e-mail>');   -- tilføj familiemedlemmer her
+
+create or replace function public.is_family() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.family f where lower(f.email) = lower(coalesce(auth.jwt()->>'email','')))
+$$;
+revoke all on function public.is_family() from public;
+grant execute on function public.is_family() to authenticated;
+
+do $$
+declare r record; t text;
+begin
+  foreach t in array array['items','bought','offers','products','catalog'] loop
+    for r in select policyname from pg_policies where schemaname='public' and tablename=t loop
+      execute format('drop policy %I on public.%I', r.policyname, t);
+    end loop;
+    execute format('alter table public.%I enable row level security', t);
+    execute format('revoke all on public.%I from anon', t);
+    execute format('grant select, insert, update, delete on public.%I to authenticated', t);
+    execute format('create policy "kun familien" on public.%I for all to authenticated using (public.is_family()) with check (public.is_family())', t);
+  end loop;
+end $$;
+grant usage, select on all sequences in schema public to authenticated;
