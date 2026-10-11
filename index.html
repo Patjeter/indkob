@@ -203,10 +203,35 @@ li.editor::before{display:none}
 .toast:not(:has(button:not(:empty))){padding-right:16px}
 @media (min-width:860px){.toast{bottom:24px}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+.auth{position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center;padding:24px 18px calc(env(safe-area-inset-bottom) + 24px)}
+.authcard{width:100%;max-width:380px;background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:24px 20px;display:flex;flex-direction:column;gap:12px}
+.authicon{width:52px;height:52px;border-radius:15px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center}
+.authicon svg{width:28px;height:28px}
+.authcard h2{margin:6px 0 0;font-size:24px;letter-spacing:-.02em}
+.authcard .s2{font-size:13px;color:var(--ink3);margin-top:-8px}
+.afield{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:600;color:var(--ink2)}
+.afield input{font:inherit;font-size:16px;border:0;border-radius:12px;background:var(--surface2);color:var(--ink);padding:12px 14px;outline:none}
+.afield input:focus{box-shadow:0 0 0 2px var(--accent)}
+.aerr{font-size:13px;color:var(--warn);min-height:0}
+.aerr:empty{display:none}
+.abtn{border:0;border-radius:12px;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:16px;padding:13px;margin-top:4px}
+.abtn:disabled{opacity:.6}
 </style>
 </head>
 <body data-tab="list">
-<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v24</span></div></header>
+<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v25</span></div></header>
+<div class="auth" id="auth" hidden>
+  <form class="authcard" id="authForm" autocomplete="on">
+    <div class="authicon" data-ic="cart"></div>
+    <h2 id="authTitle">Log ind</h2>
+    <div class="s2" id="authSub">Hyr · familiens indkøbsliste</div>
+    <label class="afield" id="authEmailRow"><span>E-mail</span><input type="email" id="authEmail" autocomplete="username" required></label>
+    <label class="afield"><span id="authPwLabel">Adgangskode · Fjalëkalimi</span><input type="password" id="authPw" autocomplete="current-password" required minlength="6"></label>
+    <label class="afield" id="authPw2Row" hidden><span>Gentag adgangskode · Përsërit</span><input type="password" id="authPw2" autocomplete="new-password" minlength="6"></label>
+    <div class="aerr" id="authErr" role="alert"></div>
+    <button class="abtn" id="authBtn">Log ind</button>
+  </form>
+</div>
 <div id="demo" class="demo" hidden>Demo: listen gemmes kun på denne enhed.</div>
 
 <div class="cols">
@@ -221,7 +246,7 @@ li.editor::before{display:none}
       <div class="hint" id="hint"></div>
     </section>
     <div id="stores"></div>
-    <div class="tools"><button id="clearDone">Ryd afkrydsede</button></div>
+    <div class="tools"><button id="clearDone">Ryd afkrydsede</button><button id="logout" hidden>Log ud</button></div>
   </div>
 
   <div class="pane" id="pane-offers" hidden>
@@ -254,7 +279,7 @@ li.editor::before{display:none}
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
 </nav>
 
-<script src="config.js?v=24"></script>
+<script src="config.js?v=25"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const STORE_ORDER=["Lidl","365discount","Netto","REMA 1000","føtex","MENY","SuperBrugsen","Slagteren"];
@@ -307,7 +332,20 @@ const local={load(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){ret
 async function loadAll(){
   {const c=local.load("indkob-catalog"); if(Array.isArray(c))setCatalog(c)}
   if(!live){items=local.load("indkob-items")||[];bought=local.load("indkob-bought")||{};offers=local.load("indkob-offers")||[];(local.load("indkob-products")||[]).forEach(addProduct);$("#demo").hidden=false;render();return}
-  sb=window.supabase.createClient(cfg.url,cfg.anonKey);
+  const recovering=/type=recovery/.test(location.hash);
+  sb=window.supabase.createClient(cfg.url,cfg.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  sb.auth.onAuthStateChange((ev)=>{
+    if(ev==="PASSWORD_RECOVERY")showAuth("recover");
+    if(ev==="SIGNED_OUT")showAuth("login");
+  });
+  const {data:{session}}=await sb.auth.getSession();
+  if(recovering){showAuth("recover"); return}
+  if(!session){showAuth("login"); return}
+  hideAuth(); loadData();
+}
+let loaded=false;
+async function loadData(){
+  if(loaded)return; loaded=true;
   const [a,b,o,pr,cg]=await Promise.all([sb.from("items").select("*").order("created_at"),sb.from("bought").select("key,at").order("at"),sb.from("offers").select("*").gte("valid_to",today()),sb.from("products").select("*"),sb.from("catalog").select("data").limit(5000)]);
   if(cg.data&&cg.data.length){setCatalog(cg.data.map(r=>r.data)); local.save("indkob-catalog",CATALOG.filter(e=>!e.own))}
   offers=o.data||[]; (pr.data||[]).forEach(addProduct);
@@ -365,6 +403,36 @@ async function remove(ids,quiet){
   if(live){const {error}=await sb.from("items").delete().in("id",ids); if(error)status("Ikke slettet – prøv igen")} else saveLocal();
 }
 
+/* ---------- login ---------- */
+let authMode="login";
+function showAuth(mode){
+  authMode=mode; $("#auth").hidden=false; $("#authErr").textContent="";
+  const rec=mode==="recover";
+  $("#authTitle").textContent=rec?"Vælg ny adgangskode":"Log ind";
+  $("#authSub").textContent=rec?"Zgjidh fjalëkalim të ri":"Hyr · familiens indkøbsliste";
+  $("#authEmailRow").hidden=rec; $("#authEmail").required=!rec;
+  $("#authPw2Row").hidden=!rec; $("#authPw2").required=rec;
+  $("#authPw").autocomplete=rec?"new-password":"current-password"; $("#authPw").value=""; $("#authPw2").value="";
+  $("#authBtn").textContent=rec?"Gem adgangskode":"Log ind";
+}
+function hideAuth(){ $("#auth").hidden=true; $("#logout").hidden=!live }
+$("#authForm").addEventListener("submit",async ev=>{
+  ev.preventDefault(); const btn=$("#authBtn"); btn.disabled=true; $("#authErr").textContent="";
+  try{
+    if(authMode==="recover"){
+      const pw=$("#authPw").value;
+      if(pw!==$("#authPw2").value){$("#authErr").textContent="De to adgangskoder er ikke ens."; return}
+      const {error}=await sb.auth.updateUser({password:pw});
+      if(error){$("#authErr").textContent="Kunne ikke gemme: "+error.message; return}
+      history.replaceState(null,"",location.pathname); hideAuth(); toast("Ny adgangskode gemt"); loadData();
+    }else{
+      const {error}=await sb.auth.signInWithPassword({email:$("#authEmail").value.trim(),password:$("#authPw").value});
+      if(error){$("#authErr").textContent="Forkert e-mail eller adgangskode."; return}
+      hideAuth(); loadData();
+    }
+  }finally{btn.disabled=false}
+});
+$("#logout").onclick=async()=>{await sb.auth.signOut(); ["indkob-catalog"].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}}); location.reload()};
 /* ---------- besked med fortryd ---------- */
 let toastT=null;
 function toast(msg,undo){
