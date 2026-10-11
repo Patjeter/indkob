@@ -219,7 +219,7 @@ li.editor::before{display:none}
 </style>
 </head>
 <body data-tab="list">
-<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v26</span></div></header>
+<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v27</span></div></header>
 <div class="auth" id="auth" hidden>
   <form class="authcard" id="authForm" autocomplete="on">
     <div class="authicon" data-ic="cart"></div>
@@ -266,7 +266,7 @@ li.editor::before{display:none}
     <section class="card">
       <div class="sech"><h2>Det plejer I at købe</h2><div class="s2">Zakonisht blini</div></div>
       <label class="search"><span data-ic="search"></span><input id="suggSearch" placeholder="Søg · Kërko"></label>
-      <div class="seg chips"><button data-f="due" aria-pressed="true">Tid til<small>Koha</small></button><button data-f="top" aria-pressed="false">Oftest købt<small>Më shpesh</small></button><button data-f="all" aria-pressed="false">Alle<small>Të gjitha</small></button></div>
+      <div class="seg chips"><button data-f="due" aria-pressed="true">14 dage<small>14 ditë</small></button><button data-f="d30" aria-pressed="false">30 dage<small>30 ditë</small></button><button data-f="top" aria-pressed="false">Oftest<small>Më shpesh</small></button><button data-f="all" aria-pressed="false">Alle<small>Të gjitha</small></button></div>
       <div id="sugg"></div>
     </section>
   </div>
@@ -279,7 +279,7 @@ li.editor::before{display:none}
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
 </nav>
 
-<script src="config.js?v=26"></script>
+<script src="config.js?v=27"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const STORE_ORDER=["Lidl","365discount","Netto","REMA 1000","føtex","MENY","SuperBrugsen","Slagteren"];
@@ -607,15 +607,16 @@ function render(){
   info.list=open?[`${open} ${open===1?"vare":"varer"}`,grand>0?`ca. ${kr(Math.round(grand))}`:""]:null;
   renderSugg(); renderOffers(); setHead();
 }
-/* sandsynlighed for at varen købes inden for 4 dage, ud fra jeres egne mellemrum mellem køb (testet på kvitteringerne: ca. 55 % træffer) */
+/* sandsynlighed for at varen købes inden for H dage, ud fra jeres egne mellemrum mellem køb.
+   Testet på kvitteringerne: 14 dage (≥60 %) ~46 forslag, 74 % købes; 30 dage (≥60 %) ~81 forslag, 80 % købes */
 const probCache=new Map();
-function dueProb(e){
+function dueProb(e,H=14){
   if(!e.gaps||e.gaps.length<3||(e.n||0)<4)return 0;
   const t=daysSince(lastBought(e)); if(t==null)return 0;
-  const ck=e.key+"|"+t; if(probCache.has(ck))return probCache.get(ck);
+  const ck=e.key+"|"+t+"|"+H; if(probCache.has(ck))return probCache.get(ck);
   const alive=e.gaps.filter(g=>g>t); let p;
   if(!alive.length){const med=[...e.gaps].sort((a,b)=>a-b)[e.gaps.length>>1]; p=t<3*med?0.15:0}
-  else p=alive.filter(g=>g<=t+4).length/alive.length;
+  else p=alive.filter(g=>g<=t+H).length/alive.length;
   probCache.set(ck,p); return p;
 }
 function lastBought(e){const a=e.last||"", b=bought[e.key]||""; return a>b?a:b}
@@ -670,18 +671,19 @@ function renderSugg(){
   const box=$("#sugg"); box.innerHTML="";
   const q=fold($("#suggSearch").value);
   const onList=new Set(items.filter(i=>!i.checked&&i.key).map(i=>i.key));
-  const isDue=e=>dueProb(e)>=0.35;
+  const isDue=e=>dueProb(e,14)>=0.6; const isDue30=e=>dueProb(e,30)>=0.6;
   let list=CATALOG.filter(e=>!q||fold(e.da).includes(q)||fold(e.sq).includes(q)||(e.alias||[]).some(a=>fold(a).includes(q)));
   const dueCount=CATALOG.filter(e=>isDue(e)&&!onList.has(e.key)).length; const bs=$("#b-sugg"); bs.hidden=!dueCount; bs.textContent=dueCount;
-  info.sugg=dueCount?[`${dueCount} varer`,"er ved at slippe op"]:null; if(tab==="sugg")setHead();
+  info.sugg=dueCount?[`${dueCount} varer`,"inden for 14 dage"]:null; if(tab==="sugg")setHead();
   if(!q&&suggFilter==="due")list=list.filter(e=>isDue(e)&&!onList.has(e.key));
+  if(!q&&suggFilter==="d30")list=list.filter(e=>isDue30(e)&&!onList.has(e.key));
   if(!q&&suggFilter==="top")list=list.filter(e=>(e.n||0)>=3);
-  if(!list.length){const e=document.createElement("div"); e.className="empty"; e.textContent=suggFilter==="due"&&!q?"Intet er ved at slippe op lige nu. Se \"Oftest købt\".":"Ingen varer fundet."; box.append(e); return}
+  if(!list.length){const e=document.createElement("div"); e.className="empty"; e.textContent=(suggFilter==="due"||suggFilter==="d30")&&!q?"Intet er ved at slippe op i perioden. Se \"Oftest\".":"Ingen varer fundet."; box.append(e); return}
   const mk=e=>{
       const li=document.createElement("li");
       const t=document.createElement("div"); t.className="txt";
       const nm=document.createElement("span"); nm.className="nm"; nm.textContent=e.da;
-      if(isDue(e)&&(q||suggFilter!=="due")){const s=document.createElement("span"); s.className="tag due"; s.textContent="tid til"; nm.append(s)}
+      if(isDue(e)&&(q||(suggFilter!=="due"&&suggFilter!=="d30"))){const s=document.createElement("span"); s.className="tag due"; s.textContent="inden 14 dage"; nm.append(s)}
       t.append(nm);
       const d=daysSince(lastBought(e));
       const a=alt(e.sq!==e.da?e.sq:""); if(a)t.append(a);
@@ -696,7 +698,7 @@ function renderSugg(){
   };
   const top=suggFilter==="top"&&!q;
   CATS.forEach(c=>{
-    const arr=list.filter(e=>e.cat===c.id).sort(top?((a,b)=>(b.n||0)-(a.n||0)):((a,b)=>(dueProb(b)-dueProb(a))||((b.n||0)-(a.n||0))||((b.nall||0)-(a.nall||0))));
+    const arr=list.filter(e=>e.cat===c.id).sort(top?((a,b)=>(b.n||0)-(a.n||0)):((a,b)=>(dueProb(b,suggFilter==="d30"?30:14)-dueProb(a,suggFilter==="d30"?30:14))||((b.n||0)-(a.n||0))||((b.nall||0)-(a.nall||0))));
     if(!arr.length)return;
     box.append(group(c.id,arr.length,arr.map(mk),"nocheck"));
   });
