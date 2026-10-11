@@ -219,7 +219,7 @@ li.editor::before{display:none}
 </style>
 </head>
 <body data-tab="list">
-<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v27</span></div></header>
+<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v28</span></div></header>
 <div class="auth" id="auth" hidden>
   <form class="authcard" id="authForm" autocomplete="on">
     <div class="authicon" data-ic="cart"></div>
@@ -279,7 +279,7 @@ li.editor::before{display:none}
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
 </nav>
 
-<script src="config.js?v=27"></script>
+<script src="config.js?v=28"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const STORE_ORDER=["Lidl","365discount","Netto","REMA 1000","føtex","MENY","SuperBrugsen","Slagteren"];
@@ -674,10 +674,12 @@ function renderSugg(){
   const isDue=e=>dueProb(e,14)>=0.6; const isDue30=e=>dueProb(e,30)>=0.6;
   let list=CATALOG.filter(e=>!q||fold(e.da).includes(q)||fold(e.sq).includes(q)||(e.alias||[]).some(a=>fold(a).includes(q)));
   const dueCount=CATALOG.filter(e=>isDue(e)&&!onList.has(e.key)).length; const bs=$("#b-sugg"); bs.hidden=!dueCount; bs.textContent=dueCount;
-  info.sugg=dueCount?[`${dueCount} varer`,"inden for 14 dage"]:null; if(tab==="sugg")setHead();
+
   if(!q&&suggFilter==="due")list=list.filter(e=>isDue(e)&&!onList.has(e.key));
   if(!q&&suggFilter==="d30")list=list.filter(e=>isDue30(e)&&!onList.has(e.key));
   if(!q&&suggFilter==="top")list=list.filter(e=>(e.n||0)>=3);
+  {const lbl=q?"fundet":({due:"inden for 14 dage",d30:"inden for 30 dage",top:"købt mindst 3 gange i år",all:"i alt"})[suggFilter];
+   info.sugg=[`${list.length} ${list.length===1?"vare":"varer"}`,lbl]; if(tab==="sugg")setHead();}
   if(!list.length){const e=document.createElement("div"); e.className="empty"; e.textContent=(suggFilter==="due"||suggFilter==="d30")&&!q?"Intet er ved at slippe op i perioden. Se \"Oftest\".":"Ingen varer fundet."; box.append(e); return}
   const mk=e=>{
       const li=document.createElement("li");
