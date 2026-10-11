@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Indkøb</title>
+<meta name="theme-color" content="#f3f3ef">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Indkøb">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+:root{
+  --bg:#f3f3ef;--surface:#ffffff;--surface2:#f7f7f4;--ink:#17181a;--ink2:#5d6166;--ink3:#6a6f76;--line:#ececE7;
+  --accent:#1f7a4d;--accent-soft:#e3f1e9;--deal:#d4600f;--deal-soft:#fff0e2;--deal-ink:#9a4500;
+  --warn:#c2361f;--warn-soft:#fde9e5;--tab:var(--accent);--on-accent:#fff;--on-deal:#fff;--faint:#a3a7ad;
+  --shadow:0 1px 2px rgba(20,20,10,.04),0 6px 20px rgba(20,20,10,.05);
+  --r:18px;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f0f0e;--surface:#1b1b1a;--surface2:#242422;--ink:#f2f1ec;--ink2:#b3b1aa;--ink3:#9a978f;--line:#2c2c2a;
+  --accent:#5cc28e;--accent-soft:#1c3328;--deal:#f2913f;--deal-soft:#3a2614;--deal-ink:#ffc48f;--warn:#ff8b75;--warn-soft:#3b1d17;--on-accent:#0c1f15;--on-deal:#2a1405;--faint:#5f5d58;
+  --shadow:none}}
+body[data-tab=offers]{--tab:var(--deal)}
+body[data-tab=sugg]{--tab:#3f6fd8}
+@media (prefers-color-scheme:dark){body[data-tab=sugg]{--tab:#7ea2f2}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+body{padding:0 14px calc(env(safe-area-inset-bottom) + 88px);max-width:1180px;margin:0 auto}
+button{font:inherit;color:inherit;cursor:pointer}
+ul{list-style:none;margin:0;padding:0}
+[hidden]{display:none!important}
+
+/* topbar – følger fanen */
+.top{position:sticky;top:0;z-index:20;margin:0 -14px;padding:calc(env(safe-area-inset-top) + 10px) 18px 10px;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);
+  display:flex;align-items:center;gap:12px}
+.top .ticon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--tab);color:var(--surface);flex:0 0 40px;transition:background .25s}
+.top .ticon svg{width:22px;height:22px}
+.top .tt{flex:1;min-width:0}
+.top h1{font-size:24px;line-height:1.1;letter-spacing:-.02em;margin:0;font-weight:750}
+.top .tsub{font-size:13px;color:var(--ink3);margin-top:1px}
+.top .tinfo{text-align:right;font-size:12px;color:var(--ink2);line-height:1.3}
+.top .tinfo b{display:block;font-size:15px;color:var(--ink);font-weight:700}
+.top .ver{display:block;font-size:10px;color:var(--ink3);margin-top:1px}
+#status:not(:empty){display:block;color:var(--warn);font-weight:600}
+.panehead{display:none}
+
+/* tabbar */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:space-around;
+  background:color-mix(in srgb,var(--surface) 86%,transparent);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);
+  border-top:1px solid var(--line);padding:6px 10px calc(env(safe-area-inset-bottom) + 6px)}
+.tabs button{flex:1;max-width:140px;border:0;background:transparent;color:var(--ink2);font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;position:relative}
+.tabs .ic{width:52px;height:30px;border-radius:15px;display:grid;place-items:center;transition:background .2s}
+.tabs svg{width:22px;height:22px}
+.tabs button[aria-selected=true]{color:var(--ink)}
+.tabs button[data-tab=list][aria-selected=true] .ic{background:var(--accent-soft);color:var(--accent)}
+.tabs button[data-tab=offers][aria-selected=true] .ic{background:var(--deal-soft);color:var(--deal)}
+.tabs button[data-tab=sugg][aria-selected=true] .ic{background:color-mix(in srgb,#3f6fd8 14%,transparent);color:#3f6fd8}
+.tabs .badge{position:absolute;top:0;left:50%;margin-left:10px;min-width:18px;height:18px;border-radius:9px;background:var(--warn);color:#fff;font-size:10.5px;font-weight:700;line-height:18px;padding:0 5px;border:2px solid var(--surface);box-sizing:content-box}
+
+.cols{display:block}
+@media (min-width:860px){
+  body{padding-bottom:28px}.tabs{display:none}
+  .cols{display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:18px;align-items:start}.pane{display:block!important}
+  .panehead{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:700;margin:8px 4px 2px}
+  .top .ticon{background:var(--accent)}
+}
+
+/* kort */
+.card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);margin:0 0 12px}
+.pad{padding:14px 16px}
+.sech{padding:14px 16px 6px}
+.sech h2{margin:0;font-size:17px;font-weight:700;letter-spacing:-.01em}
+.sech .s2{font-size:12.5px;color:var(--ink3);margin-top:2px}
+.sech .big{font-size:13px;color:var(--accent);font-weight:700;margin-top:6px}
+
+/* skrivefelt */
+.addcard{padding:10px;margin-top:2px}
+.add{display:flex;gap:8px;align-items:center}
+.add .field{flex:1;display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:12px;padding:0 12px;min-width:0}
+.add .field svg{width:18px;height:18px;color:var(--ink3);flex:0 0 18px}
+.add input{flex:1;min-width:0;font:inherit;font-size:16px;border:0;background:transparent;color:var(--ink);padding:11px 0;outline:none}
+.add input::placeholder{color:var(--ink3)}
+.add>button{width:44px;height:44px;flex:0 0 44px;border:0;border-radius:12px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center}
+.add>button svg{width:22px;height:22px}
+.hint{font-size:12.5px;color:var(--ink3);padding:0 4px}
+.hint:not(:empty){margin-top:8px}
+.ac{margin-top:8px;border-top:1px solid var(--line)}
+.ac li{cursor:pointer;padding-left:4px;padding-right:0}
+.ac .usual{font-size:11.5px;color:var(--ink3);white-space:nowrap}
+.demo{font-size:12.5px;background:var(--deal-soft);color:var(--deal-ink);border-radius:12px;padding:8px 12px;margin:0 0 10px}
+
+/* butik */
+.storeh{display:flex;align-items:center;gap:12px;padding:14px 16px 12px}
+.storeh .av{width:38px;height:38px;border-radius:50%;background:var(--ink);color:var(--surface);display:grid;place-items:center;font-weight:800;font-size:15px;flex:0 0 38px}
+.storeh .av.alt{background:var(--deal)}
+.storeh .sn{flex:1;min-width:0}
+.storeh .sn b{display:block;font-size:19px;letter-spacing:-.01em;line-height:1.15}
+.storeh .sn span{font-size:12.5px;color:var(--ink3)}
+.storeh .sum{text-align:right;font-size:11.5px;color:var(--ink3);line-height:1.25}
+.storeh .sum b{display:block;font-size:16px;color:var(--ink)}
+.prog{height:3px;background:var(--line);margin:0 16px 4px;border-radius:2px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+
+/* kategori */
+.grp{--cc:#7a7f87}
+.cath{display:flex;align-items:center;gap:10px;padding:8px 16px;margin-top:6px;
+  background:color-mix(in srgb,var(--cc) 9%,var(--surface));border-top:1px solid color-mix(in srgb,var(--cc) 18%,transparent);border-bottom:1px solid color-mix(in srgb,var(--cc) 12%,transparent)}
+.cath .ci{width:28px;height:28px;border-radius:9px;background:color-mix(in srgb,var(--cc) 20%,var(--surface));display:grid;place-items:center;font-size:16px;flex:0 0 28px}
+.cath .cn{flex:1;min-width:0;font-size:14px;font-weight:700;color:color-mix(in srgb,var(--cc) 75%,var(--ink))}
+.cath .cn small{font-weight:500;color:var(--ink3);font-size:12px;margin-left:6px}
+.cath .cc{font-size:12px;font-weight:700;color:color-mix(in srgb,var(--cc) 75%,var(--ink));background:color-mix(in srgb,var(--cc) 16%,var(--surface));border-radius:999px;padding:1px 8px}
+.grp ul{border-left:3px solid color-mix(in srgb,var(--cc) 55%,transparent);margin-left:0}
+.grp ul.nocheck li+li::before{left:16px}
+.grp:last-child ul li:last-child{padding-bottom:14px}
+.c-fg{--cc:#2e9d5b}.c-br{--cc:#c98a1b}.c-km{--cc:#d0463b}.c-mk{--cc:#3b82c4}.c-ko{--cc:#9a6b3f}
+.c-rh{--cc:#159aa0}.c-fr{--cc:#3fa0e0}.c-dr{--cc:#7c5cc4}.c-sn{--cc:#d64f8a}.c-an{--cc:#7a7f87}
+
+/* rækker – samme opbygning overalt */
+li{display:flex;align-items:center;gap:10px;padding:11px 12px 11px 13px;position:relative}
+li+li::before{content:"";position:absolute;top:0;left:49px;right:0;border-top:1px solid var(--line)}
+.card>ul>li+li::before,.ac li+li::before,.offerul li+li::before,.suggul li+li::before{left:16px}
+.txt{flex:1;min-width:0;cursor:pointer}
+.nm{display:block;font-size:16px;font-weight:600;line-height:1.25;letter-spacing:-.005em}
+.sub{display:block;font-size:12.5px;color:var(--ink2);line-height:1.35;margin-top:1px}
+.sub .offer{color:var(--deal-ink);font-weight:600}
+.alt{display:block;font-size:12.5px;color:var(--ink3);line-height:1.3;margin-top:1px}
+.look{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--ink3);line-height:1.3;margin-top:2px}
+.look svg{width:12px;height:12px;flex:0 0 12px}
+.meta{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.tag{font-size:10.5px;font-weight:700;border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:2px;white-space:nowrap;background:var(--surface2);color:var(--ink2)}
+.tag.due{background:var(--warn-soft);color:var(--warn)}
+
+.check{width:26px;height:26px;flex:0 0 26px;border:2px solid var(--ink3);position:relative;border-radius:50%;background:transparent;padding:0;display:grid;place-items:center;color:#fff;transition:all .15s}
+.check svg{width:14px;height:14px;opacity:0}
+li.done .check{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+li.done .check svg{opacity:1}
+li.done .txt,li.done .qty,li.done .movebtn{opacity:.4}
+li.done .nm{text-decoration:line-through}
+li.done .meta,li.done .look{display:none}
+
+.qty{display:flex;align-items:center;background:var(--surface2);border-radius:999px;height:40px;flex:0 0 auto}
+.qty button{width:34px;height:40px;position:relative;border:0;background:transparent;color:var(--ink);font-size:18px;padding:0;display:grid;place-items:center}
+.qty button svg{width:15px;height:15px;color:var(--ink3)}
+.qty span{min-width:16px;text-align:center;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
+
+.addbtn{width:42px;height:42px;flex:0 0 42px;position:relative;border:0;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;padding:0}
+.addbtn svg{width:20px;height:20px}.movebtn svg{width:16px;height:16px;flex:0 0 16px}.movebtn.soon{background:var(--deal-soft);color:var(--deal-ink);box-shadow:inset 0 0 0 1.5px var(--deal)}
+.mvt{flex:1;min-width:0;line-height:1.25}.mvt b{display:block;font-size:13.5px}.mvt small{display:block;font-size:11.5px;font-weight:500;opacity:.92}
+.addbtn.deal{background:var(--deal);color:var(--on-deal);box-shadow:0 2px 8px color-mix(in srgb,var(--deal) 35%,transparent)}
+.movebtn{position:relative;border:0;border-radius:11px;background:var(--deal);color:var(--on-deal);display:flex;align-items:center;gap:8px;text-align:left;padding:7px 10px;min-height:44px;width:100%;box-shadow:0 2px 8px color-mix(in srgb,var(--deal) 35%,transparent)}
+.on{font-size:12px;font-weight:600;color:var(--accent);white-space:nowrap;display:flex;align-items:center;gap:3px}
+.on svg{width:14px;height:14px}
+
+.chip svg{width:12px;height:12px;flex:0 0 12px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;border-radius:8px;padding:3px 8px;border:0;line-height:1.3;font-family:inherit}
+.chip.deal{background:var(--deal-soft);color:var(--deal-ink)}
+.chip.deal.soon{background:transparent;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--deal) 55%,transparent);font-weight:500}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.pill{font-size:11.5px;line-height:1.5;background:var(--surface2);color:var(--ink2);border-radius:7px;padding:1px 7px}
+.pill.offer{background:var(--deal-soft);color:var(--deal-ink);font-weight:600}
+.pill.store{background:var(--ink);color:var(--surface);font-weight:600}
+
+.offerli{align-items:center}
+.priceline{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;margin-top:4px}
+.priceline .now{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.priceline .was{font-size:12.5px;color:var(--ink3);text-decoration:line-through}
+.priceline .save{font-size:12.5px;color:var(--accent);font-weight:700}
+
+.empty{color:var(--ink3);font-size:14px;padding:18px 16px;text-align:center}
+.tools{display:flex;justify-content:center;margin:4px 0 12px}
+.tools button{font-size:13px;font-weight:600;border:0;background:transparent;color:var(--ink2);border-radius:999px;padding:8px 14px}
+.tools button:active{background:var(--surface)}
+
+.search{display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:12px;padding:0 12px;margin:0 16px}
+.search svg{width:17px;height:17px;color:var(--ink3)}
+.search input{flex:1;font:inherit;font-size:16px;border:0;background:transparent;color:var(--ink);padding:10px 0;outline:none;min-width:0}
+.seg{display:flex;background:var(--surface2);border-radius:11px;padding:3px;margin:10px 16px 6px}
+.seg button{flex:1;border:0;background:transparent;font-size:13px;font-weight:600;color:var(--ink2);border-radius:9px;padding:7px 8px}
+.seg button small{display:block;font-size:10.5px;font-weight:500;color:var(--ink3)}
+.seg button{line-height:1.2;padding:6px 4px}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+li.editor{display:flex;flex-wrap:wrap;gap:6px;padding:4px 14px 12px 51px}
+li.editor::before{display:none}
+.editor select{font:inherit;font-size:14px;padding:8px;border:0;border-radius:10px;background:var(--surface2);color:var(--ink);flex:1;min-width:140px}
+.editor button{font-size:14px;font-weight:700;border:0;border-radius:10px;padding:8px 16px;background:var(--accent);color:var(--on-accent)}
+.check::after,.qty button::after,.addbtn::after{content:"";position:absolute;inset:-9px -4px}
+.check::after{inset:-10px}
+.cath{position:sticky;top:var(--toph,64px);z-index:5}
+.card>.grp:last-child ul{border-bottom-left-radius:var(--r)}
+.card>.grp:first-child .cath{border-top-left-radius:var(--r);border-top-right-radius:var(--r)}
+.toast{position:fixed;left:14px;right:14px;margin:0 auto;width:fit-content;bottom:calc(env(safe-area-inset-bottom) + 76px);transform:translateY(20px);opacity:0;z-index:30;
+  display:flex;align-items:center;gap:14px;background:var(--ink);color:var(--surface);border-radius:14px;padding:10px 10px 10px 16px;
+  font-size:14px;font-weight:600;box-shadow:0 8px 28px rgba(0,0,0,.25);transition:opacity .2s,transform .2s;max-width:460px;pointer-events:none}
+.toast.show{opacity:1;transform:none;pointer-events:auto}
+.toast button{border:0;background:color-mix(in srgb,var(--surface) 18%,transparent);color:var(--surface);font-weight:700;font-size:14px;border-radius:9px;padding:7px 12px}
+.toast button:empty{display:none}
+.toast:not(:has(button:not(:empty))){padding-right:16px}
+@media (min-width:860px){.toast{bottom:24px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body data-tab="list">
+<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v24</span></div></header>
+<div id="demo" class="demo" hidden>Demo: listen gemmes kun på denne enhed.</div>
+
+<div class="cols">
+  <div class="pane" id="pane-list">
+    <div class="panehead">Indkøbsliste</div>
+    <section class="card addcard">
+      <form class="add" id="addForm" autocomplete="off">
+        <label class="field"><span data-ic="search"></span><input name="t" id="addInput" placeholder="Skriv en vare · Shkruaj artikullin" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+        <button aria-label="Tilføj" data-ic="plus"></button>
+      </form>
+      <ul class="ac" id="ac" hidden></ul>
+      <div class="hint" id="hint"></div>
+    </section>
+    <div id="stores"></div>
+    <div class="tools"><button id="clearDone">Ryd afkrydsede</button></div>
+  </div>
+
+  <div class="pane" id="pane-offers" hidden>
+    <div class="panehead">Tilbud</div>
+    <section class="card">
+      <div class="sech"><h2>Køb på lager</h2><div class="s2">Blej për rezervë · holdbare varer, ca. 6 ugers forbrug</div><div class="big" id="stockSave"></div></div>
+      <div id="stock"></div>
+    </section>
+    <section class="card">
+      <div class="sech"><h2>Ugens tilbud</h2><div class="s2">Ofertat e javës · friske varer, kun til denne uge</div></div>
+      <div id="weekly"></div>
+    </section>
+  </div>
+
+  <div class="pane" id="pane-sugg" hidden>
+    <div class="panehead">Forslag</div>
+    <section class="card">
+      <div class="sech"><h2>Det plejer I at købe</h2><div class="s2">Zakonisht blini</div></div>
+      <label class="search"><span data-ic="search"></span><input id="suggSearch" placeholder="Søg · Kërko"></label>
+      <div class="seg chips"><button data-f="due" aria-pressed="true">Tid til<small>Koha</small></button><button data-f="top" aria-pressed="false">Oftest købt<small>Më shpesh</small></button><button data-f="all" aria-pressed="false">Alle<small>Të gjitha</small></button></div>
+      <div id="sugg"></div>
+    </section>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button id="toastUndo"></button></div>
+<nav class="tabs" role="tablist">
+  <button role="tab" aria-selected="true" data-tab="list"><span class="ic" data-ic="cart"></span>Indkøbsliste<span class="badge" id="b-list" hidden></span></button>
+  <button role="tab" aria-selected="false" data-tab="offers"><span class="ic" data-ic="tag"></span>Tilbud<span class="badge" id="b-offers" hidden></span></button>
+  <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
+</nav>
+
+<script src="config.js?v=24"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const STORE_ORDER=["Lidl","365discount","Netto","REMA 1000","føtex","MENY","SuperBrugsen","Slagteren"];
+const CATS=[{"id": "fg", "icon": "🥦", "da": "Frugt & grønt", "sq": "Pemë & Perime"}, {"id": "br", "icon": "🥐", "da": "Brød", "sq": "Furra e Bukës"}, {"id": "km", "icon": "🥩", "da": "Kød, fisk & pålæg", "sq": "Mish, Peshk & Meze"}, {"id": "mk", "icon": "🧀", "da": "Mejeri & køl", "sq": "Bulmeti & Frigoriferi"}, {"id": "ko", "icon": "🥫", "da": "Kolonial", "sq": "Produkte të Thata"}, {"id": "rh", "icon": "🧼", "da": "Rengøring & hygiejne", "sq": "Pastrimi & Higjiena"}, {"id": "fr", "icon": "🧊", "da": "Frost", "sq": "Produkte të Ngrira"}, {"id": "dr", "icon": "🥤", "da": "Drikkevarer", "sq": "Pije"}, {"id": "sn", "icon": "🍪", "da": "Slik & snacks", "sq": "Çokollata & Çipsa"}, {"id": "nf", "icon": "🧸", "da": "Non-food", "sq": "Jo-ushqimore"}, {"id": "an", "icon": "🛒", "da": "Andet", "sq": "Tjera"}];
+const CATALOG=[];
+function setCatalog(list){CATALOG.length=0; list.forEach(e=>CATALOG.push(e)); reindex()}
+const CAT=Object.fromEntries(CATS.map(c=>[c.id,c]));
+let BYKEY={};
+const cfg=window.INDKOB_CONFIG||{};
+const live=!!(cfg.url&&cfg.anonKey&&window.supabase);
+let items=[], bought={}, offers=[], sb=null;
+const $=s=>document.querySelector(s);
+const SV=(d,w=2)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const IC={
+  cart:SV('<circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3.5h2.6l2.4 11.2a1.6 1.6 0 0 0 1.6 1.3h8.4a1.6 1.6 0 0 0 1.6-1.2l1.6-7.3H6"/>',1.9),
+  tag:SV('<path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="8" cy="8" r="1.5"/>',1.9),
+  bulb:SV('<path d="M9 18h6M10 21.5h4"/><path d="M12 2.5a6.5 6.5 0 0 0-3.8 11.8c.5.4.8 1 .8 1.7V16h6v-.1c0-.6.3-1.2.8-1.6A6.5 6.5 0 0 0 12 2.5Z"/>',1.9),
+  plus:SV('<path d="M12 5v14M5 12h14"/>',2.4),
+  minus:SV('<path d="M5 12h14"/>',2.4),
+  arrow:SV('<path d="M5 12h14M13 6l6 6-6 6"/>',2.4),
+  check:SV('<path d="m5 12.5 4.5 4.5L19 7.5"/>',3),
+  search:SV('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',2),
+  trash:SV('<path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/>',2)};
+const svgEl=n=>{const t=document.createElement("template"); t.innerHTML=IC[n]; return t.content.firstChild};
+document.querySelectorAll("[data-ic]").forEach(e=>e.innerHTML=IC[e.dataset.ic]);
+const status=t=>$("#status").textContent=t;
+const uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
+const fold=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9æøå ]/g," ").replace(/\s+/g," ").trim();
+
+/* ---------- genkendelse af varer (dansk + albansk) ---------- */
+let INDEX=[];
+function reindex(){
+  BYKEY=Object.fromEntries(CATALOG.map(c=>[c.key,c]));
+  INDEX=[]; CATALOG.forEach(c=>[c.da,c.sq,...(c.alias||[])].forEach(w=>{const f=fold(w); if(f.length>=2)INDEX.push([f,c])}));
+  INDEX.sort((a,b)=>b[0].length-a[0].length);
+}
+function addProduct(p){const i=CATALOG.findIndex(c=>c.key===p.key); const e={key:p.key,da:p.da,sq:p.sq||p.da,cat:p.cat||"an",store:p.store||"Lidl",alias:[],own:true};
+  if(i>=0)Object.assign(CATALOG[i],e); else CATALOG.push(e); reindex()}
+reindex();
+function match(text){
+  const f=fold(text); if(!f)return null;
+  for(const [w,c] of INDEX){ if(f===w)return c }
+  for(const [w,c] of INDEX){ if(w.length>=3&&(` ${f} `.includes(` ${w} `)||(f.length>=4&&w.startsWith(f))))return c }
+  for(const [w,c] of INDEX){ if(w.length>=4&&f.includes(w))return c }
+  return null;
+}
+
+/* ---------- data ---------- */
+const local={load(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+async function loadAll(){
+  {const c=local.load("indkob-catalog"); if(Array.isArray(c))setCatalog(c)}
+  if(!live){items=local.load("indkob-items")||[];bought=local.load("indkob-bought")||{};offers=local.load("indkob-offers")||[];(local.load("indkob-products")||[]).forEach(addProduct);$("#demo").hidden=false;render();return}
+  sb=window.supabase.createClient(cfg.url,cfg.anonKey);
+  const [a,b,o,pr,cg]=await Promise.all([sb.from("items").select("*").order("created_at"),sb.from("bought").select("key,at").order("at"),sb.from("offers").select("*").gte("valid_to",today()),sb.from("products").select("*"),sb.from("catalog").select("data").limit(5000)]);
+  if(cg.data&&cg.data.length){setCatalog(cg.data.map(r=>r.data)); local.save("indkob-catalog",CATALOG.filter(e=>!e.own))}
+  offers=o.data||[]; (pr.data||[]).forEach(addProduct);
+  if(a.error){status("Kunne ikke hente listen");return}
+  items=a.data; (b.data||[]).forEach(r=>{bought[r.key]=r.at.slice(0,10)}); render(); status("");
+  sb.channel("items").on("postgres_changes",{event:"*",schema:"public",table:"items"},p=>{
+    if(p.eventType==="DELETE")items=items.filter(i=>i.id!==p.old.id);
+    else{const i=items.findIndex(x=>x.id===p.new.id); if(i>=0)items[i]=p.new; else items.push(p.new)}
+    render();
+  }).on("postgres_changes",{event:"*",schema:"public",table:"offers"},async()=>{const r=await sb.from("offers").select("*").gte("valid_to",today()); offers=r.data||offers; render()})
+  .on("postgres_changes",{event:"*",schema:"public",table:"products"},p=>{if(p.new&&p.new.key){addProduct(p.new);render()}})
+  .on("postgres_changes",{event:"INSERT",schema:"public",table:"bought"},p=>{bought[p.new.key]=p.new.at.slice(0,10);render()}).subscribe();
+}
+const saveLocal=()=>{if(!live){local.save("indkob-items",items);local.save("indkob-bought",bought)}};
+async function saveProduct(p){
+  addProduct(p);
+  if(live){const {error}=await sb.from("products").upsert({key:p.key,da:p.da,sq:p.sq||p.da,cat:p.cat||"an",store:p.store||"Lidl"}); if(error)status("Vare ikke husket")}
+  else{const all=CATALOG.filter(c=>c.own).map(({key,da,sq,cat,store})=>({key,da,sq,cat,store})); local.save("indkob-products",all)}
+}
+async function addItem(text,qty,entry,storeOverride){
+  entry=entry||match(text);
+  if(!entry){const p={key:"u:"+fold(text),da:text,sq:text,cat:"an",store:"Lidl"}; await saveProduct(p); entry=BYKEY[p.key]}
+  const existing=entry&&items.find(i=>i.key===entry.key&&!i.checked);
+  if(existing&&storeOverride&&existing.store!==storeOverride){return patch(existing.id,{store:storeOverride,qty:String(Math.max(parseInt(existing.qty)||1,qty))})}
+  if(existing){return patch(existing.id,{qty:String((parseInt(existing.qty)||1)+qty)})}
+  const it={id:uid(),text:entry?entry.da:text,name_da:entry?entry.da:null,name_sq:entry?entry.sq:null,key:entry?entry.key:null,
+    qty:String(qty),store:storeOverride||(entry?entry.store:"Lidl"),category:entry?entry.cat:"an",note:null,suggested:false,checked:false,created_at:new Date().toISOString()};
+  items.push(it); render();
+  if(live){const {created_at,...row}=it; const {error}=await sb.from("items").insert(row); if(error)status("Ikke gemt – prøv igen")} else saveLocal();
+}
+async function patch(id,changes){
+  const it=items.find(i=>i.id===id); if(!it)return;
+  Object.assign(it,changes); render();
+  if(live){const {error}=await sb.from("items").update(changes).eq("id",id); if(error)status("Ikke gemt – prøv igen")} else saveLocal();
+}
+async function toggle(it){
+  const v=!it.checked; await patch(it.id,{checked:v});
+  if(!it.key)return;
+  const store=it.store||"Lidl";
+  if(v){
+    bought[it.key]=today();
+    const e=BYKEY[it.key]||{};
+    const row={key:it.key,item_id:it.id,name_da:it.name_da||e.da||it.text,name_sq:it.name_sq||e.sq||null,
+      qty:parseInt(it.qty)||1,store,price:unitPrice(it.key,store)};
+    if(live){const {error}=await sb.from("bought").insert(row); if(error)status("Køb ikke registreret")} else saveLocal();
+  }else{
+    if(live){await sb.from("bought").delete().eq("item_id",it.id)}
+  }
+  render();
+}
+async function remove(ids,quiet){
+  const gone=items.filter(i=>ids.includes(i.id));
+  items=items.filter(i=>!ids.includes(i.id)); render();
+  if(!quiet&&gone.length)toast(gone.length===1?`${names(gone[0])[0]} slettet`:`${gone.length} varer ryddet`,()=>restore(gone));
+  if(live){const {error}=await sb.from("items").delete().in("id",ids); if(error)status("Ikke slettet – prøv igen")} else saveLocal();
+}
+
+/* ---------- besked med fortryd ---------- */
+let toastT=null;
+function toast(msg,undo){
+  const t=$("#toast"); $("#toastMsg").textContent=msg; const u=$("#toastUndo"); u.textContent=undo?"Fortryd":"";
+  u.onclick=undo?()=>{undo(); t.classList.remove("show")}:null;
+  t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),undo?5000:2200);
+}
+async function restore(rows){
+  items.push(...rows); render();
+  if(live){const {error}=await sb.from("items").insert(rows.map(({created_at,...r})=>r)); if(error)status("Ikke gendannet")} else saveLocal();
+}
+/* ---------- priser og tilbud ---------- */
+function today(){const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)}
+const kr=n=>n==null?"":Number(n).toLocaleString("da-DK",{minimumFractionDigits:2,maximumFractionDigits:2})+" kr.";
+const dshort=d=>{const [y,m,dd]=d.split("-");return `${+dd}/${+m}`};
+const refOf=(o,key)=>o.ref_price!=null?+o.ref_price:(BYKEY[key]&&BYKEY[key].price);
+function offersFor(key){return key?offers.filter(o=>o.key===key&&o.valid_to>=today()):[]}
+function bestElsewhere(key,store){
+  return offersFor(key).filter(o=>o.store!==store&&refOf(o,key)!=null&&+o.price<refOf(o,key)).sort((a,b)=>started(b)-started(a)||0).sort((a,b)=>(refOf(b,key)-b.price)-(refOf(a,key)-a.price))[0]||null;
+}
+function sameStore(key,store){return offersFor(key).find(o=>o.store===store&&started(o))||offersFor(key).find(o=>o.store===store)||null}
+function unitPrice(key,store){const o=sameStore(key,store); if(o&&started(o))return +o.price; if(store==="Lidl"){const now=offersFor(key).map(x=>x.ref_price).find(x=>x!=null); if(now!=null)return +now} const e=BYKEY[key]; return e&&e.price!=null?e.price:null}
+const WD=["søn.","man.","tirs.","ons.","tors.","fre.","lør."];
+const dayDiff=d=>Math.round((Date.parse(d)-Date.parse(today()))/864e5);
+const wd=d=>WD[new Date(d+"T12:00:00").getDay()];
+const started=o=>!o.valid_from||o.valid_from<=today();
+function when(o){
+  if(!started(o)){const n=dayDiff(o.valid_from); return n===1?"starter i morgen":`starter ${wd(o.valid_from)} ${dshort(o.valid_from)}`}
+  const n=dayDiff(o.valid_to);
+  return n<=0?"udløber i dag":n===1?"udløber i morgen":`udløber ${wd(o.valid_to)} ${dshort(o.valid_to)}`;
+}
+function priceSpan(key,store,here){
+  const own=sameStore(key,store), e=BYKEY[key];
+  const sp=document.createElement("span");
+  const now=offersFor(key).map(o=>o.ref_price).find(x=>x!=null);
+  const usual=e&&e.price!=null?e.price:null;
+  const at=here?"":`@${store} `;
+  if(own){sp.className="offer"; sp.textContent=`${at}tilbud ${kr(own.price)} · ${when(own)}`}
+  else{const t=(store==="Lidl"&&now!=null?`${kr(now)}`+(usual!=null&&Math.abs(now-usual)>=1?` · plejer ${kr(usual)}`:""):(usual!=null?`ca. ${kr(usual)}`:"")); sp.textContent=(at+t).trim()}
+  return sp;
+}
+function cheapChip(key,store,onMove){
+  const b=bestElsewhere(key,store); if(!b)return null;
+  const c=document.createElement("span"); c.className="chip deal"+(started(b)?"":" soon");
+  c.append(svgEl("tag"),document.createTextNode(`${b.store} ${kr(b.price)} · spar ${kr(refOf(b,key)-b.price)} · ${when(b)}`+(b.note?` · ${b.note}`:"")));
+  return c;
+}
+function liveDeal(key,store){const b=bestElsewhere(key,store); return b&&started(b)?b:null}
+function addButton(e,qty,onDone){
+  const d=liveDeal(e.key,e.store);
+  const b=document.createElement("button"); b.className="addbtn"+(d?" deal":""); b.append(svgEl("plus"));
+  b.setAttribute("aria-label",d?`Tilføj ${e.da} på tilbud @${d.store}`:`Tilføj ${e.da}`);
+  b.onclick=ev=>{ev.stopPropagation(); addItem(e.da,qty,e,d?d.store:undefined); toast(`${e.da} lagt på listen · ${d?d.store:(e.store||"Lidl")}`); if(onDone)onDone()};
+  return b;
+}
+function lookFor(key,store){
+  const o=sameStore(key,store); if(o&&o.title)return o.title+(o.size?` (${o.size})`:"");
+  const e=BYKEY[key]; if(e&&e.prod&&e.prod.length&&store===(e.store||"Lidl"))return e.prod.join(" / ");
+  return "";
+}
+function lookLine(text){if(!text)return null; const l=document.createElement("span"); l.className="look"; l.append(svgEl("search"),document.createTextNode(text)); return l}
+function pills(parts){const d=document.createElement("div"); d.className="pills";
+  parts.filter(Boolean).forEach(x=>{if(typeof x==="string"){const p=document.createElement("span"); p.className="pill"; p.textContent=x; d.append(p)} else {x.classList.add("pill"); d.append(x)}}); return d}
+function alt(text){if(!text)return null; const a=document.createElement("span"); a.className="alt"; a.textContent=text; return a}
+function subLine(parts){const s=document.createElement("span"); s.className="sub";
+  parts.filter(Boolean).forEach((x,i)=>{if(i)s.append(" · "); s.append(typeof x==="string"?document.createTextNode(x):x)}); return s}
+function metaChips(key,store,onMove){
+  const box=document.createElement("div"); box.className="meta";
+  const own=sameStore(key,store), e=BYKEY[key];
+  const p=document.createElement("span"); p.className="chip"+(own?" offer":"");
+  const now=offersFor(key).map(o=>o.ref_price).find(x=>x!=null);
+  const usual=e&&e.price!=null?e.price:null;
+  p.textContent=own?`@${store} tilbud ${kr(own.price)} · ${when(own)}`
+    :`@${store}`+(store==="Lidl"&&now!=null?` nu ca. ${kr(now)}`+(usual!=null&&Math.abs(now-usual)>=1?` · I plejer at give ${kr(usual)}`:""):(usual!=null?` ca. ${kr(usual)}`:""));
+  box.append(p);
+  const b=bestElsewhere(key,store);
+  if(b){const c=document.createElement(onMove?"button":"span"); c.className="chip cheap";
+    c.textContent=`Billigere @${b.store} ${kr(b.price)} · spar ${kr(refOf(b,key)-b.price)} · ${when(b)}`+(b.note?` · ${b.note}`:"");
+    if(onMove){c.setAttribute("aria-label",`Flyt til ${b.store}`); c.onclick=()=>onMove(b.store)}
+    box.append(c)}
+  return box;
+}
+
+/* ---------- visning ---------- */
+const catName=id=>{const c=CAT[id]||CAT.an; return `${c.icon} ${c.da} · ${c.sq}`};
+function names(it){
+  if(it.name_sq||it.name_da){return [it.name_da||it.name_sq, it.name_da&&it.name_sq&&it.name_sq!==it.name_da?it.name_sq:""]}
+  const e=it.key&&BYKEY[it.key]; if(e)return [e.da,e.sq!==e.da?e.sq:""];
+  return [it.text,""];
+}
+function row(it){
+  const li=document.createElement("li"); if(it.checked)li.className="done";
+  const c=document.createElement("button"); c.className="check"; c.setAttribute("aria-label","Afkryds"); c.append(svgEl("check")); c.onclick=()=>toggle(it);
+  const t=document.createElement("div"); t.className="txt";
+  const [a,b]=names(it);
+  const nm=document.createElement("span"); nm.className="nm"; nm.textContent=a;
+  if(it.suggested){const s=document.createElement("span"); s.className="tag"; s.textContent="forslag"; nm.append(s)}
+  t.append(nm);
+  t.append(subLine([b, it.key?priceSpan(it.key,it.store||"Lidl",true):null, it.note]));
+  if(it.key){const l=lookLine(lookFor(it.key,it.store||"Lidl")); if(l)t.append(l)}
+  if(it.key){const st=it.store||"Lidl", e=BYKEY[it.key], home=(e&&e.store)||"Lidl"; const m=document.createElement("div"); m.className="meta";
+    const dl=!it.checked&&bestElsewhere(it.key,st);
+    if(dl){const mv=document.createElement("button"); mv.className="movebtn"+(started(dl)?"":" soon");
+      const tx=document.createElement("span"); tx.className="mvt";
+      const t1=document.createElement("b"); t1.textContent=`Flyt til ${dl.store}`;
+      const t2=document.createElement("small"); t2.textContent=`${kr(dl.price)} · spar ${kr(refOf(dl,it.key)-dl.price)} · ${started(dl)?when(dl):"gælder fra "+wd(dl.valid_from)+" "+dshort(dl.valid_from)}`+(dl.note?` · ${dl.note}`:"");
+      tx.append(t1,t2); mv.append(svgEl("tag"),tx,svgEl("arrow"));
+      mv.setAttribute("aria-label",`Flyt ${a} til ${dl.store}`);
+      mv.onclick=()=>{patch(it.id,{store:dl.store}); toast(`${a} flyttet til ${dl.store}`,()=>patch(it.id,{store:st}))}; m.append(mv)}
+    else{const ch=cheapChip(it.key,st); if(ch)m.append(ch)}
+    if(st!==home&&!offersFor(it.key).some(o=>o.store===st)&&!(e&&e.own)){const w=document.createElement("button"); w.className="chip warn"; w.textContent=`Tilbuddet @${st} er udløbet → flyt tilbage til ${home}`; w.onclick=()=>patch(it.id,{store:home}); m.append(w)}
+    if(m.childNodes.length)t.append(m)}
+  t.onclick=ev=>{if(ev.target.closest("button"))return; openEditor(li,it)};
+  const q=document.createElement("div"); q.className="qty";
+  const n=parseInt(it.qty)||1;
+  const minus=document.createElement("button"); minus.append(svgEl(n>1?"minus":"trash")); minus.setAttribute("aria-label",n>1?"Færre":"Slet");
+  minus.onclick=()=>n>1?patch(it.id,{qty:String(n-1)}):remove([it.id]);
+  const sp=document.createElement("span"); sp.textContent=n;
+  const plus=document.createElement("button"); plus.append(svgEl("plus")); plus.setAttribute("aria-label","Flere"); plus.onclick=()=>patch(it.id,{qty:String(n+1)});
+  q.append(minus,sp,plus);
+  li.append(c,t,q); return li;
+}
+function openEditor(li,it){
+  const nx=li.nextElementSibling; if(nx&&nx.classList.contains("editor")){nx.remove();return}
+  const ed=document.createElement("li"); ed.className="editor";
+  const cs=document.createElement("select"); CATS.forEach(c=>{const o=document.createElement("option"); o.value=c.id; o.textContent=`${c.icon} ${c.da} · ${c.sq}`; if((it.category||"an")===c.id)o.selected=true; cs.append(o)});
+  const ss=document.createElement("select"); [...new Set([...STORE_ORDER,it.store||"Lidl"])].forEach(n=>{const o=document.createElement("option"); o.value=n; o.textContent=n; if((it.store||"Lidl")===n)o.selected=true; ss.append(o)});
+  const ok=document.createElement("button"); ok.textContent="Gem";
+  ok.onclick=async()=>{const cat=cs.value, store=ss.value; await patch(it.id,{category:cat,store});
+    const e=it.key&&BYKEY[it.key]; if(e&&(e.own||!e.n))await saveProduct({key:e.key,da:e.da,sq:e.sq,cat,store})};
+  ed.append(cs,ss,ok); li.after(ed);
+}
+function catHead(id,count){
+  const c=CAT[id]||CAT.an; const h=document.createElement("div"); h.className="cath";
+  const i=document.createElement("span"); i.className="ci"; i.textContent=c.icon;
+  const n=document.createElement("span"); n.className="cn"; n.textContent=c.da; const sm=document.createElement("small"); sm.textContent=c.sq; n.append(sm);
+  h.append(i,n); if(count!=null){const k=document.createElement("span"); k.className="cc"; k.textContent=count; h.append(k)} return h;
+}
+function group(id,count,lis,cls){const g=document.createElement("div"); g.className="grp c-"+((CAT[id]&&id)||"an");
+  g.append(catHead(id,count)); const ul=document.createElement("ul"); if(cls)ul.className=cls; lis.forEach(l=>ul.append(l)); g.append(ul); return g}
+const HEAD={list:["Indkøbsliste","Lista e blerjes","cart"],offers:["Tilbud","Ofertat","tag"],sugg:["Forslag","Sugjerime","bulb"]};
+let tab="list", info={};
+function setHead(){const [a,b,ic]=HEAD[tab]; $("#ttl").textContent=a; $("#tsub").textContent=b; $("#ticon").innerHTML=IC[ic];
+  const x=info[tab]; $("#tinfo").innerHTML=x?`<b>${x[0]}</b>${x[1]}`:""}
+function render(){
+  const wrap=$("#stores"); wrap.innerHTML="";
+  const rank=(arr,x)=>((arr.indexOf(x)+1)||99);
+  const stores=[...new Set(items.map(i=>i.store||"Lidl"))].sort((a,b)=>rank(STORE_ORDER,a)-rank(STORE_ORDER,b));
+  if(!items.length){const e=document.createElement("div"); e.className="card empty"; e.textContent="Listen er tom. Skriv en vare ovenfor, eller tilføj fra Forslag."; wrap.append(e)}
+  const catIds=CATS.map(c=>c.id); let grand=0;
+  stores.forEach(s=>{
+    const list=items.filter(i=>(i.store||"Lidl")===s);
+    const card=document.createElement("section"); card.className="card";
+    const left=list.filter(i=>!i.checked).length;
+    const tot=list.filter(i=>!i.checked).reduce((a,i)=>a+(unitPrice(i.key,s)||0)*(parseInt(i.qty)||1),0); grand+=tot;
+    const h=document.createElement("div"); h.className="storeh";
+    const av=document.createElement("span"); av.className="av"+(s==="Lidl"?"":" alt"); av.textContent=s.replace(/[^A-Za-zÆØÅæøå0-9]/g,"").slice(0,1).toUpperCase();
+    const sn=document.createElement("div"); sn.className="sn"; const nb=document.createElement("b"); nb.textContent=s; const ns=document.createElement("span");
+    ns.textContent=left?`${left} af ${list.length} tilbage`:"Alt er købt ✓"; sn.append(nb,ns);
+    h.append(av,sn);
+    if(tot>0){const sm=document.createElement("div"); sm.className="sum"; sm.innerHTML=`<b>${kr(Math.round(tot))}</b>ca. i alt`; h.append(sm)}
+    card.append(h);
+    const pg=document.createElement("div"); pg.className="prog"; const pi=document.createElement("i"); pi.style.width=(list.length?100*(list.length-left)/list.length:0)+"%"; pg.append(pi); card.append(pg);
+    const cats=[...new Set(list.map(i=>i.category||"an"))].sort((a,b)=>rank(catIds,a)-rank(catIds,b));
+    cats.forEach(c=>{
+      const arr=list.filter(i=>(i.category||"an")===c).sort((a,b)=>a.checked-b.checked);
+      card.append(group(c,arr.filter(i=>!i.checked).length||"✓",arr.map(row)));
+    });
+    wrap.append(card);
+  });
+  const open=items.filter(i=>!i.checked).length; const bl=$("#b-list"); bl.hidden=!open; bl.textContent=open;
+  info.list=open?[`${open} ${open===1?"vare":"varer"}`,grand>0?`ca. ${kr(Math.round(grand))}`:""]:null;
+  renderSugg(); renderOffers(); setHead();
+}
+function lastBought(e){const a=e.last||"", b=bought[e.key]||""; return a>b?a:b}
+function daysSince(d){return d?Math.floor((Date.now()-Date.parse(d))/864e5):null}
+const SHELF=new Set(["ko","rh","fr"]);
+const SHELF_KEYS=new Set(["kaffe","te","ris","pasta","olie","hvedemel","sukker","honning","toiletpapir","koekkenrulle","affaldsposer","vaskemiddel","opvask","saft"]);
+const holdbar=e=>SHELF.has(e.cat)||SHELF_KEYS.has(e.key);
+function maxOf(o){const m=/maks\.?\s*(\d+)/i.exec(`${o.note||""} ${o.title||""}`); return m?+m[1]:null}
+function renderOffers(){
+  const t=today(); const stock=$("#stock"), weekly=$("#weekly"); stock.innerHTML=""; weekly.innerHTML="";
+  const rel=offers.filter(o=>o.valid_to>=t&&BYKEY[o.key]).map(o=>({o,e:BYKEY[o.key],save:(refOf(o,o.key)||0)-o.price})).filter(x=>x.save>0)
+    .sort((a,b)=>b.save*(b.e.qty||1)-a.save*(a.e.qty||1));
+  const onList=new Map(items.filter(i=>!i.checked&&i.key).map(i=>[i.key,i]));
+  let total=0;
+  const draw=(box,arr,stockMode)=>{
+    if(!arr.length){const d=document.createElement("div"); d.className="empty"; d.textContent="Ingen lige nu."; box.append(d); return}
+    const ul=document.createElement("ul"); ul.className="offerul";
+    arr.forEach(({o,e,save})=>{
+      const weekly=e.tot?e.tot/52:(e.every?(e.qty||1)*7/e.every:(e.qty||1)/2);
+      let q=stockMode?Math.max(e.qty||1,Math.round(weekly*6)):(e.qty||1);
+      const mx=maxOf(o); if(mx)q=Math.min(q,mx);
+      if(stockMode)total+=save*q;
+      const li=document.createElement("li"); li.className="offerli";
+      const tx=document.createElement("div"); tx.className="txt";
+      const nm=document.createElement("span"); nm.className="nm"; nm.textContent=e.da; tx.append(nm);
+      const a=alt(e.sq!==e.da?e.sq:""); if(a)tx.append(a);
+      {const l=lookLine((o.title||"")+(o.size?` (${o.size})`:"")); if(l)tx.append(l)}
+      const pl=document.createElement("div"); pl.className="priceline";
+      const nw=document.createElement("span"); nw.className="now"; nw.textContent=kr(o.price);
+      const was=document.createElement("span"); was.className="was"; was.textContent=kr(refOf(o,o.key));
+      const sv=document.createElement("span"); sv.className="save"; sv.textContent=`Spar ${kr(Math.round(save*q*100)/100)}`+(q>1?` på ${q} stk.`:"");
+      pl.append(nw,was,sv); tx.append(pl);
+      const sp=document.createElement("span"); sp.className="store"; sp.textContent=o.store;
+      tx.append(pills([sp, when(o), o.note||""]));
+      li.append(tx);
+      const it=onList.get(e.key);
+      if(it&&it.store===o.store){const s=document.createElement("span"); s.className="on"; s.append(svgEl("check"),document.createTextNode("På listen")); li.append(s)}
+      else{const b=document.createElement("button"); b.className="addbtn"+(started(o)?" deal":""); b.append(svgEl("plus")); b.setAttribute("aria-label",`Tilføj ${q} stk. ${e.da} @${o.store}`); b.onclick=()=>{addItem(e.da,q,e,o.store); toast(`${q>1?q+" × ":""}${e.da} lagt på listen · ${o.store}`)}; li.append(b)}
+      ul.append(li);
+    });
+    box.append(ul);
+  };
+  draw(stock,rel.filter(x=>holdbar(x.e)),true);
+  draw(weekly,rel.filter(x=>!holdbar(x.e)),false);
+  $("#stockSave").textContent=total>0?`Spar ca. ${kr(Math.round(total))} ved at købe på lager nu`:"";
+  const bo=$("#b-offers"); bo.hidden=!rel.length; bo.textContent=rel.length;
+  const allSave=rel.reduce((a,x)=>a+x.save*(x.e.qty||1),0);
+  info.offers=rel.length?[`${rel.length} tilbud`,`spar ca. ${kr(Math.round(allSave))}`]:null;
+}
+let suggFilter="due";
+function renderSugg(){
+  const box=$("#sugg"); box.innerHTML="";
+  const q=fold($("#suggSearch").value);
+  const onList=new Set(items.filter(i=>!i.checked&&i.key).map(i=>i.key));
+  const ratio=e=>{const d=daysSince(lastBought(e)); return e.every&&d!=null?d/e.every:0};
+  const isDue=e=>e.n>=4&&ratio(e)>=0.8&&ratio(e)<=3;
+  let list=CATALOG.filter(e=>!q||fold(e.da).includes(q)||fold(e.sq).includes(q)||(e.alias||[]).some(a=>fold(a).includes(q)));
+  const dueCount=CATALOG.filter(e=>isDue(e)&&!onList.has(e.key)).length; const bs=$("#b-sugg"); bs.hidden=!dueCount; bs.textContent=dueCount;
+  info.sugg=dueCount?[`${dueCount} varer`,"er ved at slippe op"]:null; if(tab==="sugg")setHead();
+  if(!q&&suggFilter==="due")list=list.filter(e=>isDue(e)&&!onList.has(e.key));
+  if(!q&&suggFilter==="top")list=list.filter(e=>(e.n||0)>=3);
+  if(!list.length){const e=document.createElement("div"); e.className="empty"; e.textContent=suggFilter==="due"&&!q?"Intet er ved at slippe op lige nu. Se \"Oftest købt\".":"Ingen varer fundet."; box.append(e); return}
+  const mk=e=>{
+      const li=document.createElement("li");
+      const t=document.createElement("div"); t.className="txt";
+      const nm=document.createElement("span"); nm.className="nm"; nm.textContent=e.da;
+      if(isDue(e)&&(q||suggFilter!=="due")){const s=document.createElement("span"); s.className="tag due"; s.textContent="tid til"; nm.append(s)}
+      t.append(nm);
+      const d=daysSince(lastBought(e));
+      const a=alt(e.sq!==e.da?e.sq:""); if(a)t.append(a);
+      {const l=lookLine(lookFor(e.key,e.store)); if(l)t.append(l)}
+      const freq=suggFilter==="top"&&!q?(e.n?`${e.n} gange i år`:""):(e.every?`hver ${e.every}. dag`:"");
+      t.append(subLine([priceSpan(e.key,e.store), freq, d!=null?(d>365?"sidst for over et år siden":`sidst for ${d} dage siden`):""]));
+      const ch=cheapChip(e.key,e.store); if(ch){const m=document.createElement("div"); m.className="meta"; m.append(ch); t.append(m)}
+      li.append(t);
+      if(onList.has(e.key)){const o=document.createElement("span"); o.className="on"; o.append(svgEl("check"),document.createTextNode("På listen")); li.append(o)}
+      else li.append(addButton(e,e.qty||1));
+      return li;
+  };
+  const top=suggFilter==="top"&&!q;
+  CATS.forEach(c=>{
+    const arr=list.filter(e=>e.cat===c.id).sort(top?((a,b)=>(b.n||0)-(a.n||0)):((a,b)=>(isDue(b)-isDue(a))||((b.n||0)-(a.n||0))||((b.nall||0)-(a.nall||0))));
+    if(!arr.length)return;
+    box.append(group(c.id,arr.length,arr.map(mk),"nocheck"));
+  });
+}
+
+/* ---------- hændelser ---------- */
+function suggestFor(text){
+  const f=fold(text); if(!f)return [];
+  const score=e=>{let best=0; for(const w of [e.sq,e.da,...(e.alias||[])]){const x=fold(w); if(!x)continue;
+      if(x===f)best=Math.max(best,4); else if(x.startsWith(f))best=Math.max(best,3); else if(x.split(" ").some(p=>p.startsWith(f)))best=Math.max(best,2); else if(f.length>=4&&x.includes(f))best=Math.max(best,1)}
+    return best};
+  const catHit=new Set(f.length>=3?CATS.filter(c=>[c.da,c.sq].some(n=>fold(n).split(" ").some(w=>w.startsWith(f)))).map(c=>c.id):[]);
+  const sc=e=>Math.max(score(e),catHit.has(e.cat)?1.5:0);
+  return CATALOG.map(e=>[sc(e),e]).filter(x=>x[0]>0).sort((a,b)=>(b[0]-a[0])||((b[1].n||0)-(a[1].n||0))).slice(0,10).map(x=>x[1]);
+}
+function renderAc(){
+  const box=$("#ac"), v=$("#addInput").value; box.innerHTML="";
+  const list=suggestFor(v);
+  const onList=new Set(items.filter(i=>!i.checked&&i.key).map(i=>i.key));
+  list.forEach(e=>{
+    const li=document.createElement("li");
+    const t=document.createElement("div"); t.className="txt";
+    const nm=document.createElement("span"); nm.className="nm"; nm.textContent=e.da; t.append(nm);
+    t.append(subLine([e.sq!==e.da?e.sq:"", priceSpan(e.key,e.store)]));
+    {const l=lookLine(lookFor(e.key,e.store)); if(l)t.append(l)}
+    const ch=cheapChip(e.key,e.store); if(ch){const m=document.createElement("div"); m.className="meta"; m.append(ch); t.append(m)}
+    const u=document.createElement("span"); u.className="usual";
+    u.textContent=onList.has(e.key)?"på listen ✓":(e.n?`plejer ×${e.qty||1}`:(e.own?"egen vare":""));
+    li.append(t,u);
+    const done=()=>{$("#addInput").value=""; renderAc(); $("#addInput").focus()};
+    if(!onList.has(e.key)){const pb=addButton(e,e.qty||1,done); li.append(pb); li.onclick=()=>pb.click()}
+    box.append(li);
+  });
+  box.hidden=!list.length;
+  const m=match(v); $("#hint").textContent=v&&!list.length?(m?`→ ${m.da} · ${m.sq}`:"Ny vare – tryk Tilføj. Tryk derefter på varen for at vælge kategori og butik."):"";
+}
+$("#addInput").addEventListener("input",renderAc);
+
+$("#addForm").addEventListener("submit",ev=>{ev.preventDefault();
+  const v=$("#addInput").value.trim(); if(!v)return; const q=1;
+  const top=suggestFor(v)[0]; const e=match(v)||top||null;
+  $("#addInput").value=""; addItem(v,(e&&e.qty)||q,e&&fold(v).length>=2?e:null); renderAc()});
+$("#clearDone").onclick=()=>{const ids=items.filter(i=>i.checked).map(i=>i.id); if(ids.length)remove(ids)};
+$("#suggSearch").addEventListener("input",renderSugg);
+document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{suggFilter=b.dataset.f;document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",x===b));renderSugg()});
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+  tab=b.dataset.tab; document.body.dataset.tab=tab; setHead();
+  document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
+  ["list","offers","sugg"].forEach(n=>$("#pane-"+n).hidden=b.dataset.tab!==n); window.scrollTo(0,0);
+});
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}
+const setTop=()=>document.documentElement.style.setProperty("--toph",$(".top").offsetHeight+"px");
+addEventListener("resize",setTop); setHead(); setTop(); loadAll();
+</script>
+</body>
+</html>
