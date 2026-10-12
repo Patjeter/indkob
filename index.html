@@ -163,6 +163,8 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .deal{display:flex;align-items:center;gap:8px;width:100%;min-width:0;font-size:var(--fs-s);line-height:1.35;color:var(--deal-ink);font-weight:400}
 .deal svg{width:14px;height:14px;flex:0 0 14px}
 .deal .dt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* tryk på en afkortet linje 3 viser hele teksten */
+.deal{cursor:pointer}.deal.open{align-items:flex-start}.deal.open .dt{white-space:normal;overflow:visible}.deal.open svg{margin-top:2px}
 .deal.warn{color:var(--warn)}
 .deal.tip{color:var(--accent)}
 .mv{position:relative;flex:0 0 auto;padding:5px 12px;border-radius:999px;font-size:var(--fs-s);font-weight:600;background:var(--deal-soft);color:var(--deal-ink)}
@@ -314,11 +316,11 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
 </nav>
 
-<script src="config.js?v=48"></script>
+<script src="config.js?v=49"></script>
 <script src="supabase.js?v=2.45.4"></script>
 <script>
 "use strict";
-const VERSION="v48";
+const VERSION="v49";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -579,11 +581,12 @@ function applyLidl(){
   LALT=new Map(lalt.map(x=>[x.key,x]));
   LALT.forEach((x,k)=>{const e=BYKEY[k]; if(!e||x.normal_fam==null)return; if(e.price0===undefined)e.price0=e.price; e.price=+x.normal_fam});
 }
+function expandable(d){d.onclick=ev=>{if(ev.target.closest("button"))return; ev.stopPropagation(); d.classList.toggle("open")}; return d}
 const prettyHeading=h=>h.replace(/^((?:[^a-zæøå\s]+\s+)+)/,m=>m.split(/\s+/).filter(Boolean).map(w=>w.charAt(0)+w.slice(1).toLowerCase()).join(" ")+" ");
 function lidlTip(key){
   const x=LALT.get(key); if(!x||!x.own_heading||!(+x.own_save>0))return null;
   const d=el("div","deal tip"); d.append(svgEl("bulb"),el("span","dt",`Lidls eget ${kr(+x.own_price)} · spar ${kr(+x.own_save)} · ${prettyHeading(x.own_heading).trim()}`));
-  return d;
+  return expandable(d);
 }
 const refOf=(o,key)=>o.ref_price!=null?+o.ref_price:(BYKEY[key]&&BYKEY[key].price);
 // automatikken gemmer ALLE godkendte tilbud (ét pr. vare) og markerer Tilbud-fanens udvalg (featured).
@@ -668,7 +671,7 @@ function tile({cat,cls,lead,name,alt,tag,meta,wrap,extra,act,below,sheet,onTap})
   if(onTap)b.onclick=ev=>{if(!ev.target.closest("button"))onTap(ev)};
   li.append(b); if(act)li.append(act);
   if(below){const w=el("div","below"); w.append(below); li.append(w)}
-  if(sheet){sheet.classList.add("below"); li.append(sheet)}
+  if(sheet){sheet.classList.add("below"); li.append(sheet); li.querySelectorAll(".deal").forEach(d=>d.classList.add("open"))}
   return li;
 }
 function addBtn(label,onClick,deal){const b=el("button","add"+(deal?" deal":"")); b.append(svgEl("plus")); b.setAttribute("aria-label",label); b.onclick=ev=>{ev.stopPropagation(); onClick()}; return b}
@@ -677,7 +680,7 @@ function onListMark(){const s=el("span","onlist"); s.append(svgEl("check"),docum
 function dealLine(b,key,q,onMove,brief=!!onMove){
   const d=el("div","deal"+(started(b)?"":" soon")); d.append(svgEl("tag"),el("span","dt",dealText(b,key,q,brief)));
   if(onMove){const m=el("button","mv","Flyt"); m.setAttribute("aria-label",`Flyt til ${b.store}`); m.onclick=onMove; d.append(m)}
-  return d;
+  return expandable(d);
 }
 function stepper(n,unit,step,onSet,onDelete){
   const w=el("div","stepper"), more=n-step>1e-4;
