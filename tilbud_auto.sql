@@ -1,5 +1,5 @@
--- v46 (TEST): automatisk tilbudsmatch i databasen – alle 7 kæder, mod familiens ~200 faste varer.
--- Skriver kun til testtabellen offer_test; appens offers-tabel røres IKKE før testen er godkendt.
+-- v46: automatisk tilbudsmatch i databasen – alle 7 kæder, mod familiens ~200 faste varer, kurateret til appen.
+-- match_offers_test() fylder offer_test (alle vurderinger); publish_offers() kuraterer og lægger de bedste i appens offers (source = 'auto').
 -- Overvågningslisten (watch) indlæses separat (den indeholder familiens egne priser og ligger ikke i repoet).
 
 -- 1) Rå tilbud fra Tjek (alle kæder, hentet avis for avis så føtex' loft på 1000 ikke rammer)
@@ -176,3 +176,81 @@ begin
 end $$;
 revoke all on function public.tjek_fetch_catalogs(), public.tjek_fetch_offers(), public.tjek_process(), public.match_offers_test()
   from public, anon, authenticated;
+
+-- 5) DRIFT: kuratér og læg tilbud i appen (offers, source = 'auto')
+alter table public.offers add column if not exists source text not null default 'claude';
+
+-- sandsynlighed for at varen købes inden for h dage – samme model som appen (egne mellemrum mellem køb)
+create or replace function public.due_prob(k text, h int default 14) returns numeric
+language sql stable security invoker set search_path = public as $$
+  with c as (select data from catalog where key = k),
+  d as (select current_date - greatest((select (data->>'last')::date from c), (select max(at)::date from bought where key = k)) as t),
+  g as (select x::int as g from c, jsonb_array_elements_text(coalesce(c.data->'gaps', '[]'::jsonb)) x)
+  select case
+    when (select t from d) is null or (select count(*) from g) < 3 then 0
+    when not exists (select 1 from g where g > (select t from d)) then
+      case when (select t from d) < 3 * (select percentile_disc(0.5) within group (order by g) from g) then 0.15 else 0 end
+    else round((select count(*) from g where g > (select t from d) and g <= (select t from d) + h)::numeric
+               / (select count(*) from g where g > (select t from d)), 2)
+  end
+$$;
+
+create or replace function public.publish_offers() returns jsonb
+language plpgsql security invoker set search_path = public as $$
+declare n int; kand int; rel int; butikker text;
+begin
+  perform match_offers_test();
+  select count(*) into kand from offer_test where status in ('kandidat','valgt');
+  delete from offers where source = 'auto';
+  create temp table _ok on commit drop as
+  with cand as (
+    select t.*, w.n, w.usual, w.ref_qty, w.cat, o.qty_si, o.description,
+           round((t.ref_unit - t.offer_unit) * w.ref_qty * w.usual, 2) as save_buy,
+           (t.ref_unit - t.offer_unit) / nullif(t.ref_unit, 0) as pct
+      from offer_test t join watch w on w.key = t.key join tjek_offers o on o.id = t.offer_id
+     where t.status in ('kandidat','valgt')
+  ), r as (
+    select c.*,
+           exists (select 1 from items i where i.key = c.key and not i.checked) as on_list,
+           (c.cat in ('ko','rh','fr') or c.key in ('kaffe','te','ris','pasta','olie','hvedemel','sukker','honning',
+             'toiletpapir','koekkenrulle','affaldsposer','vaskemiddel','opvask','saft')) as holdbar,
+           public.due_prob(c.key, 14) as p14
+      from cand c
+     where c.save_buy >= 3 and c.pct >= 0.10                       -- ingen småbeløb
+  )
+  select * from r
+   where on_list                                                 -- står allerede på listen
+      or (holdbar and (save_buy >= 8 or pct >= 0.20))             -- holdbart: værd at købe på lager
+      or (not holdbar and p14 >= 0.30);                           -- friskt: skal sandsynligvis bruges inden 14 dage
+  select count(*) into rel from _ok;
+  with worthy as (                                               -- 50 kr.-reglen: andre kæder kun når turen er det værd
+    select 'Lidl'::text as store
+    union
+    select store from (select store, key, max(save_buy) s from _ok where store <> 'Lidl' group by store, key) x
+     group by store having sum(s) >= 50
+  ), best as (                                                   -- billigste pr. kg/l/stk pr. vare
+    select distinct on (key) * from _ok
+     where store in (select store from worthy) or on_list
+     order by key, offer_unit, valid_from
+  ), uniq as (                                                   -- samme tilbud kun én gang
+    select distinct on (offer_id) * from best order by offer_id, n desc
+  ), top as (
+    select * from uniq order by save_buy desc limit 20
+  ), ins as (
+    insert into offers (key, store, title, size, price, ref_price, valid_from, valid_to, note, source)
+    select key, store, left(heading, 120), left(size, 40), price, round(ref_unit * qty_si, 2), valid_from, valid_to,
+           left((regexp_match(coalesce(description,''), '[Mm]aks\.?\s*\d+[^.\n]*'))[1], 60), 'auto'
+      from top
+    returning store
+  ) select count(*), string_agg(distinct store, ', ') into n, butikker from ins;
+  return jsonb_build_object('godkendte', kand, 'relevante', rel, 'vist_i_appen', n, 'butikker', butikker);
+end $$;
+revoke all on function public.publish_offers(), public.due_prob(text, int) from public, anon;
+grant execute on function public.due_prob(text, int) to authenticated;
+
+-- 6) Hver morgen: 06:30 kataloger → 06:33 tilbudssider → 06:38 gem → 06:40 kuratér og vis i appen (UTC i cron)
+select cron.unschedule(jobname) from cron.job where jobname in ('tilbud-hent','tilbud-sider','tilbud-gem','tilbud-vis');
+select cron.schedule('tilbud-hent',  '30 4 * * *', $c$ select public.tjek_fetch_catalogs(); $c$);
+select cron.schedule('tilbud-sider', '33 4 * * *', $c$ select public.tjek_fetch_offers(); $c$);
+select cron.schedule('tilbud-gem',   '38 4 * * *', $c$ select public.tjek_process(); $c$);
+select cron.schedule('tilbud-vis',   '40 4 * * *', $c$ select public.publish_offers(); $c$);
