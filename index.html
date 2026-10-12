@@ -167,6 +167,8 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .deal{cursor:pointer}.deal.open{align-items:flex-start}.deal.open .dt{white-space:normal;overflow:visible}.deal.open svg{margin-top:2px}
 .deal.warn{color:var(--warn)}
 .deal.tip{color:var(--accent)}
+.tiles.ac .lhead{list-style:none}.tiles.ac .lhead .cat{position:static;padding:10px 4px 4px}
+.lidlmore{margin:4px 20px 8px}.tiles.ac .lmore{list-style:none}.tiles.ac .lmore .lidlmore{margin:4px 0}
 .mv{position:relative;flex:0 0 auto;padding:5px 12px;border-radius:999px;font-size:var(--fs-s);font-weight:600;background:var(--deal-soft);color:var(--deal-ink)}
 .mv::after{content:"";position:absolute;inset:-10px -6px}
 
@@ -301,7 +303,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
   <div class="pane" id="pane-sugg" hidden>
     <div class="panehead">Forslag</div>
     <section class="card">
-      <div class="fieldrow"><label class="field"><span data-ic="search"></span><input id="suggSearch" placeholder="Søg i jeres varer" autocapitalize="off" autocorrect="off"></label></div>
+      <div class="fieldrow"><label class="field"><span data-ic="search"></span><input id="suggSearch" placeholder="Søg i jeres varer og hos Lidl" autocapitalize="off" autocorrect="off"></label></div>
       <div class="segbar" id="segbar"><div class="seg" id="seg"><button data-f="due" aria-pressed="true">14 dage</button><button data-f="d30" aria-pressed="false">30 dage</button><button data-f="top" aria-pressed="false">Oftest</button><button data-f="all" aria-pressed="false">Alle</button></div></div>
       <div id="sugg"></div>
     </section>
@@ -320,7 +322,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <script src="supabase.js?v=2.45.4"></script>
 <script>
 "use strict";
-const VERSION="v49";
+const VERSION="v50";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -425,7 +427,7 @@ async function flush(){
 }
 addEventListener("online",()=>{online=true; flush().then(()=>loaded&&refresh())});
 addEventListener("offline",()=>{online=false; netState()});
-function cacheSoon(){if(live&&loadedOrCached)local.save("indkob-cache",{items,offers,dishes,bought,lalt})}
+function cacheSoon(){if(live&&loadedOrCached)local.save("indkob-cache",{items,offers,dishes,bought,lalt,lsoeg})}
 let loadedOrCached=false;
 const saveDemo=()=>{if(!live){local.save("indkob-items",items);local.save("indkob-bought",bought);local.save("indkob-dishes",dishes)}};
 function changed(){render(); cacheSoon(); saveDemo()}
@@ -440,7 +442,7 @@ async function loadAll(){
   if(recovering){showAuth("recover");return}
   if(!session){showAuth("login");return}
   hideAuth();
-  const c=local.load("indkob-cache"); if(c){items=c.items||[];offers=c.offers||[];dishes=c.dishes||[];bought=c.bought||{};lalt=c.lalt||[];applyLidl();loadedOrCached=true;render()}
+  const c=local.load("indkob-cache"); if(c){items=c.items||[];offers=c.offers||[];dishes=c.dishes||[];bought=c.bought||{};lalt=c.lalt||[];lsoeg=c.lsoeg||[];applyLidl();loadedOrCached=true;render()}
   else showLoading();
   loadData();
 }
@@ -448,17 +450,18 @@ let loaded=false;
 function showLoading(){$("#stores").replaceChildren(el("div","card empty","Henter listen …"))}
 async function fetchAll(){
   return Promise.all([sb.from("items").select("*").order("created_at"),sb.from("bought").select("key,at").order("at"),sb.from("offers").select("*").gte("valid_to",today()),
-    sb.from("products").select("*"),sb.from("catalog").select("data").limit(5000),sb.from("dishes").select("*").order("name_da"),sb.from("lidl_alt").select("*")]);
+    sb.from("products").select("*"),sb.from("catalog").select("data").limit(5000),sb.from("dishes").select("*").order("name_da"),sb.from("lidl_alt").select("*"),
+    sb.from("lidl_soeg").select("pkey,heading,own_brand,size_from,unit,qty_si,si_unit,normal_price,offer_price,offer_from,offer_to,price,unit_price")]);
 }
 async function refresh(){
   let r; try{r=await fetchAll()}catch(e){online=false; netState(); return false}
-  const [a,b,o,pr,cg,ds,la]=r;
+  const [a,b,o,pr,cg,ds,la,ls]=r;
   if(a.error){if(isNetErr(a.error)){online=false;netState();return false} toast("Kunne ikke hente listen"); return false}
   online=true; loadedOrCached=true;
   if(cg.data&&cg.data.length){setCatalog(cg.data.map(x=>x.data)); local.save("indkob-catalog",CATALOG.filter(e=>!e.own))}
   (pr.data||[]).forEach(addProduct);
   items=a.data; offers=o.data||[]; dishes=ds.data||[]; bought={}; (b.data||[]).forEach(x=>{if(x.at)bought[x.key]=String(x.at).slice(0,10)});
-  if(la&&!la.error&&la.data)lalt=la.data; applyLidl();
+  if(la&&!la.error&&la.data)lalt=la.data; if(ls&&!ls.error&&ls.data)lsoeg=ls.data; applyLidl();
   changed(); netState(); return true;
 }
 async function loadData(){
@@ -577,9 +580,17 @@ function when(o){
 }
 /* Lidls standardpriser (lidl_alt): jeres produkts aktuelle Lidl-pris og evt. Lidls eget, billigere alternativ */
 let lalt=[], LALT=new Map();
+let lsoeg=[], LSOEG=[], LBYKEY=new Map();
 function applyLidl(){
   LALT=new Map(lalt.map(x=>[x.key,x]));
   LALT.forEach((x,k)=>{const e=BYKEY[k]; if(!e||x.normal_fam==null)return; if(e.price0===undefined)e.price0=e.price; e.price=+x.normal_fam});
+  // Lidls sortiment (lidl_soeg): søgbart; "det I plejer" og "Lidls eget alternativ" genkendes via lidl_alt
+  const usual=new Map(), alt=new Map();
+  lalt.forEach(x=>{if(x.normal_heading)usual.set(x.normal_heading,x.key); if(x.own_heading)alt.set(x.own_heading,x.key)});
+  LSOEG=lsoeg.map(p=>{const name=prettyHeading(p.heading).trim(), f=fold(name);
+    return {...p,name,f,words:f.split(" "),ukey:"u:"+f,usual:usual.get(p.heading)||null,alt:alt.get(p.heading)||null}});
+  LBYKEY=new Map(LSOEG.map(p=>[p.ukey,p]));
+  CATALOG.forEach(e=>{if(e.own&&e.price==null){const p=LBYKEY.get(e.key); if(p)e.price=+p.price}});
 }
 function expandable(d){d.onclick=ev=>{if(ev.target.closest("button"))return; ev.stopPropagation(); d.classList.toggle("open")}; return d}
 const prettyHeading=h=>h.replace(/^((?:[^a-zæøå\s]+\s+)+)/,m=>m.split(/\s+/).filter(Boolean).map(w=>w.charAt(0)+w.slice(1).toLowerCase()).join(" ")+" ");
@@ -588,6 +599,43 @@ function lidlTip(key){
   const d=el("div","deal tip"); d.append(svgEl("bulb"),el("span","dt",`Lidls eget ${kr(+x.own_price)} · spar ${kr(+x.own_save)} · ${prettyHeading(x.own_heading).trim()}`));
   return expandable(d);
 }
+/* søgning i Lidls sortiment: det I plejer først, så Lidls eget alternativ, så resten efter pris pr. kg/l/stk */
+const lidlHitWord=(p,w)=>p.words.some(x=>x.startsWith(w))||(w.length>=4&&p.f.includes(w));
+function lidlSearch(text,hits){
+  const f=fold(text); if(f.length<2||!LSOEG.length)return [];
+  // jeres egne varer, der matcher søgningen, giver ekstra søgeord (fx "gjalpë" → "Smør")
+  const terms=[{w:f.split(" "),e:null}];
+  (hits||[]).filter(e=>[e.da,e.sq,...(e.alias||[])].some(n=>fold(n).split(" ").some(x=>x.startsWith(f)))).slice(0,3)
+    .forEach(e=>{const w=fold(e.da).split(" ").filter(x=>x.length>=3); if(w.length)terms.push({w,e})});
+  const keys=new Set((hits||[]).map(e=>e.key)), out=[];
+  LSOEG.forEach(p=>{
+    const t=terms.find(t=>t.w.every(w=>lidlHitWord(p,w))); if(!t)return;
+    const mine=p.usual&&keys.has(p.usual)?1:0, alt=p.alt&&keys.has(p.alt)?1:0;
+    out.push({p,via:t.e||(hits||[]).find(e=>e.key===p.usual||e.key===p.alt)||null,rank:mine?0:alt?1:t.e?3:2});
+  });
+  return out.sort((a,b)=>(a.rank-b.rank)||((+a.p.unit_price||1e9)-(+b.p.unit_price||1e9)));
+}
+const sizeText=p=>p.size_from==null?"":`${String(+p.size_from).replace(".",",")} ${({pcs:"stk.",stk:"stk."})[p.unit]||p.unit||""}`.trim();
+function lidlTile(x,on,afterAdd){
+  const p=x.p, fam=p.usual&&BYKEY[p.usual], e=x.via, cat=catOf((fam||e||{}).cat);
+  const key=fam?fam.key:p.ukey, isOn=on.has(key);
+  const add=()=>{
+    if(fam)addItem(fam.da,fam.qty||1,fam,"Lidl");
+    else{if(!BYKEY[p.ukey])saveProduct({key:p.ukey,da:p.name,sq:e?e.sq:p.name,cat,store:"Lidl"}); const n=BYKEY[p.ukey]; if(n.price==null)n.price=+p.price; addItem(p.name,1,n,"Lidl")}
+    toast(`${fam?fam.da:p.name} lagt på listen · Lidl`); afterAdd&&afterAdd()};
+  const act=isOn?onListMark():addBtn(`Tilføj ${p.name} fra Lidl`,add);
+  const badge=p.usual&&fam?"det I plejer":p.alt?"Lidls eget · billigere":p.own_brand?"Lidls eget":null;
+  const unit=p.unit_price!=null?`${kr(p.unit_price)}/${p.si_unit==="stk"?"stk.":p.si_unit}`:"";
+  const fast=p.normal_price!=null?kr(p.normal_price):null;
+  let below=null;
+  if(p.offer_price!=null){const o={store:"Lidl",price:+p.offer_price,valid_from:p.offer_from,valid_to:p.offer_to};
+    below=el("div","deal"+(started(o)?"":" soon")); below.append(svgEl("tag"),el("span","dt",`Tilbud ${kr(p.offer_price)}${fast&&+p.normal_price>+p.offer_price?` · før ${fast}`:""} · ${short(o)}`)); expandable(below)}
+  return tile({cat,name:p.name,alt:sizeText(p),tag:badge,meta:[p.offer_price!=null?strong(kr(p.offer_price)):fast,unit],act,below,onTap:()=>act.click&&act.click()});
+}
+function lidlHead(n,shown){
+  const h=el("div","cat lidlhead"); h.append(el("span","ci","🏷️")); const t=el("span","cn","Fra Lidls sortiment"); t.append(el("small",null,"Nga Lidl")); h.append(t,el("span","cc",shown<n?`${shown} af ${n}`:String(n))); return h;
+}
+function lidlMore(n,onMore){const b=el("button","btn ghost lidlmore",`Vis alle ${n} fra Lidl`); b.type="button"; b.onclick=ev=>{ev.stopPropagation(); onMore()}; return b}
 const refOf=(o,key)=>o.ref_price!=null?+o.ref_price:(BYKEY[key]&&BYKEY[key].price);
 // automatikken gemmer ALLE godkendte tilbud (ét pr. vare) og markerer Tilbud-fanens udvalg (featured).
 // Findes de, bruges kun de; tilbudsopgavens rækker bruges så kun til sammenligning.
@@ -824,9 +872,16 @@ function renderAc(){
       act,below:d?dealLine(d,e.key,e.qty||1):lidlTip(e.key),onTap:()=>act.click&&act.click()});
     box.append(t);
   });
-  box.hidden=!list.length;
-  $("#hint").textContent=v&&!list.length?"Ny vare – tryk + for at tilføje. Tryk bagefter på varen for at vælge kategori og butik.":"";
+  const lh=lidlSearch(v,list);
+  if(lh.length){
+    const N=lidlAllAc?lh.length:Math.min(5,lh.length), hd=el("li","lhead"); hd.append(lidlHead(lh.length,N)); box.append(hd);
+    lh.slice(0,N).forEach(x=>box.append(lidlTile(x,on,()=>{$("#addInput").value=""; renderAc(); $("#addInput").focus()})));
+    if(N<lh.length){const m=el("li","lmore"); m.append(lidlMore(lh.length,()=>{lidlAllAc=true; renderAc()})); box.append(m)}
+  }
+  box.hidden=!list.length&&!lh.length;
+  $("#hint").textContent=v&&!list.length?(lh.length?"Ikke blandt jeres varer. Vælg en fra Lidl, eller tryk + for at tilføje den som ny vare.":"Ny vare – tryk + for at tilføje. Tryk bagefter på varen for at vælge kategori og butik."):"";
 }
+let lidlAllAc=false, lidlAllSugg=false;
 
 /* ---------- Tilbud ---------- */
 function offerRows(){
@@ -873,7 +928,8 @@ function renderSugg(){
   if(!q&&suggFilter==="top")list=list.filter(e=>(e.n||0)>=2);
   info.sugg=[`${list.length} ${list.length===1?"vare":"varer"}`];
   if(tab==="sugg")setHead();
-  if(!list.length){box.append(emptyBox((suggFilter==="due"||suggFilter==="d30")&&!q?"Intet er ved at slippe op i perioden. Se “Oftest”.":"Ingen varer fundet."));return}
+  const lh=q?lidlSearch($("#suggSearch").value,list):[];
+  if(!list.length&&!lh.length){box.append(emptyBox((suggFilter==="due"||suggFilter==="d30")&&!q?"Intet er ved at slippe op i perioden. Se “Oftest”.":"Ingen varer fundet."));return}
   const top=suggFilter==="top"&&!q, WORTH_S=worthStores();
   const mk=e=>{
     const d=bestElsewhere(e.key,e.store), live_=d&&started(d)&&WORTH_S.has(d.store)?d:null, ds=daysSince(lastBought(e));
@@ -887,6 +943,13 @@ function renderSugg(){
     const arr=list.filter(e=>catOf(e.cat)===c.id).sort(top?((a,b)=>(b.n||0)-(a.n||0)):((a,b)=>(dueProb(b,H)-dueProb(a,H))||((b.n||0)-(a.n||0))||((b.nall||0)-(a.nall||0))));
     if(arr.length)box.append(group(c.id,arr.length,arr.map(mk)));
   });
+  if(lh.length){
+    const N=lidlAllSugg?lh.length:Math.min(8,lh.length), g=el("div","grp c-an lidlgrp"), ul=el("ul","tiles");
+    lh.slice(0,N).forEach(x=>ul.append(lidlTile(x,on)));
+    g.append(lidlHead(lh.length,N),ul);
+    if(N<lh.length)g.append(lidlMore(lh.length,()=>{lidlAllSugg=true; renderSugg()}));
+    box.append(g);
+  }
 }
 
 /* ---------- Retter ---------- */
@@ -963,7 +1026,7 @@ function renderDishForm(){
 /* =========================================================
    HÆNDELSER
    ========================================================= */
-$("#addInput").addEventListener("input",renderAc);
+$("#addInput").addEventListener("input",()=>{lidlAllAc=false; renderAc()});
 $("#addForm").addEventListener("submit",ev=>{ev.preventDefault();
   let v=$("#addInput").value.trim(); if(!v)return;
   let qty=null, note=null;
@@ -976,7 +1039,7 @@ $("#addForm").addEventListener("submit",ev=>{ev.preventDefault();
   $("#addInput").value=""; addItem(v,qty||(e&&e.qty)||1,e&&fold(v).length>=2?e:null,undefined,note); renderAc();
 });
 $("#clearDone").onclick=()=>{const ids=items.filter(i=>i.checked).map(i=>i.id); if(ids.length)remove(ids); else toast("Ingen afkrydsede varer")};
-$("#suggSearch").addEventListener("input",renderSugg);
+$("#suggSearch").addEventListener("input",()=>{lidlAllSugg=false; renderSugg()});
 $("#seg").querySelectorAll("button").forEach(b=>b.onclick=()=>{suggFilter=b.dataset.f; $("#seg").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b)); renderSugg(); {const st=getComputedStyle(document.documentElement), y=$("#sugg").getBoundingClientRect().top+scrollY-parseFloat(st.getPropertyValue("--toph"))-(parseFloat(st.getPropertyValue("--segh"))||0); if(scrollY>y+1)scrollTo({top:Math.max(0,y)})}});
 $("#newDish").onclick=()=>{editingDish={name_da:"",name_sq:"",items:[]}; openDish=null; renderDishes()};
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
