@@ -72,7 +72,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 
 /* ---------- bundmenu ---------- */
 .tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:space-around;border-top:1px solid var(--line);
-  padding:6px 8px max(6px,calc(env(safe-area-inset-bottom) - 10px));
+  padding:6px 8px max(8px,env(safe-area-inset-bottom));
   background:color-mix(in srgb,var(--surface) 94%,transparent);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px)}
 .tabs button{flex:1;max-width:120px;display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px 0;font-size:var(--fs-xs);font-weight:600;color:var(--ink2);position:relative}
 .tabs .ic{width:46px;height:26px;border-radius:13px;display:grid;place-items:center}
@@ -123,7 +123,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .l1 .due{color:var(--accent);font-weight:600}
 /* linje 2 – samme format overalt */
 .meta{display:block;margin-top:1px;font-size:var(--fs-s);line-height:1.35;color:var(--ink2);white-space:nowrap;overflow:hidden}
-.meta .mq{display:inline-block;white-space:nowrap}
+.meta .mq{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .meta .hl{font-weight:400;color:var(--ink)}
 .l1{min-height:1.35em}
 .meta .hl.plain{font-weight:400;color:var(--ink2)}
@@ -132,9 +132,6 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .meta .lk{color:var(--ink3)}
 .meta .lk svg{display:inline;width:12px;height:12px;vertical-align:-1px;margin-right:2px}
 .meta.wrap,.meta.wrap .mq{white-space:normal;display:block}
-.meta.over{-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent)}
-.meta.run .mq{animation:mq var(--t,8s) ease-in-out 2 alternate}
-@keyframes mq{0%,15%{transform:translateX(0)}85%,100%{transform:translateX(var(--d,0))}}
 .price{display:flex;align-items:baseline;gap:8px;margin-top:1px;font-size:var(--fs-s);line-height:1.35;white-space:nowrap;overflow:hidden}
 .price .now{font-weight:600;color:var(--ink)}
 .price .was{color:var(--ink3);text-decoration:line-through}
@@ -161,10 +158,9 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 
 /* tilbudslinje – samme komponent som knap (liste) eller info (forslag) */
 /* linje 3: tilbud – samme tekstlinje overalt, i listen med en lille Flyt-knap */
-.deal{display:flex;align-items:center;gap:8px;width:100%;min-width:0;font-size:var(--fs-s);line-height:1.35;color:var(--deal-ink);font-weight:600}
+.deal{display:flex;align-items:center;gap:8px;width:100%;min-width:0;font-size:var(--fs-s);line-height:1.35;color:var(--deal-ink);font-weight:400}
 .deal svg{width:14px;height:14px;flex:0 0 14px}
 .deal .dt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.deal.soon{font-weight:400}
 .deal.warn{color:var(--warn)}
 .mv{position:relative;flex:0 0 auto;padding:5px 12px;border-radius:999px;font-size:var(--fs-s);font-weight:600;background:var(--deal-soft);color:var(--deal-ink)}
 .mv::after{content:"";position:absolute;inset:-10px -6px}
@@ -228,10 +224,9 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
   body{padding-bottom:24px}.tabs{display:none}
   .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start}.pane{display:block!important}
   .panehead{display:block;margin:6px 4px;font-size:var(--fs-l);font-weight:700}
-  .name,.meta{white-space:normal}.meta .mq{white-space:normal;display:inline}
+  .name,.meta,.meta .mq{white-space:normal}
 }
-@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}
-  .meta,.meta .mq{white-space:normal;display:block}.meta.over{-webkit-mask-image:none;mask-image:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body data-tab="list">
@@ -311,11 +306,11 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
 </nav>
 
-<script src="config.js?v=40"></script>
+<script src="config.js?v=41"></script>
 <script src="supabase.js?v=2.45.4"></script>
 <script>
 "use strict";
-const VERSION="v40";
+const VERSION="v41";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -619,11 +614,10 @@ const maxOf=o=>{const m=/maks\.?\s*(\d+)/i.exec(`${o.note||""} ${o.title||""}`);
 function nameEl(da){return el("span","name",da)}
 function line1(sq,da,due){const l=el("span","l1"); l.append(document.createTextNode(sq&&sq!==da?sq:"")); if(due){l.append(" · "); l.append(el("span","due",due))} return l}
 function lookPart(text,name){return text&&!(name&&fold(text).startsWith(fold(name)))?el("span","lk",text):null}
-/* linje 2: dele adskilt af " · " – rulles én gang, når den er for lang */
+/* linje 2: dele adskilt af " · " – afkortes med … ; hele teksten vises, når flisen er åben */
 function metaLine(parts,wrap){
   const m=el("span","meta"+(wrap?" wrap":"")), q=el("span","mq"); m.append(q);
   parts.filter(x=>x&&(typeof x==="string"||x.textContent)).forEach((x,i)=>{if(i)q.append(" · "); q.append(typeof x==="string"?document.createTextNode(x):x)});
-  if(!wrap)mqObserve(m);
   return m;
 }
 const strong=(t,cls="hl")=>t?el("b",cls,t):null;
@@ -631,7 +625,7 @@ const strong=(t,cls="hl")=>t?el("b",cls,t):null;
 function tile({cat,cls,lead,name,alt,tag,meta,wrap,extra,act,below,sheet,onTap}){
   const li=el("li","tile c-"+(cat||"an")+(cls?" "+cls:""));
   if(lead){li.append(lead); li.classList.add("has-lead")}
-  const b=el("div","body"); b.append(nameEl(name)); const l=line1(alt,name,tag); if(l)b.append(l); if(meta)b.append(metaLine(meta,wrap)); (extra||[]).forEach(x=>x&&b.append(x));
+  const b=el("div","body"); b.append(nameEl(name)); const l=line1(alt,name,tag); if(l)b.append(l); if(meta)b.append(metaLine(meta,wrap||!!sheet)); (extra||[]).forEach(x=>x&&b.append(x));
   if(onTap)b.onclick=ev=>{if(!ev.target.closest("button"))onTap(ev)};
   li.append(b); if(act)li.append(act);
   if(below){const w=el("div","below"); w.append(below); li.append(w)}
@@ -664,15 +658,6 @@ function group(id,count,lis){const g=el("div","grp c-"+catOf(id)); g.append(catH
 function tilesList(lis){const ul=el("ul","tiles"); lis.forEach(l=>ul.append(l)); return ul}
 function emptyBox(t){return el("div","empty",t)}
 
-/* rullende linje 2: måles når den bliver synlig, rulles to gange (frem og tilbage) og står så stille */
-const mqIO="IntersectionObserver" in window?new IntersectionObserver(es=>es.forEach(en=>{if(en.isIntersecting)fitMq(en.target)}),{threshold:.9}):null;
-function mqObserve(m){if(mqIO)mqIO.observe(m)}
-function fitMq(m){
-  const q=m.firstChild, d=q.scrollWidth-m.clientWidth;
-  if(d>6){m.classList.add("over"); m.style.setProperty("--d",(-d-4)+"px"); m.style.setProperty("--t",Math.max(5,d/22+3)+"s");
-    if(!m.classList.contains("run")){m.classList.add("run"); q.addEventListener("animationend",()=>m.classList.remove("run"),{once:true})}}
-  else m.classList.remove("over","run");
-}
 
 /* =========================================================
    FANER
