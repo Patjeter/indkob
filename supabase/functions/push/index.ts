@@ -48,11 +48,13 @@ export function plan(claimed: Item[], subs: Sub[], family: { email: string; name
 }
 
 if (!Deno.env.get("PUSH_TEST")) {   // PUSH_TEST sættes kun i den lokale test
-  webpush.setVapidDetails(APP, VAPID_PUBLIC, Deno.env.get("VAPID_PRIVATE_KEY") || "");
-  const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+  const KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const sb = createClient(Deno.env.get("SUPABASE_URL")!, KEY || "x", { auth: { persistSession: false } });
 
   Deno.serve(async () => {
+    if (!KEY) return Response.json({ error: "SUPABASE_SERVICE_ROLE_KEY mangler" }, { status: 500 });
     if (!Deno.env.get("VAPID_PRIVATE_KEY")) return Response.json({ error: "VAPID_PRIVATE_KEY mangler" }, { status: 500 });
+    webpush.setVapidDetails(APP, VAPID_PUBLIC, Deno.env.get("VAPID_PRIVATE_KEY")!);
     const { data: claimed, error } = await sb.rpc("push_claim");
     if (error) return Response.json({ error: error.message }, { status: 500 });
     if (!claimed?.length) return Response.json({ claimed: 0, sent: 0 });
