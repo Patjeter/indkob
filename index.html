@@ -312,11 +312,11 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
 </nav>
 
-<script src="config.js?v=45"></script>
+<script src="config.js?v=46"></script>
 <script src="supabase.js?v=2.45.4"></script>
 <script>
 "use strict";
-const VERSION="v45";
+const VERSION="v46";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -571,7 +571,9 @@ function when(o){
   const n=dayDiff(o.valid_to); return n<=0?"udløber i dag":n===1?"udløber i morgen":`udløber ${wd(o.valid_to)} ${dshort(o.valid_to)}`;
 }
 const refOf=(o,key)=>o.ref_price!=null?+o.ref_price:(BYKEY[key]&&BYKEY[key].price);
-const offersFor=key=>key?offers.filter(o=>o.key===key&&o.valid_to>=today()):[];
+// når den automatiske, kuraterede tilbudsliste findes, vises kun den (tilbudsopgavens rækker bruges kun til sammenligning)
+const shownOffers=()=>offers.some(o=>o.source==="auto")?offers.filter(o=>o.source==="auto"):offers;
+const offersFor=key=>key?shownOffers().filter(o=>o.key===key&&o.valid_to>=today()):[];
 function bestElsewhere(key,store){
   return offersFor(key).filter(o=>o.store!==store&&refOf(o,key)!=null&&+o.price<refOf(o,key))
     .sort((a,b)=>(refOf(b,key)-b.price)-(refOf(a,key)-a.price)||(started(b)-started(a)))[0]||null;
@@ -782,7 +784,7 @@ function offerRows(){
   const t=today();
   // kun ét tilbud pr. vare: det med størst besparelse (automatikken og tilbudsopgaven kan finde samme vare)
   const best=new Map();
-  offers.filter(o=>o.valid_to>=t&&BYKEY[o.key]).map(o=>({o,e:BYKEY[o.key],save:(refOf(o,o.key)||0)-o.price})).filter(x=>x.save>0)
+  shownOffers().filter(o=>o.valid_to>=t&&BYKEY[o.key]).map(o=>({o,e:BYKEY[o.key],save:(refOf(o,o.key)||0)-o.price})).filter(x=>x.save>0)
     .forEach(x=>{const b=best.get(x.o.key); if(!b||x.save>b.save)best.set(x.o.key,x)});
   return [...best.values()].sort((a,b)=>b.save*(b.e.qty||1)-a.save*(a.e.qty||1));
 }
