@@ -167,6 +167,8 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .deal{cursor:pointer}.deal.open{align-items:flex-start}.deal.open .dt{white-space:normal;overflow:visible}.deal.open svg{margin-top:2px}
 .deal.warn{color:var(--warn)}
 .deal.tip{color:var(--accent)}
+.kvit .kl{display:flex;flex-direction:column;gap:2px;margin:8px 0 2px;font-size:var(--fs-s);color:var(--ink2)}
+.kvit .kl .known{color:var(--ink3)}.kvit .btns{display:flex;gap:8px;margin-top:10px}.kvit .res{margin-top:6px;font-size:var(--fs-s);color:var(--ink2)}
 .tiles.ac .lhead{list-style:none}.tiles.ac .lhead .cat{position:static;padding:10px 4px 4px}
 .lidlmore{margin:4px 20px 8px}.tiles.ac .lmore{list-style:none}.tiles.ac .lmore .lidlmore{margin:4px 0}
 .mv{position:relative;flex:0 0 auto;padding:5px 12px;border-radius:999px;font-size:var(--fs-s);font-weight:600;background:var(--deal-soft);color:var(--deal-ink)}
@@ -264,6 +266,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
   <div class="pane" id="pane-list">
     <div class="panehead">Indkøbsliste</div>
     <div id="demo" class="demo" hidden>Demo: listen gemmes kun på denne enhed.</div>
+    <section class="card notify kvit" id="kvitImport" hidden aria-live="polite"></section>
     <section class="card">
       <form class="fieldrow" id="addForm" autocomplete="off">
         <label class="field"><span data-ic="search"></span><input id="addInput" placeholder="Skriv en vare" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
@@ -320,9 +323,10 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 
 <script src="config.js?v=49"></script>
 <script src="supabase.js?v=2.45.4"></script>
+<script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v50";
+const VERSION="v51";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -435,6 +439,7 @@ function changed(){render(); cacheSoon(); saveDemo()}
 async function loadAll(){
   {const c=local.load("indkob-catalog"); if(Array.isArray(c))setCatalog(c)}
   if(!live){dishes=local.load("indkob-dishes")||[];items=local.load("indkob-items")||[];bought=local.load("indkob-bought")||{};offers=local.load("indkob-offers")||[];(local.load("indkob-products")||[]).forEach(addProduct);$("#demo").hidden=false;render();return}
+  kvitCapture();
   const recovering=/type=recovery/.test(location.hash);
   sb=window.supabase.createClient(cfg.url,cfg.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   sb.auth.onAuthStateChange(ev=>{if(ev==="PASSWORD_RECOVERY")showAuth("recover"); if(ev==="SIGNED_OUT")showAuth("login")});
@@ -466,7 +471,7 @@ async function refresh(){
 }
 async function loadData(){
   if(loaded)return; loaded=true;
-  await flush(); await refresh();
+  await flush(); await refresh(); kvitShow();
   sb.channel("indkob")
     .on("postgres_changes",{event:"*",schema:"public",table:"items"},p=>{
       if(p.eventType==="DELETE")items=items.filter(i=>i.id!==p.old.id);
@@ -556,6 +561,51 @@ $("#authForm").addEventListener("submit",async ev=>{
   }finally{btn.disabled=false}
 });
 $("#logout").onclick=async()=>{if(pushOK&&pushLang!=="off"){try{const s=await pushSub(false); if(s){await sb.from("push_subs").delete().eq("endpoint",s.endpoint); await s.unsubscribe()}}catch(e){} local.del("indkob-push")} await sb.auth.signOut(); ["indkob-catalog","indkob-cache","indkob-queue"].forEach(local.del); location.reload()};
+
+/* ---------- kvitteringer fra lidl.dk ----------
+   lidl.dk-scriptet (den planlagte opgave på Mac'en) åbner appen med #lidl=<kvitteringer>.
+   Appen viser dem, og først når man trykker "Gem", sendes de til databasen (kvit_ingest),
+   som kobler varerne, opdaterer købsrytmen og krydser købte varer af på listen. */
+let kvitPend=null;
+function kvitCapture(){
+  const h=location.hash; if(!h.startsWith("#lidl="))return;
+  try{const d=JSON.parse(decodeURIComponent(h.slice(6))); if(d&&Array.isArray(d.tickets)){kvitPend=d; try{sessionStorage.setItem("indkob-kvit",JSON.stringify(d))}catch(e){}}}catch(e){toast("Kunne ikke læse kvitteringerne")}
+  history.replaceState(null,"",location.pathname+location.search);
+}
+async function kvitShow(){
+  if(!kvitPend){try{kvitPend=JSON.parse(sessionStorage.getItem("indkob-kvit")||"null")}catch(e){}}
+  const box=$("#kvitImport"); if(!kvitPend||!live){box.hidden=true;return}
+  const rows=kvitPend.tickets.filter(t=>t&&t.id&&t.text).map(t=>window.KVIT.lidlRow(t,kvitPend.ejer)).filter(r=>r.linjer.length);
+  let known=new Set();
+  try{const r=await sb.from("kvit").select("tid").in("tid",rows.map(r=>r.tid)); if(r.data)known=new Set(r.data.map(x=>x.tid))}catch(e){}
+  const fresh=rows.filter(r=>!known.has(r.tid));
+  box.replaceChildren(); box.hidden=false; box.dataset.state="ready";
+  box.append(el("b","name","Kvitteringer fra Lidl"),el("span","l1","Kuponat nga Lidl"));
+  const kl=el("div","kl");
+  rows.sort((a,b)=>a.dato<b.dato?1:-1).forEach(r=>{const d=r.dato.slice(0,10);
+    kl.append(el("span",known.has(r.tid)?"known":null,`${dshort(d)} · ${r.butik||"Lidl"} · ${kr(r.total)} · ${r.linjer.length} varer${known.has(r.tid)?" · allerede gemt":""}`))});
+  if(!rows.length)kl.append(el("span",null,"Ingen kvitteringer med varer."));
+  const bad=fresh.filter(r=>r.total!=null&&Math.abs(r.total-r.parsed_total)>0.3);
+  if(bad.length)kl.append(el("span",null,`${bad.length} kvittering${bad.length>1?"er":""} stemmer ikke med totalen og gemmes alligevel.`));
+  box.append(kl);
+  const btns=el("div","btns"), ok=el("button","btn pri",fresh.length?`Gem ${fresh.length} ${fresh.length===1?"kvittering":"kvitteringer"}`:"Luk"), no=el("button","btn ghost","Annuller");
+  ok.id="kvitSave"; no.hidden=!fresh.length;
+  const done=()=>{kvitPend=null; try{sessionStorage.removeItem("indkob-kvit")}catch(e){} };
+  no.onclick=()=>{done(); box.hidden=true};
+  ok.onclick=async()=>{
+    if(!fresh.length){done(); box.hidden=true; return}
+    ok.disabled=true; no.disabled=true; ok.textContent="Gemmer …";
+    const {data,error}=await sb.rpc("kvit_ingest",{rows:fresh});
+    if(error){ok.disabled=false; no.disabled=false; ok.textContent="Prøv igen"; box.dataset.state="error"; box.append(el("div","res","Kunne ikke gemme: "+error.message)); return}
+    done(); box.dataset.state="done"; box.dataset.result=JSON.stringify(data);
+    const u=(data.ukendte||[]).length;
+    btns.replaceChildren(); const close=el("button","btn","Luk"); close.onclick=()=>{box.hidden=true}; btns.append(close);
+    box.append(el("div","res",`${data.nye} ${data.nye===1?"kvittering":"kvitteringer"} gemt · ${data.linjer} linjer · købsrytme opdateret for ${data.varer} varer`+
+      (data.krydset_af?` · ${data.krydset_af} krydset af på listen`:"")+(u?` · ${u} nye varenavne`:"")));
+    refresh();
+  };
+  btns.append(ok,no); box.append(btns);
+}
 
 /* ---------- besked med fortryd ---------- */
 let toastT=0;
