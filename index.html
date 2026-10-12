@@ -105,6 +105,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .cat .cc{font-size:var(--fs-s);font-weight:400;color:var(--ink3)}
 .empty{padding:16px;text-align:center;font-size:var(--fs-s);color:var(--ink3)}
 .foot{display:flex;justify-content:center;align-items:center;gap:4px;margin:4px 0 10px}
+.notify{display:flex;flex-direction:column;padding:12px 20px 14px;margin-bottom:10px}.notify .seg{margin:10px 0 0}
 .ver{font-size:var(--fs-xs);color:var(--ink3);padding:0 6px}
 
 /* ---------- FLISE: én række-komponent til alle faner ---------- */
@@ -263,7 +264,9 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
       <div class="hint" id="hint"></div>
     </section>
     <div id="stores"></div>
-    <div class="foot"><button class="btn ghost" id="clearDone">Ryd afkrydsede</button><button class="btn ghost" id="logout" hidden>Log ud</button><span class="ver" id="ver"></span></div>
+    <div class="foot"><button class="btn ghost" id="clearDone">Ryd afkrydsede</button><button class="btn ghost" id="notifyBtn" hidden>Notifikationer</button><button class="btn ghost" id="logout" hidden>Log ud</button><span class="ver" id="ver"></span></div>
+    <div class="card notify" id="notify" hidden><b class="name">Notifikationer</b><span class="l1">Njoftime</span><span class="meta wrap"><span class="mq" id="notifyTxt">Besked når den anden tilføjer varer til listen</span></span>
+      <div class="seg" id="notifySeg"><button data-l="off" aria-pressed="true">Fra</button><button data-l="da" aria-pressed="false">Dansk</button><button data-l="sq" aria-pressed="false">Shqip</button></div></div>
   </div>
 
   <div class="pane" id="pane-offers" hidden>
@@ -306,11 +309,11 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
 </nav>
 
-<script src="config.js?v=41"></script>
+<script src="config.js?v=42"></script>
 <script src="supabase.js?v=2.45.4"></script>
 <script>
 "use strict";
-const VERSION="v41";
+const VERSION="v42";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -333,6 +336,7 @@ document.querySelectorAll("[data-ic]").forEach(e=>e.append(svgEl(e.dataset.ic)))
 const uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
 const fold=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9æøå ]/g," ").replace(/\s+/g," ").trim();
 const local={load(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+const DEV=(()=>{let d=local.load("indkob-dev"); if(!d){d=uid(); local.save("indkob-dev",d)} return d})();
 const qn=v=>{const n=parseFloat(String(v==null?"":v).replace(",","."));return isFinite(n)&&n>0?n:1};
 const round2=n=>Math.round(n*100)/100;
 const kr=n=>{if(n==null)return ""; const v=Math.round(Number(n)*100)/100; return v.toLocaleString("da-DK",{minimumFractionDigits:v%1?2:0,maximumFractionDigits:2})+" kr."};
@@ -389,7 +393,7 @@ function netState(){
 const isNetErr=e=>!navigator.onLine||/fetch|network|load failed|timeout/i.test(String(e&&(e.message||e)));
 async function runOp(op){
   const t=sb.from(op.table);
-  if(op.kind==="insert")return t.insert(op.row);
+  if(op.kind==="insert"){const r=await t.insert(op.row); if(r.error&&op.row.added_dev!==undefined&&/added_dev/.test(r.error.message||"")){const {added_dev,...rest}=op.row; return t.insert(rest)} return r}
   if(op.kind==="upsert")return t.upsert(op.row);
   if(op.kind==="update")return t.update(op.changes).eq("id",op.id);
   if(op.kind==="delete")return t.delete().in(op.col||"id",op.vals);
@@ -478,7 +482,7 @@ async function addItem(text,qty,entry,storeOverride,note){
   if(existing&&storeOverride&&existing.store!==storeOverride)return patch(existing.id,{store:storeOverride,qty:String(Math.max(qn(existing.qty),qty))});
   if(existing){const ch={qty:String(round2(qn(existing.qty)+qty))}; if(note)ch.note=note; return patch(existing.id,ch)}
   const it={id:uid(),text:entry.da,name_da:entry.da,name_sq:entry.sq,key:entry.key,qty:String(qty),store:storeOverride||entry.store||"Lidl",
-    category:entry.cat||"an",note:note||null,suggested:false,checked:false,created_at:new Date().toISOString()};
+    category:entry.cat||"an",note:note||null,suggested:false,checked:false,added_dev:DEV,created_at:new Date().toISOString()};
   items.push(it); changed();
   const {created_at,...row}=it; send({kind:"insert",table:"items",row});
 }
@@ -523,7 +527,7 @@ function showAuth(mode){
   $("#authPw").autocomplete=rec?"new-password":"current-password"; $("#authPw").value=""; $("#authPw2").value="";
   $("#authBtn").textContent=rec?"Gem adgangskode":"Log ind";
 }
-function hideAuth(){$("#auth").hidden=true; $("#logout").hidden=!live}
+function hideAuth(){$("#auth").hidden=true; $("#logout").hidden=!live; $("#notifyBtn").hidden=!pushOK}
 $("#authForm").addEventListener("submit",async ev=>{
   ev.preventDefault(); const btn=$("#authBtn"); btn.disabled=true; $("#authErr").textContent="";
   try{
@@ -927,6 +931,41 @@ document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
 const setTop=()=>document.documentElement.style.setProperty("--toph",$(".top").offsetHeight+"px");
 addEventListener("resize",setTop);
 let scl=false; addEventListener("scroll",()=>{const c=scrollY>8; if(c!==scl){scl=c; document.body.classList.toggle("scrolled",c)}},{passive:true});
+
+/* ---------- notifikationer (web push; kræver at appen ligger på hjemmeskærmen) ---------- */
+const pushOK=live&&!!cfg.vapid&&"serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;
+const b64u=s=>{const b=atob(s.replace(/-/g,"+").replace(/_/g,"/")+"=".repeat((4-s.length%4)%4)); return Uint8Array.from(b,c=>c.charCodeAt(0))};
+let pushLang=local.load("indkob-push")||"off";
+function showPushLang(){$("#notifySeg").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.l===pushLang)); $("#notifyBtn").textContent=pushLang==="off"?"Notifikationer":"Notifikationer til"}
+async function pushSub(create){
+  const reg=await navigator.serviceWorker.ready;
+  return (await reg.pushManager.getSubscription())||(create?reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(cfg.vapid)}):null);
+}
+async function savePushSub(sub){
+  const j=sub.toJSON(); return sb.from("push_subs").upsert({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,dev:DEV,lang:pushLang});
+}
+async function setPush(lang){
+  try{
+    if(lang==="off"){const sub=await pushSub(false); if(sub){await sb.from("push_subs").delete().eq("endpoint",sub.endpoint); await sub.unsubscribe()} pushLang="off"}
+    else{
+      const perm=await Notification.requestPermission();
+      if(perm!=="granted"){toast("Notifikationer er blokeret. Slå dem til under Indstillinger → Notifikationer → Indkøb"); return}
+      const prev=pushLang; pushLang=lang; const r=await savePushSub(await pushSub(true));
+      if(r&&r.error){pushLang=prev; toast("Kunne ikke slå notifikationer til"); showPushLang(); return}
+      toast(lang==="sq"?"Njoftimet u aktivizuan":"Notifikationer slået til");
+    }
+    local.save("indkob-push",pushLang); showPushLang();
+  }catch(e){toast("Kunne ikke slå notifikationer til")}
+}
+if(pushOK){
+  showPushLang();
+  $("#notifyBtn").onclick=()=>{$("#notify").hidden=!$("#notify").hidden; if(!$("#notify").hidden)$("#notify").scrollIntoView({block:"nearest",behavior:"smooth"})};
+  $("#notifySeg").querySelectorAll("button").forEach(b=>b.onclick=()=>setPush(b.dataset.l));
+  // holder abonnementet frisk, hvis telefonen har fornyet det
+  addEventListener("load",()=>setTimeout(async()=>{if(pushLang!=="off"&&Notification.permission==="granted"&&sb){try{const s=await pushSub(true); if(s)savePushSub(s)}catch(e){}}},4000));
+}
+const clearBadge=()=>{try{navigator.clearAppBadge&&navigator.clearAppBadge()}catch(e){}};
+clearBadge(); document.addEventListener("visibilitychange",()=>{if(!document.hidden)clearBadge()});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 $("#ver").textContent=VERSION; setHead(); setTop(); netState(); loadAll();
 </script>
