@@ -309,11 +309,11 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
 </nav>
 
-<script src="config.js?v=42"></script>
+<script src="config.js?v=43"></script>
 <script src="supabase.js?v=2.45.4"></script>
 <script>
 "use strict";
-const VERSION="v42";
+const VERSION="v43";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -544,7 +544,7 @@ $("#authForm").addEventListener("submit",async ev=>{
     }
   }finally{btn.disabled=false}
 });
-$("#logout").onclick=async()=>{await sb.auth.signOut(); ["indkob-catalog","indkob-cache","indkob-queue"].forEach(local.del); location.reload()};
+$("#logout").onclick=async()=>{if(pushOK&&pushLang!=="off"){try{const s=await pushSub(false); if(s){await sb.from("push_subs").delete().eq("endpoint",s.endpoint); await s.unsubscribe()}}catch(e){} local.del("indkob-push")} await sb.auth.signOut(); ["indkob-catalog","indkob-cache","indkob-queue"].forEach(local.del); location.reload()};
 
 /* ---------- besked med fortryd ---------- */
 let toastT=0;
@@ -942,7 +942,8 @@ async function pushSub(create){
   return (await reg.pushManager.getSubscription())||(create?reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(cfg.vapid)}):null);
 }
 async function savePushSub(sub){
-  const j=sub.toJSON(); return sb.from("push_subs").upsert({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,dev:DEV,lang:pushLang});
+  const j=sub.toJSON(), {data}=await sb.auth.getSession(), email=data&&data.session&&data.session.user?data.session.user.email:null;
+  return sb.from("push_subs").upsert({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,dev:DEV,lang:pushLang,...(email?{email}:{})});
 }
 async function setPush(lang){
   try{
