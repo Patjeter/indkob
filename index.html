@@ -236,10 +236,18 @@ li.editor::before{display:none}
 .dform input{font:inherit;font-size:16px;border:0;border-radius:12px;background:var(--surface2);color:var(--ink);padding:11px 13px;outline:none;width:100%}
 .dform .lbl{font-size:12.5px;font-weight:600;color:var(--ink2)}
 .dform .ac{margin-top:0}
+.qty span.u{min-width:46px;font-size:14px}
+.editor .row2{display:flex;gap:6px;width:100%;align-items:center}
+.editor input{font:inherit;font-size:16px;padding:8px 10px;border:0;border-radius:10px;background:var(--surface2);color:var(--ink);flex:1;min-width:0}
+.editor .ul{font-size:14px;color:var(--ink2);font-weight:600}
+.editor .forms{display:flex;flex-wrap:wrap;gap:6px;width:100%}
+.editor .forms button{background:var(--surface2);color:var(--ink);font-weight:600;padding:7px 11px;border-radius:999px}
+.editor .forms button.on{background:var(--accent);color:var(--on-accent)}
+.sub .nt{color:var(--ink);font-weight:700}
 </style>
 </head>
 <body data-tab="list">
-<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v30</span></div></header>
+<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v31</span></div></header>
 <div class="auth" id="auth" hidden>
   <form class="authcard" id="authForm" autocomplete="on">
     <div class="authicon" data-ic="cart"></div>
@@ -310,10 +318,14 @@ li.editor::before{display:none}
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
 </nav>
 
-<script src="config.js?v=30"></script>
+<script src="config.js?v=31"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
-const STORE_ORDER=["Lidl","365discount","Netto","REMA 1000","føtex","MENY","SuperBrugsen","Slagteren"];
+const qn=v=>{const n=parseFloat(String(v==null?"":v).replace(",","."));return isFinite(n)&&n>0?n:1};
+const unitOf=k=>(k&&BYKEY[k]&&BYKEY[k].unit)||"";
+const stepOf=k=>(k&&BYKEY[k]&&BYKEY[k].step)||1;
+const fmtQ=(n,u)=>(Math.round(n*100)/100).toLocaleString("da-DK")+(u?" "+u:"");
+const STORE_ORDER=["Lidl","365discount","Netto","REMA 1000","føtex","MENY","SuperBrugsen","Al-Rafiden Slagteri"];
 const CATS=[{"id": "fg", "icon": "🥦", "da": "Frugt & grønt", "sq": "Pemë & Perime"}, {"id": "br", "icon": "🥐", "da": "Brød", "sq": "Furra e Bukës"}, {"id": "km", "icon": "🥩", "da": "Kød, fisk & pålæg", "sq": "Mish, Peshk & Meze"}, {"id": "mk", "icon": "🧀", "da": "Mejeri & køl", "sq": "Bulmeti & Frigoriferi"}, {"id": "ko", "icon": "🥫", "da": "Kolonial", "sq": "Produkte të Thata"}, {"id": "rh", "icon": "🧼", "da": "Rengøring & hygiejne", "sq": "Pastrimi & Higjiena"}, {"id": "fr", "icon": "🧊", "da": "Frost", "sq": "Produkte të Ngrira"}, {"id": "dr", "icon": "🥤", "da": "Drikkevarer", "sq": "Pije"}, {"id": "sn", "icon": "🍪", "da": "Slik & snacks", "sq": "Çokollata & Çipsa"}, {"id": "nf", "icon": "🧸", "da": "Non-food", "sq": "Jo-ushqimore"}, {"id": "an", "icon": "🛒", "da": "Andet", "sq": "Tjera"}];
 const CATALOG=[];
 function setCatalog(list){CATALOG.length=0; list.forEach(e=>CATALOG.push(e)); reindex()}
@@ -399,14 +411,14 @@ async function saveProduct(p){
   if(live){const {error}=await sb.from("products").upsert({key:p.key,da:p.da,sq:p.sq||p.da,cat:p.cat||"an",store:p.store||"Lidl"}); if(error)status("Vare ikke husket")}
   else{const all=CATALOG.filter(c=>c.own).map(({key,da,sq,cat,store})=>({key,da,sq,cat,store})); local.save("indkob-products",all)}
 }
-async function addItem(text,qty,entry,storeOverride){
+async function addItem(text,qty,entry,storeOverride,note){
   entry=entry||match(text);
   if(!entry){const p={key:"u:"+fold(text),da:text,sq:text,cat:"an",store:"Lidl"}; await saveProduct(p); entry=BYKEY[p.key]}
   const existing=entry&&items.find(i=>i.key===entry.key&&!i.checked);
-  if(existing&&storeOverride&&existing.store!==storeOverride){return patch(existing.id,{store:storeOverride,qty:String(Math.max(parseInt(existing.qty)||1,qty))})}
-  if(existing){return patch(existing.id,{qty:String((parseInt(existing.qty)||1)+qty)})}
+  if(existing&&storeOverride&&existing.store!==storeOverride){return patch(existing.id,{store:storeOverride,qty:String(Math.max(qn(existing.qty),qty))})}
+  if(existing){const ch={qty:String(Math.round((qn(existing.qty)+qty)*100)/100)}; if(note)ch.note=note; return patch(existing.id,ch)}
   const it={id:uid(),text:entry?entry.da:text,name_da:entry?entry.da:null,name_sq:entry?entry.sq:null,key:entry?entry.key:null,
-    qty:String(qty),store:storeOverride||(entry?entry.store:"Lidl"),category:entry?entry.cat:"an",note:null,suggested:false,checked:false,created_at:new Date().toISOString()};
+    qty:String(qty),store:storeOverride||(entry?entry.store:"Lidl"),category:entry?entry.cat:"an",note:note||null,suggested:false,checked:false,created_at:new Date().toISOString()};
   items.push(it); render();
   if(live){const {created_at,...row}=it; const {error}=await sb.from("items").insert(row); if(error)status("Ikke gemt – prøv igen")} else saveLocal();
 }
@@ -423,7 +435,7 @@ async function toggle(it){
     bought[it.key]=today();
     const e=BYKEY[it.key]||{};
     const row={key:it.key,item_id:it.id,name_da:it.name_da||e.da||it.text,name_sq:it.name_sq||e.sq||null,
-      qty:parseInt(it.qty)||1,store,price:unitPrice(it.key,store)};
+      qty:qn(it.qty),store,price:unitPrice(it.key,store)};
     if(live){const {error}=await sb.from("bought").insert(row); if(error)status("Køb ikke registreret")} else saveLocal();
   }else{
     if(live){await sb.from("bought").delete().eq("item_id",it.id)}
@@ -565,7 +577,8 @@ function row(it){
   const nm=document.createElement("span"); nm.className="nm"; nm.textContent=a;
   if(it.suggested){const s=document.createElement("span"); s.className="tag"; s.textContent="forslag"; nm.append(s)}
   t.append(nm);
-  t.append(subLine([b, it.key?priceSpan(it.key,it.store||"Lidl",true):null, it.note]));
+  {const ps=it.key?priceSpan(it.key,it.store||"Lidl",true):null; let nt=null; if(it.note){nt=document.createElement("b"); nt.className="nt"; nt.textContent=it.note}
+  t.append(subLine([b, ps&&ps.textContent?ps:null, nt]))}
   if(it.key){const l=lookLine(lookFor(it.key,it.store||"Lidl")); if(l)t.append(l)}
   if(it.key){const st=it.store||"Lidl", e=BYKEY[it.key], home=(e&&e.store)||"Lidl"; const m=document.createElement("div"); m.className="meta";
     const dl=!it.checked&&bestElsewhere(it.key,st);
@@ -581,11 +594,11 @@ function row(it){
     if(m.childNodes.length)t.append(m)}
   t.onclick=ev=>{if(ev.target.closest("button"))return; openEditor(li,it)};
   const q=document.createElement("div"); q.className="qty";
-  const n=parseInt(it.qty)||1;
-  const minus=document.createElement("button"); minus.append(svgEl(n>1?"minus":"trash")); minus.setAttribute("aria-label",n>1?"Færre":"Slet");
-  minus.onclick=()=>n>1?patch(it.id,{qty:String(n-1)}):remove([it.id]);
-  const sp=document.createElement("span"); sp.textContent=n;
-  const plus=document.createElement("button"); plus.append(svgEl("plus")); plus.setAttribute("aria-label","Flere"); plus.onclick=()=>patch(it.id,{qty:String(n+1)});
+  const n=qn(it.qty), stp=stepOf(it.key), u=unitOf(it.key), more=n-stp>0.0001;
+  const minus=document.createElement("button"); minus.append(svgEl(more?"minus":"trash")); minus.setAttribute("aria-label",more?"Færre":"Slet");
+  minus.onclick=()=>more?patch(it.id,{qty:String(Math.round((n-stp)*100)/100)}):remove([it.id]);
+  const sp=document.createElement("span"); sp.textContent=fmtQ(n,u); if(u)sp.className="u";
+  const plus=document.createElement("button"); plus.append(svgEl("plus")); plus.setAttribute("aria-label","Flere"); plus.onclick=()=>patch(it.id,{qty:String(Math.round((n+stp)*100)/100)});
   q.append(minus,sp,plus);
   li.append(c,t,q); return li;
 }
@@ -594,8 +607,18 @@ function openEditor(li,it){
   const ed=document.createElement("li"); ed.className="editor";
   const cs=document.createElement("select"); CATS.forEach(c=>{const o=document.createElement("option"); o.value=c.id; o.textContent=`${c.icon} ${c.da} · ${c.sq}`; if((it.category||"an")===c.id)o.selected=true; cs.append(o)});
   const ss=document.createElement("select"); [...new Set([...STORE_ORDER,it.store||"Lidl"])].forEach(n=>{const o=document.createElement("option"); o.value=n; o.textContent=n; if((it.store||"Lidl")===n)o.selected=true; ss.append(o)});
+  const e0=it.key&&BYKEY[it.key], u=unitOf(it.key);
+  const qrow=document.createElement("div"); qrow.className="row2";
+  const qi=document.createElement("input"); qi.type="text"; qi.inputMode="decimal"; qi.value=fmtQ(qn(it.qty),""); qi.setAttribute("aria-label","Mængde");
+  const ql=document.createElement("span"); ql.className="ul"; ql.textContent=u||"stk.";
+  const ni=document.createElement("input"); ni.type="text"; ni.placeholder=e0&&e0.forms?"Udskæring / bemærkning":"Bemærkning"; ni.value=it.note||"";
+  qrow.append(qi,ql); ed.append(qrow);
+  if(e0&&e0.forms){const fw=document.createElement("div"); fw.className="forms";
+    e0.forms.forEach(f=>{const b=document.createElement("button"); b.textContent=f; if((ni.value||"").toLowerCase()===f.toLowerCase())b.className="on"; b.onclick=()=>{ni.value=ni.value===f?"":f; fw.querySelectorAll("button").forEach(x=>x.className=x.textContent===ni.value?"on":"")}; fw.append(b)});
+    ed.append(fw)}
+  ed.append(ni);
   const ok=document.createElement("button"); ok.textContent="Gem";
-  ok.onclick=async()=>{const cat=cs.value, store=ss.value; await patch(it.id,{category:cat,store});
+  ok.onclick=async()=>{const cat=cs.value, store=ss.value; await patch(it.id,{category:cat,store,qty:String(qn(qi.value)),note:ni.value.trim()||null});
     const e=it.key&&BYKEY[it.key]; if(e&&(e.own||!e.n))await saveProduct({key:e.key,da:e.da,sq:e.sq,cat,store})};
   ed.append(cs,ss,ok); li.after(ed);
 }
@@ -621,7 +644,7 @@ function render(){
     const list=items.filter(i=>(i.store||"Lidl")===s);
     const card=document.createElement("section"); card.className="card";
     const left=list.filter(i=>!i.checked).length;
-    const tot=list.filter(i=>!i.checked).reduce((a,i)=>a+(unitPrice(i.key,s)||0)*(parseInt(i.qty)||1),0); grand+=tot;
+    const tot=list.filter(i=>!i.checked).reduce((a,i)=>a+(unitPrice(i.key,s)||0)*qn(i.qty),0); grand+=tot;
     const h=document.createElement("div"); h.className="storeh";
     const av=document.createElement("span"); av.className="av"+(s==="Lidl"?"":" alt"); av.textContent=s.replace(/[^A-Za-zÆØÅæøå0-9]/g,"").slice(0,1).toUpperCase();
     const sn=document.createElement("div"); sn.className="sn"; const nb=document.createElement("b"); nb.textContent=s; const ns=document.createElement("span");
@@ -856,9 +879,15 @@ function renderAc(){
 $("#addInput").addEventListener("input",renderAc);
 
 $("#addForm").addEventListener("submit",ev=>{ev.preventDefault();
-  const v=$("#addInput").value.trim(); if(!v)return; const q=1;
+  let v=$("#addInput").value.trim(); if(!v)return;
+  let qty=null, note=null;
+  const mq=v.match(/(\d+(?:[.,]\d+)?)\s*(kg|kilo|g|gram)\b/i);
+  if(mq){qty=parseFloat(mq[1].replace(",",".")); if(/^g/i.test(mq[2]))qty=qty/1000; v=v.replace(mq[0]," ")}
+  const mf=v.match(/\b(i\s+skiver|skiver|i\s+tern|tern|terninger|strimler|hel(?:t)?\s+stykke|hakket)\b/i);
+  if(mf&&!/^hakket\s+okse/i.test(v.trim())){note=mf[1].toLowerCase().replace(/^skiver$/,"i skiver").replace(/^(tern|terninger)$/,"i tern"); note=note[0].toUpperCase()+note.slice(1); v=v.replace(mf[0]," ")}
+  v=v.replace(/\s+/g," ").trim(); if(!v)return;
   const top=suggestFor(v)[0]; const e=match(v)||top||null;
-  $("#addInput").value=""; addItem(v,(e&&e.qty)||q,e&&fold(v).length>=2?e:null); renderAc()});
+  $("#addInput").value=""; addItem(v,qty||(e&&e.qty)||1,e&&fold(v).length>=2?e:null,undefined,note); renderAc()});
 $("#clearDone").onclick=()=>{const ids=items.filter(i=>i.checked).map(i=>i.id); if(ids.length)remove(ids)};
 $("#suggSearch").addEventListener("input",renderSugg);
 document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{suggFilter=b.dataset.f;document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",x===b));renderSugg()});

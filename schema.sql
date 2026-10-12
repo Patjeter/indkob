@@ -85,3 +85,7 @@ revoke all on public.dishes from anon;
 grant select, insert, update, delete on public.dishes to authenticated;
 create policy "kun familien" on public.dishes for all to authenticated using (public.is_family()) with check (public.is_family());
 alter publication supabase_realtime add table public.dishes;
+
+-- v31: Al-Rafiden Slagteri, kg-mængder og udskæring
+alter table public.bought alter column qty type numeric using qty::numeric;
+-- katalog: store="Al-Rafiden Slagteri", unit="kg", step=0.5, forms=[...] for oksekød/hakket oksekød/gullasch
