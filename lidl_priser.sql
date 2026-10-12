@@ -1,5 +1,5 @@
 -- v45: Lidls prisregister – normalpriser for hele det sortiment, der dukker op i Lidls kataloger
--- Kilde: Tjek-API'et (samme som tilbudsopgaven). Hentes dagligt af Edge Function "lidl-priser" (supabase/functions/lidl-priser).
+-- Kilde: Tjek-API'et (samme som tilbudsopgaven). Hentes dagligt af databasen selv (pg_net + pg_cron), se nederst.
 --   "Fast lav pris"-kataloget  → standardpris (normal_kind = 'fast')
 --   ugens tilbud med førpris   → normalpris = førpris (normal_kind = 'før'), tilbudspris gemmes også
 --   tilbud uden førpris        → kun tilbudspris (normalpris kendes fra tidligere eller senere)
@@ -98,13 +98,73 @@ end $$;
 revoke all on function public.lidl_ingest(jsonb) from public, anon, authenticated;
 grant execute on function public.lidl_ingest(jsonb) to service_role;
 
--- Hent dagligt kl. ca. 06:23 dansk tid (04:23 UTC); Edge Function henter selv fra Tjek
-select cron.unschedule('lidl-priser') where exists (select 1 from cron.job where jobname = 'lidl-priser');
-select cron.schedule('lidl-priser', '23 4 * * *', $c$
-  select net.http_post(
-    url     := 'https://onhsmcapojdfzuvcyqsm.supabase.co/functions/v1/lidl-priser',
-    headers := jsonb_build_object('Content-Type','application/json',
-               'Authorization','Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uaHNtY2Fwb2pkZnp1dmN5cXNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3MzM1NjQsImV4cCI6MjEwNzMwOTU2NH0.abpbVEay_4C4EjAFRkX-vDXJ2TRXc9xe6rSPQDXXIWM'),
-    body    := '{}'::jsonb,
-    timeout_milliseconds := 60000);
-$c$);
+-- Hentning sker i databasen selv (pg_net), fordi Tjek afviser Supabases Edge-servere.
+-- 04:20 UTC: lidl_fetch() bestiller siderne · 04:25 UTC: lidl_process() læser svarene og gemmer priserne.
+create table if not exists public.lidl_fetch_jobs (req_id bigint primary key, created_at timestamptz not null default now());
+alter table public.lidl_fetch_jobs enable row level security;
+revoke all on public.lidl_fetch_jobs from anon, authenticated;
+
+create or replace function public.lidl_fetch() returns int
+language plpgsql security invoker set search_path = public, extensions as $$
+declare off int; n int := 0;
+begin
+  delete from lidl_fetch_jobs where created_at < now() - interval '1 day';
+  for off in 0..1400 by 100 loop
+    insert into lidl_fetch_jobs(req_id) values (net.http_get(
+      url := format('https://squid-api.tjek.com/v2/offers?dealer_ids=71c90&r_lat=55.6337&r_lng=12.6360&r_radius=10000&limit=100&offset=%s', off),
+      timeout_milliseconds := 30000));
+    n := n + 1;
+  end loop;
+  return n;
+end $$;
+
+create or replace function public.lidl_process() returns jsonb
+language plpgsql security invoker set search_path = public, extensions as $$
+declare
+  own text[] := array['MILBONA','ENGVANG','MADVÆRKET','BAKKEDAL','LOVILIO','DULANO','CROWNFIELD','BELLAROM','SONDEY','ALESTO','VEMONDO','CIEN','DENTALUX','W5','FORMIL','LUPILU','COMBINO','BARESA','FIN CARRÉ','SASKIA','SOLEVITA','KANIA','SNACK DAY','FAVORINA','FREEWAY','TASTINO','PERLENBACHER','DELUXE','BELBAKE','ITALIAMO','GELATELLI','CHEF SELECT','VITA D''OR','MCENNEDY','EXQUISITA','PILOS','HAVBLÅ','BUTCHER''S','BUTCHER’S','CHOCO NUSSA','BIO ORGANIC','MARIBEL','NIXE','SIEMPRE','FLORALYS','AROMATA','LIBA','GOLDEN SEAFOOD','OCEAN SEA','CRIVIT','PARKSIDE','SILVERCREST','LIVARNO','ESMARA','LIVERGY','PEPPERTS','SUN SNACKS','TRATTORIA ALFREDO','CUISINE ROYAL','LACTOFREE','LACTO FREE','BLUE WATER','ECHT NORDISCH','MARTAKA','GOLDEN BRIDGE','VITASIA','SOL & MAR','EL TEQUITO','SNACK TIME','HATHERWOOD','J.D. GROSS','MIREE','RIVERCOTE','MOMENTS','ROMANI','DEN GAMLE FABRIK','MARLENE','PRIMADONNA'];
+  rows jsonb; res jsonb; venter int; sider int;
+begin
+  select count(*) filter (where r.id is null), count(*) filter (where r.status_code = 200)
+    into venter, sider
+    from lidl_fetch_jobs j left join net._http_response r on r.id = j.req_id;
+  with resp as (
+    select r.content::jsonb as arr
+      from lidl_fetch_jobs j join net._http_response r on r.id = j.req_id
+     where r.status_code = 200 and left(r.content, 1) = '['
+  ), o as (
+    select e from resp, jsonb_array_elements(resp.arr) e
+     where e->'pricing'->>'price' is not null and coalesce(e->>'heading','') <> ''
+  ), b as (
+    select e,
+           trim(coalesce((regexp_match(e->>'heading', '^((?:[^\sa-zæøåäöüé]*[A-ZÆØÅÄÖÜÉ][^\sa-zæøåäöüé]*\s+)+)'))[1], '')) as brand,
+           (e->'quantity'->'size'->>'from')::numeric as sf,
+           coalesce((e->'quantity'->'size'->>'to')::numeric, (e->'quantity'->'size'->>'from')::numeric) as st,
+           coalesce(e->'quantity'->'unit'->>'symbol', '') as sym,
+           e->'quantity'->'unit'->'si'->>'symbol' as si,
+           (e->'quantity'->'unit'->'si'->>'factor')::numeric as fac
+      from o
+  )
+  select jsonb_agg(jsonb_build_object(
+           'id', e->>'id',
+           'pkey', trim(lower(regexp_replace(e->>'heading', '[\s,.;:!?()"/–-]+', ' ', 'g'))) || '|' ||
+                   case when sf is null then '' when st = sf then sf::text else sf::text || '-' || st::text end || sym,
+           'heading', trim(e->>'heading'),
+           'brand', brand,
+           'own', brand <> '' and exists (select 1 from unnest(own) x where upper(brand) like x || '%'),
+           'size_from', sf, 'size_to', st, 'unit', nullif(sym, ''),
+           'qty_si', case when sf is not null and fac is not null then round(sf * fac, 4) end,
+           'si_unit', case si when 'pcs' then 'stk' else si end,
+           'price', (e->'pricing'->>'price')::numeric,
+           'pre_price', (e->'pricing'->>'pre_price')::numeric,
+           'fast', coalesce(e->>'description', '') ~* 'fast\s+lav\s+pris',
+           'valid_from', left(e->>'run_from', 10), 'valid_to', left(e->>'run_till', 10)))
+    into rows from b;
+  res := lidl_ingest(coalesce(rows, '[]'::jsonb));
+  delete from lidl_fetch_jobs j using net._http_response r where r.id = j.req_id;
+  return res || jsonb_build_object('sider', sider, 'venter', venter);
+end $$;
+revoke all on function public.lidl_fetch(), public.lidl_process() from public, anon, authenticated;
+
+select cron.unschedule(jobname) from cron.job where jobname in ('lidl-priser', 'lidl-hent', 'lidl-gem');
+select cron.schedule('lidl-hent', '20 4 * * *', $c$ select public.lidl_fetch(); $c$);
+select cron.schedule('lidl-gem',  '25 4 * * *', $c$ select public.lidl_process(); $c$);
