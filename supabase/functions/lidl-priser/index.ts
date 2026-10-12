@@ -58,7 +58,7 @@ export async function fetchAll(fetcher: typeof fetch = fetch): Promise<Offer[]> 
   const all: Offer[] = [];
   for (let off = 0; off < 3000; off += 100) {
     const url = `https://squid-api.tjek.com/v2/offers?dealer_ids=${DEALER}&r_lat=${LAT}&r_lng=${LNG}&r_radius=${RADIUS}&limit=100&offset=${off}`;
-    const r = await fetcher(url, { headers: { accept: "application/json" } });
+    const r = await fetcher(url, { headers: { "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36", accept: "*/*" } });
     if (!r.ok) throw new Error(`Tjek svarede ${r.status}`);
     const j = await r.json() as Offer[];
     all.push(...j);
