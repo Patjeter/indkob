@@ -244,10 +244,76 @@ li.editor::before{display:none}
 .editor .forms button{background:var(--surface2);color:var(--ink);font-weight:600;padding:7px 11px;border-radius:999px}
 .editor .forms button.on{background:var(--accent);color:var(--on-accent)}
 .sub .nt{color:var(--ink);font-weight:700}
+
+/* ---- v32: tættere og mere overskueligt ---- */
+html,body{font-size:15px}
+.top{padding:calc(env(safe-area-inset-top) + 8px) 16px 8px;gap:10px;transition:padding .2s}
+.top .ticon{width:34px;height:34px;flex-basis:34px;border-radius:10px}
+.top .ticon svg{width:19px;height:19px}
+.top h1{font-size:22px}
+body.scrolled .top{padding-top:calc(env(safe-area-inset-top) + 4px);padding-bottom:4px;border-bottom:1px solid var(--line)}
+body.scrolled .top h1{font-size:17px}
+body.scrolled .top .tsub,body.scrolled .top .ver{display:none}
+body.scrolled .top .ticon{width:26px;height:26px;flex-basis:26px;border-radius:8px}
+body.scrolled .top .ticon svg{width:15px;height:15px}
+body.scrolled .top .tinfo b{font-size:13px;display:inline;margin-right:4px}
+.card{border-radius:16px;margin-bottom:10px}
+.addcard{padding:8px}
+.add>button{width:42px;height:42px;flex-basis:42px}
+.add input{padding:10px 0}
+.storeh{padding:10px 14px 8px;gap:10px}
+.storeh .av{width:30px;height:30px;flex-basis:30px;font-size:13px}
+.storeh .sn b{font-size:17px}
+.storeh .sn span{font-size:12px}
+.storeh .sum b{font-size:15px}
+.cath{padding:5px 14px;gap:8px;margin-top:2px}
+.cath .ci{width:22px;height:22px;flex-basis:22px;border-radius:7px;font-size:13px}
+.cath .cn{font-size:13px}
+.cath .cn small{font-size:11.5px}
+.cath .cc{font-size:11px;padding:0 7px}
+li{padding:7px 10px 7px 12px;gap:10px}
+li+li::before{left:46px}
+.nm{font-size:15.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nm .ai{font-size:12.5px;font-weight:400;color:var(--ink3);margin-left:7px}
+.sub{font-size:12px;line-height:1.3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub .lk{color:var(--ink3)}
+.sub .lk svg{width:11px;height:11px;vertical-align:-1px;margin-right:2px}
+.check{width:24px;height:24px;flex-basis:24px}
+.qty{height:34px}
+.qty button{width:30px;height:34px}
+.qty span{font-size:14.5px}
+.qty span.u{min-width:42px;font-size:13.5px}
+.addbtn{width:36px;height:36px;flex-basis:36px;border-radius:10px}
+.addbtn svg{width:18px;height:18px}
+.meta{margin-top:4px}
+.movebtn{min-height:38px;padding:5px 10px;border-radius:10px}
+.mvt b{font-size:13px}.mvt small{font-size:11px}
+.priceline{margin-top:2px;gap:6px}
+.priceline .now{font-size:17px}
+.pills{margin-top:4px}
+.sech{padding:12px 14px 4px}
+.sech h2{font-size:16px}
+.search{margin:0 14px}
+.seg{margin:8px 14px 4px}
+.seg button{padding:5px 2px}
+.tag{font-size:10px;padding:1px 6px}
+.tabs{padding-top:4px}
+.tabs .ic{height:28px}
+.dish .ings{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (min-width:860px){.nm,.sub{white-space:normal}}
+.mvt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mvt b,.mvt small{display:inline}
+.mvt small{margin-left:6px}
+.movebtn{min-height:36px}
+.priceline .pills{margin:0}
+.priceline .pill{font-size:11px}
+li.wrap{flex-wrap:wrap;row-gap:5px}
+.movebtn.full{flex:1 1 calc(100% - 34px);min-width:0;max-width:calc(100% - 34px);margin-left:34px;width:auto}
+.movebtn.full .mvt{min-width:0}
 </style>
 </head>
 <body data-tab="list">
-<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v31</span></div></header>
+<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v32</span></div></header>
 <div class="auth" id="auth" hidden>
   <form class="authcard" id="authForm" autocomplete="on">
     <div class="authicon" data-ic="cart"></div>
@@ -302,8 +368,7 @@ li.editor::before{display:none}
   <div class="pane" id="pane-sugg" hidden>
     <div class="panehead">Forslag</div>
     <section class="card">
-      <div class="sech"><h2>Det plejer I at købe</h2><div class="s2">Zakonisht blini</div></div>
-      <label class="search"><span data-ic="search"></span><input id="suggSearch" placeholder="Søg · Kërko"></label>
+      <label class="search" style="margin-top:12px"><span data-ic="search"></span><input id="suggSearch" placeholder="Søg · Kërko"></label>
       <div class="seg chips"><button data-f="due" aria-pressed="true">14 dage<small>14 ditë</small></button><button data-f="d30" aria-pressed="false">30 dage<small>30 ditë</small></button><button data-f="top" aria-pressed="false">Oftest<small>Më shpesh</small></button><button data-f="all" aria-pressed="false">Alle<small>Të gjitha</small></button></div>
       <div id="sugg"></div>
     </section>
@@ -318,7 +383,7 @@ li.editor::before{display:none}
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
 </nav>
 
-<script src="config.js?v=31"></script>
+<script src="config.js?v=32"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const qn=v=>{const n=parseFloat(String(v==null?"":v).replace(",","."));return isFinite(n)&&n>0?n:1};
@@ -539,12 +604,15 @@ function lookFor(key,store){
   const e=BYKEY[key]; if(e&&e.prod&&e.prod.length&&store===(e.store||"Lidl"))return e.prod.join(" / ");
   return "";
 }
+function nameEl(da,sq){const nm=document.createElement("span"); nm.className="nm"; nm.append(document.createTextNode(da));
+  if(sq&&sq!==da){const a=document.createElement("span"); a.className="ai"; a.textContent=sq; nm.append(a)} return nm}
+function lookIn(text){if(!text)return null; const l=document.createElement("span"); l.className="lk"; l.append(svgEl("search"),document.createTextNode(text)); return l}
 function lookLine(text){if(!text)return null; const l=document.createElement("span"); l.className="look"; l.append(svgEl("search"),document.createTextNode(text)); return l}
 function pills(parts){const d=document.createElement("div"); d.className="pills";
   parts.filter(Boolean).forEach(x=>{if(typeof x==="string"){const p=document.createElement("span"); p.className="pill"; p.textContent=x; d.append(p)} else {x.classList.add("pill"); d.append(x)}}); return d}
 function alt(text){if(!text)return null; const a=document.createElement("span"); a.className="alt"; a.textContent=text; return a}
 function subLine(parts){const s=document.createElement("span"); s.className="sub";
-  parts.filter(Boolean).forEach((x,i)=>{if(i)s.append(" · "); s.append(typeof x==="string"?document.createTextNode(x):x)}); return s}
+  parts.filter(x=>x&&(typeof x==="string"||x.textContent)).forEach((x,i)=>{if(i)s.append(" · "); s.append(typeof x==="string"?document.createTextNode(x):x)}); return s}
 function metaChips(key,store,onMove){
   const box=document.createElement("div"); box.className="meta";
   const own=sameStore(key,store), e=BYKEY[key];
@@ -570,16 +638,15 @@ function names(it){
   return [it.text,""];
 }
 function row(it){
-  const li=document.createElement("li"); if(it.checked)li.className="done";
+  const li=document.createElement("li"); if(it.checked)li.className="done"; let fullBtn=null;
   const c=document.createElement("button"); c.className="check"; c.setAttribute("aria-label","Afkryds"); c.append(svgEl("check")); c.onclick=()=>toggle(it);
   const t=document.createElement("div"); t.className="txt";
   const [a,b]=names(it);
-  const nm=document.createElement("span"); nm.className="nm"; nm.textContent=a;
+  const nm=nameEl(a,b);
   if(it.suggested){const s=document.createElement("span"); s.className="tag"; s.textContent="forslag"; nm.append(s)}
   t.append(nm);
   {const ps=it.key?priceSpan(it.key,it.store||"Lidl",true):null; let nt=null; if(it.note){nt=document.createElement("b"); nt.className="nt"; nt.textContent=it.note}
-  t.append(subLine([b, ps&&ps.textContent?ps:null, nt]))}
-  if(it.key){const l=lookLine(lookFor(it.key,it.store||"Lidl")); if(l)t.append(l)}
+  t.append(subLine([nt, ps&&ps.textContent?ps:null, it.key?lookIn(lookFor(it.key,it.store||"Lidl")):null]))}
   if(it.key){const st=it.store||"Lidl", e=BYKEY[it.key], home=(e&&e.store)||"Lidl"; const m=document.createElement("div"); m.className="meta";
     const dl=!it.checked&&bestElsewhere(it.key,st);
     if(dl){const mv=document.createElement("button"); mv.className="movebtn"+(started(dl)?"":" soon");
@@ -588,7 +655,7 @@ function row(it){
       const t2=document.createElement("small"); t2.textContent=`${kr(dl.price)} · spar ${kr(refOf(dl,it.key)-dl.price)} · ${started(dl)?when(dl):"gælder fra "+wd(dl.valid_from)+" "+dshort(dl.valid_from)}`+(dl.note?` · ${dl.note}`:"");
       tx.append(t1,t2); mv.append(svgEl("tag"),tx,svgEl("arrow"));
       mv.setAttribute("aria-label",`Flyt ${a} til ${dl.store}`);
-      mv.onclick=()=>{patch(it.id,{store:dl.store}); toast(`${a} flyttet til ${dl.store}`,()=>patch(it.id,{store:st}))}; m.append(mv)}
+      mv.onclick=()=>{patch(it.id,{store:dl.store}); toast(`${a} flyttet til ${dl.store}`,()=>patch(it.id,{store:st}))}; mv.classList.add("full"); fullBtn=mv}
     else{const ch=cheapChip(it.key,st); if(ch)m.append(ch)}
     if(st!==home&&!offersFor(it.key).some(o=>o.store===st)&&!(e&&e.own)){const w=document.createElement("button"); w.className="chip warn"; w.textContent=`Tilbuddet @${st} er udløbet → flyt tilbage til ${home}`; w.onclick=()=>patch(it.id,{store:home}); m.append(w)}
     if(m.childNodes.length)t.append(m)}
@@ -600,7 +667,7 @@ function row(it){
   const sp=document.createElement("span"); sp.textContent=fmtQ(n,u); if(u)sp.className="u";
   const plus=document.createElement("button"); plus.append(svgEl("plus")); plus.setAttribute("aria-label","Flere"); plus.onclick=()=>patch(it.id,{qty:String(Math.round((n+stp)*100)/100)});
   q.append(minus,sp,plus);
-  li.append(c,t,q); return li;
+  li.append(c,t,q); if(fullBtn){li.classList.add("wrap"); li.append(fullBtn)} return li;
 }
 function openEditor(li,it){
   const nx=li.nextElementSibling; if(nx&&nx.classList.contains("editor")){nx.remove();return}
@@ -698,16 +765,15 @@ function renderOffers(){
       if(stockMode)total+=save*q;
       const li=document.createElement("li"); li.className="offerli";
       const tx=document.createElement("div"); tx.className="txt";
-      const nm=document.createElement("span"); nm.className="nm"; nm.textContent=e.da; tx.append(nm);
-      const a=alt(e.sq!==e.da?e.sq:""); if(a)tx.append(a);
-      {const l=lookLine((o.title||"")+(o.size?` (${o.size})`:"")); if(l)tx.append(l)}
+      tx.append(nameEl(e.da,e.sq));
+      {const l=lookIn((o.title||"")+(o.size?` (${o.size})`:"")); if(l)tx.append(subLine([l]))}
       const pl=document.createElement("div"); pl.className="priceline";
       const nw=document.createElement("span"); nw.className="now"; nw.textContent=kr(o.price);
       const was=document.createElement("span"); was.className="was"; was.textContent=kr(refOf(o,o.key));
       const sv=document.createElement("span"); sv.className="save"; sv.textContent=`Spar ${kr(Math.round(save*q*100)/100)}`+(q>1?` på ${q} stk.`:"");
       pl.append(nw,was,sv); tx.append(pl);
       const sp=document.createElement("span"); sp.className="store"; sp.textContent=o.store;
-      tx.append(pills([sp, when(o), o.note||""]));
+      pl.append(pills([sp, when(o), o.note||""]));
       li.append(tx);
       const it=onList.get(e.key);
       if(it&&it.store===o.store){const s=document.createElement("span"); s.className="on"; s.append(svgEl("check"),document.createTextNode("På listen")); li.append(s)}
@@ -741,14 +807,12 @@ function renderSugg(){
   const mk=e=>{
       const li=document.createElement("li");
       const t=document.createElement("div"); t.className="txt";
-      const nm=document.createElement("span"); nm.className="nm"; nm.textContent=e.da;
+      const nm=nameEl(e.da,e.sq);
       if(isDue(e)&&(q||(suggFilter!=="due"&&suggFilter!=="d30"))){const s=document.createElement("span"); s.className="tag due"; s.textContent="inden 14 dage"; nm.append(s)}
       t.append(nm);
       const d=daysSince(lastBought(e));
-      const a=alt(e.sq!==e.da?e.sq:""); if(a)t.append(a);
-      {const l=lookLine(lookFor(e.key,e.store)); if(l)t.append(l)}
       const freq=suggFilter==="top"&&!q?(e.n?`${e.n} gange i år`:""):(e.every?`hver ${e.every}. dag`:"");
-      t.append(subLine([priceSpan(e.key,e.store), freq, d!=null?(d>365?"sidst for over et år siden":`sidst for ${d} dage siden`):""]));
+      t.append(subLine([priceSpan(e.key,e.store,(e.store||"Lidl")==="Lidl"), freq, d!=null?(d>365?"sidst >1 år":`sidst ${d} d. siden`):"", lookIn(lookFor(e.key,e.store))]));
       const ch=cheapChip(e.key,e.store); if(ch){const m=document.createElement("div"); m.className="meta"; m.append(ch); t.append(m)}
       li.append(t);
       if(onList.has(e.key)){const o=document.createElement("span"); o.className="on"; o.append(svgEl("check"),document.createTextNode("På listen")); li.append(o)}
@@ -862,9 +926,8 @@ function renderAc(){
   list.forEach(e=>{
     const li=document.createElement("li");
     const t=document.createElement("div"); t.className="txt";
-    const nm=document.createElement("span"); nm.className="nm"; nm.textContent=e.da; t.append(nm);
-    t.append(subLine([e.sq!==e.da?e.sq:"", priceSpan(e.key,e.store)]));
-    {const l=lookLine(lookFor(e.key,e.store)); if(l)t.append(l)}
+    t.append(nameEl(e.da,e.sq));
+    t.append(subLine([priceSpan(e.key,e.store), lookIn(lookFor(e.key,e.store))]));
     const ch=cheapChip(e.key,e.store); if(ch){const m=document.createElement("div"); m.className="meta"; m.append(ch); t.append(m)}
     const u=document.createElement("span"); u.className="usual";
     u.textContent=onList.has(e.key)?"på listen ✓":(e.n?`plejer ×${e.qty||1}`:(e.own?"egen vare":""));
@@ -898,7 +961,8 @@ document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
 });
 if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}
 const setTop=()=>document.documentElement.style.setProperty("--toph",$(".top").offsetHeight+"px");
-addEventListener("resize",setTop); setHead(); setTop(); loadAll();
+addEventListener("resize",setTop);
+let scl=false; addEventListener("scroll",()=>{const c=scrollY>28; if(c!==scl){scl=c; document.body.classList.toggle("scrolled",c); requestAnimationFrame(setTop)}},{passive:true}); setHead(); setTop(); loadAll();
 </script>
 </body>
 </html>
