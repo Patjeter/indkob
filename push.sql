@@ -46,7 +46,7 @@ grant execute on function public.push_claim() to service_role;
 
 -- 5) tjek hvert minut; kald kun funktionen når der faktisk er noget at sende
 create extension if not exists pg_cron;
-create extension if not exists pg_net;
+create extension if not exists pg_net with schema extensions;   -- ikke i public (Security Advisor)
 select cron.unschedule('indkob-push') where exists (select 1 from cron.job where jobname = 'indkob-push');
 select cron.schedule('indkob-push', '* * * * *', $c$
   select net.http_post(
