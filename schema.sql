@@ -107,3 +107,16 @@ language sql security invoker set search_path = public as $fn$
   select count(*)::int from ins
 $fn$;
 revoke all on function public.add_offers(jsonb) from public, anon, authenticated;
+
+-- v41: Security Advisor – is_family() uden security definer.
+-- En indlogget bruger må kun se sin egen række i family; så kan funktionen køre med brugerens egne rettigheder.
+drop policy if exists "egen række" on public.family;
+create policy "egen række" on public.family for select to authenticated
+  using (lower(email) = lower(coalesce(auth.jwt()->>'email','')));
+grant select on public.family to authenticated;
+create or replace function public.is_family() returns boolean
+language sql stable security invoker set search_path = public as $$
+  select exists (select 1 from public.family f where lower(f.email) = lower(coalesce(auth.jwt()->>'email','')))
+$$;
+revoke all on function public.is_family() from public, anon;
+grant execute on function public.is_family() to authenticated;
