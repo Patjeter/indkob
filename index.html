@@ -178,6 +178,9 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .btn.danger{background:transparent;color:var(--warn)}
 .btn.icon{width:34px;padding:0}
 .btn svg{width:18px;height:18px}
+/* Forslag: valget står fast øverst, mens man ruller; kategorierne lægger sig under det */
+.segbar{position:sticky;top:var(--toph);z-index:6;background:var(--surface);padding:4px 0 6px}
+#pane-sugg .cat{top:calc(var(--toph) + var(--segh,0px))}
 .seg{display:flex;gap:2px;margin:0 6px 4px;padding:3px;border-radius:var(--r-ctl);background:var(--surface2)}
 .seg button{flex:1;padding:7px 2px;border-radius:8px;font-size:var(--fs-s);font-weight:600;line-height:1.2;color:var(--ink2)}
 .seg button small{display:block;font-size:var(--fs-xs);font-weight:400;color:var(--ink3)}
@@ -295,7 +298,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
     <div class="panehead">Forslag</div>
     <section class="card">
       <div class="fieldrow"><label class="field"><span data-ic="search"></span><input id="suggSearch" placeholder="Søg i jeres varer" autocapitalize="off" autocorrect="off"></label></div>
-      <div class="seg" id="seg"><button data-f="due" aria-pressed="true">14 dage</button><button data-f="d30" aria-pressed="false">30 dage</button><button data-f="top" aria-pressed="false">Oftest</button><button data-f="all" aria-pressed="false">Alle</button></div>
+      <div class="segbar" id="segbar"><div class="seg" id="seg"><button data-f="due" aria-pressed="true">14 dage</button><button data-f="d30" aria-pressed="false">30 dage</button><button data-f="top" aria-pressed="false">Oftest</button><button data-f="all" aria-pressed="false">Alle</button></div></div>
       <div id="sugg"></div>
     </section>
   </div>
@@ -309,11 +312,11 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
 </nav>
 
-<script src="config.js?v=43"></script>
+<script src="config.js?v=44"></script>
 <script src="supabase.js?v=2.45.4"></script>
 <script>
 "use strict";
-const VERSION="v43";
+const VERSION="v44";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -920,7 +923,7 @@ $("#addForm").addEventListener("submit",ev=>{ev.preventDefault();
 });
 $("#clearDone").onclick=()=>{const ids=items.filter(i=>i.checked).map(i=>i.id); if(ids.length)remove(ids); else toast("Ingen afkrydsede varer")};
 $("#suggSearch").addEventListener("input",renderSugg);
-$("#seg").querySelectorAll("button").forEach(b=>b.onclick=()=>{suggFilter=b.dataset.f; $("#seg").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b)); renderSugg()});
+$("#seg").querySelectorAll("button").forEach(b=>b.onclick=()=>{suggFilter=b.dataset.f; $("#seg").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b)); renderSugg(); {const st=getComputedStyle(document.documentElement), y=$("#sugg").getBoundingClientRect().top+scrollY-parseFloat(st.getPropertyValue("--toph"))-(parseFloat(st.getPropertyValue("--segh"))||0); if(scrollY>y+1)scrollTo({top:Math.max(0,y)})}});
 $("#newDish").onclick=()=>{editingDish={name_da:"",name_sq:"",items:[]}; openDish=null; renderDishes()};
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
   tab=b.dataset.tab; document.body.dataset.tab=tab;
@@ -929,6 +932,7 @@ document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
   renderPane(tab); setHead(); scrollTo(0,0);
 });
 const setTop=()=>document.documentElement.style.setProperty("--toph",$(".top").offsetHeight+"px");
+if("ResizeObserver" in window)new ResizeObserver(()=>{const h=$("#segbar").offsetHeight; if(h)document.documentElement.style.setProperty("--segh",h+"px")}).observe($("#segbar"));
 addEventListener("resize",setTop);
 let scl=false; addEventListener("scroll",()=>{const c=scrollY>8; if(c!==scl){scl=c; document.body.classList.toggle("scrolled",c)}},{passive:true});
 
