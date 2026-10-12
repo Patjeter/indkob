@@ -207,7 +207,10 @@ begin
        -- samme sikkerhedsregler som tilbuddene: aldrig svin eller okse
        and lp.hl !~ '(svin|skinke|bacon|flæsk|medister|rullepølse|hamburgerryg|kamsteg|spegepølse|leverpostej|frikadelle|pepperoni|chorizo|okse|kalv|entrecote|rumpsteak|cevapcici|roastbeef)'
   ), nrm as (            -- jeres eget produkt hos Lidl
-    select distinct on (key) * from m where length(fw) >= 3 and position(fw in hl) > 0 order by key, normal_seen desc, unit_price
+    select distinct on (key) * from m where length(fw) >= 3 and position(fw in hl) > 0
+       -- sikkerhedstjek: ligger prisen langt fra det, I plejer at betale, er det næppe samme produkt
+       and unit_price between ref_price / nullif(ref_qty,0) * 0.6 and ref_price / nullif(ref_qty,0) * 1.4
+     order by key, normal_seen desc, unit_price
   ), own as (            -- billigste Lidl-eget alternativ
     select distinct on (key) * from m where own_brand order by key, unit_price
   ), x as (
