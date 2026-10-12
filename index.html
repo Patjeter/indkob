@@ -334,10 +334,30 @@ li.wrap{flex-wrap:wrap;row-gap:5px}
 .chip.deal svg{vertical-align:-2px;margin-right:3px}
 .meta{margin-top:3px}
 .addcard{margin-top:0}
+
+/* ---- v34: fliser med fuger, farvet efter kategori ---- */
+.grp ul,.offerul{display:flex;flex-direction:column;gap:5px;padding:6px 8px 8px;border-left:0!important}
+.grp ul li,.offerul li{border-radius:12px;background:color-mix(in srgb,var(--cc,#7a7f87) 11%,var(--surface));padding:8px 10px}
+.grp ul li::before,.offerul li::before{display:none!important}
+.grp:last-child ul li:last-child{padding-bottom:8px}
+.card>.grp:last-child ul{border-bottom-left-radius:0}
+.grp ul li.done{background:color-mix(in srgb,var(--cc,#7a7f87) 5%,var(--surface))}
+.offerul li.dish{--cc:#a0447a}
+.grp ul li.editor,.grp ul li.dishdet,.offerul li.dishdet{background:transparent;padding:2px 6px 8px}
+.cath{margin-top:4px}
+.qty,.ingchip,.addbtn:not(.deal){background:color-mix(in srgb,var(--surface) 70%,transparent)}
+@media (prefers-color-scheme:dark){.grp ul li,.offerul li{background:color-mix(in srgb,var(--cc,#7a7f87) 16%,var(--surface))}}
+/* rullende linje 2 */
+.sub{text-overflow:clip}
+.sub .mq{display:inline-block;white-space:nowrap;will-change:transform}
+.sub.run{-webkit-mask-image:linear-gradient(90deg,#000 92%,transparent);mask-image:linear-gradient(90deg,#000 92%,transparent)}
+.sub.run .mq{animation:mq var(--t,8s) ease-in-out infinite alternate}
+@keyframes mq{0%,18%{transform:translateX(0)}82%,100%{transform:translateX(var(--d,0))}}
+@media (prefers-reduced-motion:reduce){.sub{white-space:normal}.sub .mq{white-space:normal;display:inline}.sub.run{-webkit-mask-image:none;mask-image:none}}
 </style>
 </head>
 <body data-tab="list">
-<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v33</span></div></header>
+<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v34</span></div></header>
 <div class="auth" id="auth" hidden>
   <form class="authcard" id="authForm" autocomplete="on">
     <div class="authicon" data-ic="cart"></div>
@@ -407,7 +427,7 @@ li.wrap{flex-wrap:wrap;row-gap:5px}
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
 </nav>
 
-<script src="config.js?v=33"></script>
+<script src="config.js?v=34"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const qn=v=>{const n=parseFloat(String(v==null?"":v).replace(",","."));return isFinite(n)&&n>0?n:1};
@@ -635,8 +655,22 @@ function lookLine(text){if(!text)return null; const l=document.createElement("sp
 function pills(parts){const d=document.createElement("div"); d.className="pills";
   parts.filter(Boolean).forEach(x=>{if(typeof x==="string"){const p=document.createElement("span"); p.className="pill"; p.textContent=x; d.append(p)} else {x.classList.add("pill"); d.append(x)}}); return d}
 function alt(text){if(!text)return null; const a=document.createElement("span"); a.className="alt"; a.textContent=text; return a}
-function subLine(parts){const s=document.createElement("span"); s.className="sub";
-  parts.filter(x=>x&&(typeof x==="string"||x.textContent)).forEach((x,i)=>{if(i)s.append(" · "); s.append(typeof x==="string"?document.createTextNode(x):x)}); return s}
+function subLine(parts){const s=document.createElement("span"); s.className="sub"; const m=document.createElement("span"); m.className="mq"; s.append(m);
+  parts.filter(x=>x&&(typeof x==="string"||x.textContent)).forEach((x,i)=>{if(i)m.append(" · "); m.append(typeof x==="string"?document.createTextNode(x):x)});
+  mqPending.add(s); scheduleMq(); return s}
+/* rullende tekst på linje 2, når den er for lang */
+const mqPending=new Set(); let mqRaf=0;
+function scheduleMq(){if(!mqRaf)mqRaf=requestAnimationFrame(()=>{mqRaf=0; mqPending.forEach(fitMq)})}
+function fitMq(s){
+  if(!s.isConnected){mqPending.delete(s);return}
+  if(!s.offsetParent)return; /* skjult fane – prøv igen ved fanskift */
+  mqPending.delete(s);
+  const m=s.firstChild, d=m.scrollWidth-s.clientWidth;
+  if(d>6){s.classList.add("run"); s.style.setProperty("--d",(-d-4)+"px"); s.style.setProperty("--t",Math.max(7,d/22+5)+"s")}
+  else s.classList.remove("run");
+}
+function remeasureMq(){document.querySelectorAll(".sub").forEach(x=>mqPending.add(x)); scheduleMq()}
+addEventListener("resize",remeasureMq);
 function metaChips(key,store,onMove){
   const box=document.createElement("div"); box.className="meta";
   const own=sameStore(key,store), e=BYKEY[key];
@@ -787,7 +821,7 @@ function renderOffers(){
       let q=stockMode?Math.max(e.qty||1,Math.round(weekly*6)):(e.qty||1);
       const mx=maxOf(o); if(mx)q=Math.min(q,mx);
       if(stockMode)total+=save*q;
-      const li=document.createElement("li"); li.className="offerli";
+      const li=document.createElement("li"); li.className="offerli tile c-"+(CAT[e.cat]?e.cat:"an");
       const tx=document.createElement("div"); tx.className="txt";
       tx.append(nameEl(e.da,e.sq));
       {const st=document.createElement("b"); st.className="stn"; st.textContent=o.store;
@@ -882,7 +916,7 @@ function renderDishes(){
   if(!dishes.length){const e=document.createElement("div"); e.className="empty"; e.textContent="Ingen retter endnu. Tryk \"Ny ret\"."; box.append(e)}
   const ul=document.createElement("ul"); ul.className="offerul";
   dishes.forEach(d=>{
-    const li=document.createElement("li"); li.className="dish";
+    const li=document.createElement("li"); li.className="dish tile";
     const t=document.createElement("div"); t.className="txt";
     t.append(nameEl(d.name_da,d.name_sq));
     const ks=(d.items||[]).map(x=>x.key);
@@ -980,7 +1014,7 @@ document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{suggFilter=b.
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
   tab=b.dataset.tab; document.body.dataset.tab=tab; setHead();
   document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
-  ["list","offers","dishes","sugg"].forEach(n=>$("#pane-"+n).hidden=b.dataset.tab!==n); window.scrollTo(0,0);
+  ["list","offers","dishes","sugg"].forEach(n=>$("#pane-"+n).hidden=b.dataset.tab!==n); window.scrollTo(0,0); remeasureMq();
 });
 if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}
 const setTop=()=>document.documentElement.style.setProperty("--toph",$(".top").offsetHeight+"px");
