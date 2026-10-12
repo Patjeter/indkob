@@ -8,444 +8,272 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Indkøb">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://onhsmcapojdfzuvcyqsm.supabase.co wss://onhsmcapojdfzuvcyqsm.supabase.co; base-uri 'none'; form-action 'self'">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <style>
+/* =========================================================
+   DESIGNSYSTEM – ét sæt regler for alle faner
+   Typografi: titel 18 · overskrift 15 · varenavn 15.5 · linje-2 12.5 · etiket 11
+   Afstand: 4 · 8 · 12 · 16      Radius: kort 16 · flise 12 · knap 10 · pille 999
+   ========================================================= */
 :root{
-  --bg:#f3f3ef;--surface:#ffffff;--surface2:#f7f7f4;--ink:#17181a;--ink2:#5d6166;--ink3:#6a6f76;--line:#ececE7;
-  --accent:#1f7a4d;--accent-soft:#e3f1e9;--deal:#d4600f;--deal-soft:#fff0e2;--deal-ink:#9a4500;
-  --warn:#c2361f;--warn-soft:#fde9e5;--tab:var(--accent);--on-accent:#fff;--on-deal:#fff;--faint:#a3a7ad;
-  --shadow:0 1px 2px rgba(20,20,10,.04),0 6px 20px rgba(20,20,10,.05);
-  --r:18px;
+  --bg:#f3f3ef;--surface:#fff;--surface2:#f4f4f0;--ink:#18191b;--ink2:#54585d;--ink3:#6a6f76;--line:#e7e7e2;
+  --accent:#1f7a4d;--accent-soft:#e4f1e9;--on-accent:#fff;
+  --deal:#d4600f;--deal-soft:#fcefe4;--deal-ink:#924100;--on-deal:#fff;
+  --warn:#c2361f;--warn-soft:#fbe8e4;
+  --tab:var(--accent);
+  --f:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+  --fs-title:18px;--fs-head:15px;--fs-name:15.5px;--fs-meta:12.5px;--fs-label:11px;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;
+  --r-card:16px;--r-tile:12px;--r-ctl:10px;
+  --tint:6%;--shadow:0 1px 2px rgba(20,20,10,.04),0 4px 14px rgba(20,20,10,.05);
+  --toph:56px;
 }
 @media (prefers-color-scheme:dark){:root{
-  --bg:#0f0f0e;--surface:#1b1b1a;--surface2:#242422;--ink:#f2f1ec;--ink2:#b3b1aa;--ink3:#9a978f;--line:#2c2c2a;
-  --accent:#5cc28e;--accent-soft:#1c3328;--deal:#f2913f;--deal-soft:#3a2614;--deal-ink:#ffc48f;--warn:#ff8b75;--warn-soft:#3b1d17;--on-accent:#0c1f15;--on-deal:#2a1405;--faint:#5f5d58;
-  --shadow:none}}
+  --bg:#0f0f0e;--surface:#1a1a19;--surface2:#232321;--ink:#f2f1ec;--ink2:#bab8b1;--ink3:#97958e;--line:#2c2c2a;
+  --accent:#5cc28e;--accent-soft:#1c3328;--on-accent:#0c1f15;
+  --deal:#f2913f;--deal-soft:#36240f;--deal-ink:#ffc48f;--on-deal:#2a1405;
+  --warn:#ff8b75;--warn-soft:#3b1d17;--tint:10%;--shadow:none}}
 body[data-tab=offers]{--tab:var(--deal)}
-body[data-tab=sugg]{--tab:#3f6fd8}
 body[data-tab=dishes]{--tab:#a0447a}
-@media (prefers-color-scheme:dark){body[data-tab=sugg]{--tab:#7ea2f2}}
+body[data-tab=sugg]{--tab:#3f6fd8}
+
+/* kategorifarver (bruges af overskrift og fliser) */
+.c-fg{--cc:#2e9d5b}.c-br{--cc:#c98a1b}.c-km{--cc:#d0463b}.c-mk{--cc:#3b82c4}.c-ko{--cc:#9a6b3f}
+.c-rh{--cc:#159aa0}.c-fr{--cc:#3fa0e0}.c-dr{--cc:#7c5cc4}.c-sn{--cc:#d64f8a}.c-nf{--cc:#8a7f6b}.c-an{--cc:#7a7f87}.c-dish{--cc:#a0447a}
+
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
-body{padding:0 14px calc(env(safe-area-inset-bottom) + 88px);max-width:1180px;margin:0 auto}
-button{font:inherit;color:inherit;cursor:pointer}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.35 var(--f);-webkit-font-smoothing:antialiased}
+body{padding:0 12px calc(env(safe-area-inset-bottom) + 64px);max-width:1180px;margin:0 auto}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+input,select{font:inherit;font-size:16px;color:var(--ink)}
 ul{list-style:none;margin:0;padding:0}
 [hidden]{display:none!important}
+svg{display:block}
 
-/* topbar – følger fanen */
-.top{position:sticky;top:0;z-index:20;margin:0 -14px;padding:calc(env(safe-area-inset-top) + 10px) 18px 10px;
-  background:color-mix(in srgb,var(--bg) 82%,transparent);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);
-  display:flex;align-items:center;gap:12px}
-.top .ticon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--tab);color:var(--surface);flex:0 0 40px;transition:background .25s}
-.top .ticon svg{width:22px;height:22px}
-.top .tt{flex:1;min-width:0}
-.top h1{font-size:24px;line-height:1.1;letter-spacing:-.02em;margin:0;font-weight:750}
-.top .tsub{font-size:13px;color:var(--ink3);margin-top:1px}
-.top .tinfo{text-align:right;font-size:12px;color:var(--ink2);line-height:1.3}
-.top .tinfo b{display:block;font-size:15px;color:var(--ink);font-weight:700}
-.top .ver{display:block;font-size:10px;color:var(--ink3);margin-top:1px}
-#status:not(:empty){display:block;color:var(--warn);font-weight:600}
-.panehead{display:none}
+/* ---------- topbar ---------- */
+.top{position:sticky;top:0;z-index:20;margin:0 -12px;padding:calc(env(safe-area-inset-top) + 4px) 16px 8px;display:flex;align-items:center;gap:10px;
+  background:color-mix(in srgb,var(--bg) 85%,transparent);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px)}
+body.scrolled .top{border-bottom:1px solid var(--line)}
+.ticon{width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:grid;place-items:center;background:var(--tab);color:var(--surface)}
+.ticon svg{width:16px;height:16px}
+.ttl{flex:1;min-width:0;display:flex;align-items:baseline;gap:7px}
+.ttl h1{margin:0;font-size:var(--fs-title);font-weight:750;letter-spacing:-.02em;white-space:nowrap}
+.ttl span{font-size:var(--fs-meta);color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tinfo{text-align:right;font-size:var(--fs-label);color:var(--ink2);line-height:1.25;white-space:nowrap}
+.tinfo b{display:block;font-size:13px;color:var(--ink)}
+.netpill{font-size:var(--fs-label);font-weight:700;border-radius:999px;padding:2px 8px;background:var(--warn-soft);color:var(--warn)}
+.netpill.sync{background:var(--accent-soft);color:var(--accent)}
 
-/* tabbar */
-.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:space-around;
-  background:color-mix(in srgb,var(--surface) 86%,transparent);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);
-  border-top:1px solid var(--line);padding:6px 10px calc(env(safe-area-inset-bottom) + 6px)}
-.tabs button{flex:1;max-width:140px;border:0;background:transparent;color:var(--ink2);font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;position:relative}
-.tabs .ic{width:52px;height:30px;border-radius:15px;display:grid;place-items:center;transition:background .2s}
-.tabs svg{width:22px;height:22px}
-.tabs button[aria-selected=true]{color:var(--ink)}
-.tabs button[data-tab=list][aria-selected=true] .ic{background:var(--accent-soft);color:var(--accent)}
-.tabs button[data-tab=offers][aria-selected=true] .ic{background:var(--deal-soft);color:var(--deal)}
-.tabs button[data-tab=dishes][aria-selected=true] .ic{background:color-mix(in srgb,#a0447a 14%,transparent);color:#a0447a}
-.tabs button[data-tab=sugg][aria-selected=true] .ic{background:color-mix(in srgb,#3f6fd8 14%,transparent);color:#3f6fd8}
-.tabs .badge{position:absolute;top:0;left:50%;margin-left:10px;min-width:18px;height:18px;border-radius:9px;background:var(--warn);color:#fff;font-size:10.5px;font-weight:700;line-height:18px;padding:0 5px;border:2px solid var(--surface);box-sizing:content-box}
-
-.cols{display:block}
-@media (min-width:860px){
-  body{padding-bottom:28px}.tabs{display:none}
-  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;align-items:start}.pane{display:block!important}
-  .panehead{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:700;margin:8px 4px 2px}
-  .top .ticon{background:var(--accent)}
-}
-
-/* kort */
-.card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);margin:0 0 12px}
-.pad{padding:14px 16px}
-.sech{padding:14px 16px 6px}
-.sech h2{margin:0;font-size:17px;font-weight:700;letter-spacing:-.01em}
-.sech .s2{font-size:12.5px;color:var(--ink3);margin-top:2px}
-.sech .big{font-size:13px;color:var(--accent);font-weight:700;margin-top:6px}
-
-/* skrivefelt */
-.addcard{padding:10px;margin-top:2px}
-.add{display:flex;gap:8px;align-items:center}
-.add .field{flex:1;display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:12px;padding:0 12px;min-width:0}
-.add .field svg{width:18px;height:18px;color:var(--ink3);flex:0 0 18px}
-.add input{flex:1;min-width:0;font:inherit;font-size:16px;border:0;background:transparent;color:var(--ink);padding:11px 0;outline:none}
-.add input::placeholder{color:var(--ink3)}
-.add>button{width:44px;height:44px;flex:0 0 44px;border:0;border-radius:12px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center}
-.add>button svg{width:22px;height:22px}
-.hint{font-size:12.5px;color:var(--ink3);padding:0 4px}
-.hint:not(:empty){margin-top:8px}
-.ac{margin-top:8px;border-top:1px solid var(--line)}
-.ac li{cursor:pointer;padding-left:4px;padding-right:0}
-.ac .usual{font-size:11.5px;color:var(--ink3);white-space:nowrap}
-.demo{font-size:12.5px;background:var(--deal-soft);color:var(--deal-ink);border-radius:12px;padding:8px 12px;margin:0 0 10px}
-
-/* butik */
-.storeh{display:flex;align-items:center;gap:12px;padding:14px 16px 12px}
-.storeh .av{width:38px;height:38px;border-radius:50%;background:var(--ink);color:var(--surface);display:grid;place-items:center;font-weight:800;font-size:15px;flex:0 0 38px}
-.storeh .av.alt{background:var(--deal)}
-.storeh .sn{flex:1;min-width:0}
-.storeh .sn b{display:block;font-size:19px;letter-spacing:-.01em;line-height:1.15}
-.storeh .sn span{font-size:12.5px;color:var(--ink3)}
-.storeh .sum{text-align:right;font-size:11.5px;color:var(--ink3);line-height:1.25}
-.storeh .sum b{display:block;font-size:16px;color:var(--ink)}
-.prog{height:3px;background:var(--line);margin:0 16px 4px;border-radius:2px;overflow:hidden}
-.prog i{display:block;height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
-
-/* kategori */
-.grp{--cc:#7a7f87}
-.cath{display:flex;align-items:center;gap:10px;padding:8px 16px;margin-top:6px;
-  background:color-mix(in srgb,var(--cc) 9%,var(--surface));border-top:1px solid color-mix(in srgb,var(--cc) 18%,transparent);border-bottom:1px solid color-mix(in srgb,var(--cc) 12%,transparent)}
-.cath .ci{width:28px;height:28px;border-radius:9px;background:color-mix(in srgb,var(--cc) 20%,var(--surface));display:grid;place-items:center;font-size:16px;flex:0 0 28px}
-.cath .cn{flex:1;min-width:0;font-size:14px;font-weight:700;color:color-mix(in srgb,var(--cc) 75%,var(--ink))}
-.cath .cn small{font-weight:500;color:var(--ink3);font-size:12px;margin-left:6px}
-.cath .cc{font-size:12px;font-weight:700;color:color-mix(in srgb,var(--cc) 75%,var(--ink));background:color-mix(in srgb,var(--cc) 16%,var(--surface));border-radius:999px;padding:1px 8px}
-.grp ul{border-left:3px solid color-mix(in srgb,var(--cc) 55%,transparent);margin-left:0}
-.grp ul.nocheck li+li::before{left:16px}
-.grp:last-child ul li:last-child{padding-bottom:14px}
-.c-fg{--cc:#2e9d5b}.c-br{--cc:#c98a1b}.c-km{--cc:#d0463b}.c-mk{--cc:#3b82c4}.c-ko{--cc:#9a6b3f}
-.c-rh{--cc:#159aa0}.c-fr{--cc:#3fa0e0}.c-dr{--cc:#7c5cc4}.c-sn{--cc:#d64f8a}.c-an{--cc:#7a7f87}
-
-/* rækker – samme opbygning overalt */
-li{display:flex;align-items:center;gap:10px;padding:11px 12px 11px 13px;position:relative}
-li+li::before{content:"";position:absolute;top:0;left:49px;right:0;border-top:1px solid var(--line)}
-.card>ul>li+li::before,.ac li+li::before,.offerul li+li::before,.suggul li+li::before{left:16px}
-.txt{flex:1;min-width:0;cursor:pointer}
-.nm{display:block;font-size:16px;font-weight:600;line-height:1.25;letter-spacing:-.005em}
-.sub{display:block;font-size:12.5px;color:var(--ink2);line-height:1.35;margin-top:1px}
-.sub .offer{color:var(--deal-ink);font-weight:600}
-.alt{display:block;font-size:12.5px;color:var(--ink3);line-height:1.3;margin-top:1px}
-.look{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--ink3);line-height:1.3;margin-top:2px}
-.look svg{width:12px;height:12px;flex:0 0 12px}
-.meta{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
-.tag{font-size:10.5px;font-weight:700;border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:2px;white-space:nowrap;background:var(--surface2);color:var(--ink2)}
-.tag.due{background:var(--warn-soft);color:var(--warn)}
-
-.check{width:26px;height:26px;flex:0 0 26px;border:2px solid var(--ink3);position:relative;border-radius:50%;background:transparent;padding:0;display:grid;place-items:center;color:#fff;transition:all .15s}
-.check svg{width:14px;height:14px;opacity:0}
-li.done .check{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
-li.done .check svg{opacity:1}
-li.done .txt,li.done .qty,li.done .movebtn{opacity:.4}
-li.done .nm{text-decoration:line-through}
-li.done .meta,li.done .look{display:none}
-
-.qty{display:flex;align-items:center;background:var(--surface2);border-radius:999px;height:40px;flex:0 0 auto}
-.qty button{width:34px;height:40px;position:relative;border:0;background:transparent;color:var(--ink);font-size:18px;padding:0;display:grid;place-items:center}
-.qty button svg{width:15px;height:15px;color:var(--ink3)}
-.qty span{min-width:16px;text-align:center;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
-
-.addbtn{width:42px;height:42px;flex:0 0 42px;position:relative;border:0;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;padding:0}
-.addbtn svg{width:20px;height:20px}.movebtn svg{width:16px;height:16px;flex:0 0 16px}.movebtn.soon{background:var(--deal-soft);color:var(--deal-ink);box-shadow:inset 0 0 0 1.5px var(--deal)}
-.mvt{flex:1;min-width:0;line-height:1.25}.mvt b{display:block;font-size:13.5px}.mvt small{display:block;font-size:11.5px;font-weight:500;opacity:.92}
-.addbtn.deal{background:var(--deal);color:var(--on-deal);box-shadow:0 2px 8px color-mix(in srgb,var(--deal) 35%,transparent)}
-.movebtn{position:relative;border:0;border-radius:11px;background:var(--deal);color:var(--on-deal);display:flex;align-items:center;gap:8px;text-align:left;padding:7px 10px;min-height:44px;width:100%;box-shadow:0 2px 8px color-mix(in srgb,var(--deal) 35%,transparent)}
-.on{font-size:12px;font-weight:600;color:var(--accent);white-space:nowrap;display:flex;align-items:center;gap:3px}
-.on svg{width:14px;height:14px}
-
-.chip svg{width:12px;height:12px;flex:0 0 12px}
-.chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;border-radius:8px;padding:3px 8px;border:0;line-height:1.3;font-family:inherit}
-.chip.deal{background:var(--deal-soft);color:var(--deal-ink)}
-.chip.deal.soon{background:transparent;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--deal) 55%,transparent);font-weight:500}
-.chip.warn{background:var(--warn-soft);color:var(--warn)}
-.pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
-.pill{font-size:11.5px;line-height:1.5;background:var(--surface2);color:var(--ink2);border-radius:7px;padding:1px 7px}
-.pill.offer{background:var(--deal-soft);color:var(--deal-ink);font-weight:600}
-.pill.store{background:var(--ink);color:var(--surface);font-weight:600}
-
-.offerli{align-items:center}
-.priceline{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;margin-top:4px}
-.priceline .now{font-size:20px;font-weight:800;letter-spacing:-.02em}
-.priceline .was{font-size:12.5px;color:var(--ink3);text-decoration:line-through}
-.priceline .save{font-size:12.5px;color:var(--accent);font-weight:700}
-
-.empty{color:var(--ink3);font-size:14px;padding:18px 16px;text-align:center}
-.tools{display:flex;justify-content:center;margin:4px 0 12px}
-.tools button{font-size:13px;font-weight:600;border:0;background:transparent;color:var(--ink2);border-radius:999px;padding:8px 14px}
-.tools button:active{background:var(--surface)}
-
-.search{display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:12px;padding:0 12px;margin:0 16px}
-.search svg{width:17px;height:17px;color:var(--ink3)}
-.search input{flex:1;font:inherit;font-size:16px;border:0;background:transparent;color:var(--ink);padding:10px 0;outline:none;min-width:0}
-.seg{display:flex;background:var(--surface2);border-radius:11px;padding:3px;margin:10px 16px 6px}
-.seg button{flex:1;border:0;background:transparent;font-size:13px;font-weight:600;color:var(--ink2);border-radius:9px;padding:7px 8px}
-.seg button small{display:block;font-size:10.5px;font-weight:500;color:var(--ink3)}
-.seg button{line-height:1.2;padding:6px 4px}
-.seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
-
-li.editor{display:flex;flex-wrap:wrap;gap:6px;padding:4px 14px 12px 51px}
-li.editor::before{display:none}
-.editor select{font:inherit;font-size:14px;padding:8px;border:0;border-radius:10px;background:var(--surface2);color:var(--ink);flex:1;min-width:140px}
-.editor button{font-size:14px;font-weight:700;border:0;border-radius:10px;padding:8px 16px;background:var(--accent);color:var(--on-accent)}
-.check::after,.qty button::after,.addbtn::after{content:"";position:absolute;inset:-9px -4px}
-.check::after{inset:-10px}
-.cath{position:sticky;top:var(--toph,64px);z-index:5}
-.card>.grp:last-child ul{border-bottom-left-radius:var(--r)}
-.card>.grp:first-child .cath{border-top-left-radius:var(--r);border-top-right-radius:var(--r)}
-.toast{position:fixed;left:14px;right:14px;margin:0 auto;width:fit-content;bottom:calc(env(safe-area-inset-bottom) + 76px);transform:translateY(20px);opacity:0;z-index:30;
-  display:flex;align-items:center;gap:14px;background:var(--ink);color:var(--surface);border-radius:14px;padding:10px 10px 10px 16px;
-  font-size:14px;font-weight:600;box-shadow:0 8px 28px rgba(0,0,0,.25);transition:opacity .2s,transform .2s;max-width:460px;pointer-events:none}
-.toast.show{opacity:1;transform:none;pointer-events:auto}
-.toast button{border:0;background:color-mix(in srgb,var(--surface) 18%,transparent);color:var(--surface);font-weight:700;font-size:14px;border-radius:9px;padding:7px 12px}
-.toast button:empty{display:none}
-.toast:not(:has(button:not(:empty))){padding-right:16px}
-@media (min-width:860px){.toast{bottom:24px}}
-@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
-.auth{position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center;padding:24px 18px calc(env(safe-area-inset-bottom) + 24px)}
-.authcard{width:100%;max-width:380px;background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:24px 20px;display:flex;flex-direction:column;gap:12px}
-.authicon{width:52px;height:52px;border-radius:15px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center}
-.authicon svg{width:28px;height:28px}
-.authcard h2{margin:6px 0 0;font-size:24px;letter-spacing:-.02em}
-.authcard .s2{font-size:13px;color:var(--ink3);margin-top:-8px}
-.afield{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:600;color:var(--ink2)}
-.afield input{font:inherit;font-size:16px;border:0;border-radius:12px;background:var(--surface2);color:var(--ink);padding:12px 14px;outline:none}
-.afield input:focus{box-shadow:0 0 0 2px var(--accent)}
-.aerr{font-size:13px;color:var(--warn);min-height:0}
-.aerr:empty{display:none}
-.abtn{border:0;border-radius:12px;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:16px;padding:13px;margin-top:4px}
-.abtn:disabled{opacity:.6}
-.dish .ings{display:block;font-size:12.5px;color:var(--ink2);line-height:1.35;margin-top:2px}
-.dish .st{display:block;font-size:12px;font-weight:600;margin-top:3px;color:var(--ink3)}
-.dish .st.ok{color:var(--accent)}
-.dishdet{display:block!important;padding:0 14px 12px 16px}
-.dishdet::before{display:none}
-.dishdet .ingl{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px}
-.ingchip{display:inline-flex;align-items:center;gap:6px;font-size:13px;background:var(--surface2);border-radius:999px;padding:5px 6px 5px 11px;border:0;color:var(--ink)}
-.ingchip.on{background:var(--accent-soft);color:var(--accent);padding-right:11px}
-.ingchip b{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--surface);font-weight:700;font-size:14px;line-height:1}
-.dbtns{display:flex;gap:8px;flex-wrap:wrap}
-.dbtn{font-size:13px;font-weight:700;border:0;border-radius:10px;padding:9px 14px;background:var(--surface2);color:var(--ink)}
-.dbtn.pri{background:var(--accent);color:var(--on-accent)}
-.dbtn.del{color:var(--warn)}
-.newdish{display:flex;justify-content:center;padding:6px 16px 16px}
-.dform{padding:6px 16px 16px;display:flex;flex-direction:column;gap:10px}
-.dform input{font:inherit;font-size:16px;border:0;border-radius:12px;background:var(--surface2);color:var(--ink);padding:11px 13px;outline:none;width:100%}
-.dform .lbl{font-size:12.5px;font-weight:600;color:var(--ink2)}
-.dform .ac{margin-top:0}
-.qty span.u{min-width:46px;font-size:14px}
-.editor .row2{display:flex;gap:6px;width:100%;align-items:center}
-.editor input{font:inherit;font-size:16px;padding:8px 10px;border:0;border-radius:10px;background:var(--surface2);color:var(--ink);flex:1;min-width:0}
-.editor .ul{font-size:14px;color:var(--ink2);font-weight:600}
-.editor .forms{display:flex;flex-wrap:wrap;gap:6px;width:100%}
-.editor .forms button{background:var(--surface2);color:var(--ink);font-weight:600;padding:7px 11px;border-radius:999px}
-.editor .forms button.on{background:var(--accent);color:var(--on-accent)}
-.sub .nt{color:var(--ink);font-weight:700}
-
-/* ---- v32: tættere og mere overskueligt ---- */
-html,body{font-size:15px}
-.top{padding:calc(env(safe-area-inset-top) + 8px) 16px 8px;gap:10px;transition:padding .2s}
-.top .ticon{width:34px;height:34px;flex-basis:34px;border-radius:10px}
-.top .ticon svg{width:19px;height:19px}
-.top h1{font-size:22px}
-body.scrolled .top{padding-top:calc(env(safe-area-inset-top) + 4px);padding-bottom:4px;border-bottom:1px solid var(--line)}
-body.scrolled .top h1{font-size:17px}
-body.scrolled .top .tsub,body.scrolled .top .ver{display:none}
-body.scrolled .top .ticon{width:26px;height:26px;flex-basis:26px;border-radius:8px}
-body.scrolled .top .ticon svg{width:15px;height:15px}
-body.scrolled .top .tinfo b{font-size:13px;display:inline;margin-right:4px}
-.card{border-radius:16px;margin-bottom:10px}
-.addcard{padding:8px}
-.add>button{width:42px;height:42px;flex-basis:42px}
-.add input{padding:10px 0}
-.storeh{padding:10px 14px 8px;gap:10px}
-.storeh .av{width:30px;height:30px;flex-basis:30px;font-size:13px}
-.storeh .sn b{font-size:17px}
-.storeh .sn span{font-size:12px}
-.storeh .sum b{font-size:15px}
-.cath{padding:5px 14px;gap:8px;margin-top:2px}
-.cath .ci{width:22px;height:22px;flex-basis:22px;border-radius:7px;font-size:13px}
-.cath .cn{font-size:13px}
-.cath .cn small{font-size:11.5px}
-.cath .cc{font-size:11px;padding:0 7px}
-li{padding:7px 10px 7px 12px;gap:10px}
-li+li::before{left:46px}
-.nm{font-size:15.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.nm .ai{font-size:12.5px;font-weight:400;color:var(--ink3);margin-left:7px}
-.sub{font-size:12px;line-height:1.3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sub .lk{color:var(--ink3)}
-.sub .lk svg{width:11px;height:11px;vertical-align:-1px;margin-right:2px}
-.check{width:24px;height:24px;flex-basis:24px}
-.qty{height:34px}
-.qty button{width:30px;height:34px}
-.qty span{font-size:14.5px}
-.qty span.u{min-width:42px;font-size:13.5px}
-.addbtn{width:36px;height:36px;flex-basis:36px;border-radius:10px}
-.addbtn svg{width:18px;height:18px}
-.meta{margin-top:4px}
-.movebtn{min-height:38px;padding:5px 10px;border-radius:10px}
-.mvt b{font-size:13px}.mvt small{font-size:11px}
-.priceline{margin-top:2px;gap:6px}
-.priceline .now{font-size:17px}
-.pills{margin-top:4px}
-.sech{padding:12px 14px 4px}
-.sech h2{font-size:16px}
-.search{margin:0 14px}
-.seg{margin:8px 14px 4px}
-.seg button{padding:5px 2px}
-.tag{font-size:10px;padding:1px 6px}
-.tabs{padding-top:4px}
-.tabs .ic{height:28px}
-.dish .ings{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media (min-width:860px){.nm,.sub{white-space:normal}}
-.mvt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mvt b,.mvt small{display:inline}
-.mvt small{margin-left:6px}
-.movebtn{min-height:36px}
-.priceline .pills{margin:0}
-.priceline .pill{font-size:11px}
-li.wrap{flex-wrap:wrap;row-gap:5px}
-.movebtn.full{flex:1 1 calc(100% - 34px);min-width:0;max-width:calc(100% - 34px);margin-left:34px;width:auto}
-.movebtn.full .mvt{min-width:0}
-
-/* ---- v33: samme tæthed på alle faner ---- */
-.top{padding-top:calc(env(safe-area-inset-top) + 4px);padding-bottom:6px}
-.top h1{font-size:20px}
-.top .tsub{font-size:12px;margin-top:0}
-.top .ticon{width:30px;height:30px;flex-basis:30px;border-radius:9px}
-.top .ticon svg{width:17px;height:17px}
-.top .tinfo{font-size:11.5px}
-.top .tinfo b{font-size:14px}
-.sech{padding:10px 14px 2px}
-.sech h2{font-size:15px}
-.sech .s2{font-size:12px;margin-top:0}
-.sech .big{font-size:12.5px;margin-top:3px}
-.sub .stn{color:var(--ink);font-weight:700}
-.sub .dst{color:var(--deal-ink);font-weight:700}
-.sub .dst.ok{color:var(--accent)}
-.offerli .priceline{flex-wrap:nowrap;white-space:nowrap;overflow:hidden}
-.priceline .now{font-size:16px}
-.priceline .was,.priceline .save{font-size:12px}
-.chip{max-width:100%;overflow:hidden}
-.chip.deal{white-space:nowrap;text-overflow:ellipsis;display:inline-block;padding:2px 8px}
-.chip.deal svg{vertical-align:-2px;margin-right:3px}
-.meta{margin-top:3px}
-.addcard{margin-top:0}
-
-/* ---- v34: fliser med fuger, farvet efter kategori ---- */
-.grp ul,.offerul{display:flex;flex-direction:column;gap:5px;padding:6px 8px 8px;border-left:0!important}
-.grp ul li,.offerul li{border-radius:12px;background:color-mix(in srgb,var(--cc,#7a7f87) 11%,var(--surface));padding:8px 10px}
-.grp ul li::before,.offerul li::before{display:none!important}
-.grp:last-child ul li:last-child{padding-bottom:8px}
-.card>.grp:last-child ul{border-bottom-left-radius:0}
-.grp ul li.done{background:color-mix(in srgb,var(--cc,#7a7f87) 5%,var(--surface))}
-.offerul li.dish{--cc:#a0447a}
-.grp ul li.editor,.grp ul li.dishdet,.offerul li.dishdet{background:transparent;padding:2px 6px 8px}
-.cath{margin-top:4px}
-.qty,.ingchip,.addbtn:not(.deal){background:color-mix(in srgb,var(--surface) 70%,transparent)}
-@media (prefers-color-scheme:dark){.grp ul li,.offerul li{background:color-mix(in srgb,var(--cc,#7a7f87) 16%,var(--surface))}}
-/* rullende linje 2 */
-.sub{text-overflow:clip}
-.sub .mq{display:inline-block;white-space:nowrap;will-change:transform}
-.sub.run{-webkit-mask-image:linear-gradient(90deg,#000 92%,transparent);mask-image:linear-gradient(90deg,#000 92%,transparent)}
-.sub.run .mq{animation:mq var(--t,8s) ease-in-out infinite alternate}
-@keyframes mq{0%,18%{transform:translateX(0)}82%,100%{transform:translateX(var(--d,0))}}
-@media (prefers-reduced-motion:reduce){.sub{white-space:normal}.sub .mq{white-space:normal;display:inline}.sub.run{-webkit-mask-image:none;mask-image:none}}
-
-/* ---- v35: lavere søgefelt, mindre topoverskrift, menu længere nede ---- */
-.top{padding:calc(env(safe-area-inset-top) + 2px) 16px 6px;gap:9px}
-.top .ticon{width:26px;height:26px;flex-basis:26px;border-radius:8px}
-.top .ticon svg{width:15px;height:15px}
-.top .tt{display:flex;align-items:baseline;gap:7px;min-width:0}
-.top h1{font-size:18px;white-space:nowrap}
-.top .tsub{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.top .tinfo{font-size:11px;line-height:1.2}
-.top .tinfo b{font-size:13px}
-.top .ver{font-size:9px}
-body.scrolled .top h1{font-size:16px}
-.addcard{padding:6px;border-radius:14px;margin-bottom:8px}
-.add .field{border-radius:10px;padding:0 10px}
-.add input{padding:7px 0;font-size:16px}
-.add .field svg{width:16px;height:16px}
-.add>button{width:34px;height:34px;flex-basis:34px;border-radius:10px}
-.add>button svg{width:18px;height:18px}
-.search input{padding:7px 0}
-.storeh{padding:8px 12px 6px}
-.storeh .av{width:26px;height:26px;flex-basis:26px;font-size:12px}
-.storeh .sn b{font-size:15.5px}
-.storeh .sn span{font-size:11.5px}
-.storeh .sum b{font-size:14px}
-.sech{padding:9px 12px 2px}
-.sech h2{font-size:14.5px}
-.tabs{padding:3px 8px max(4px,calc(env(safe-area-inset-bottom) - 18px))}
-.tabs button{font-size:10.5px;gap:1px;padding:2px 0}
-.tabs .ic{height:26px;width:48px}
+/* ---------- bundmenu ---------- */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:space-around;border-top:1px solid var(--line);
+  padding:4px 8px max(4px,calc(env(safe-area-inset-bottom) - 18px));
+  background:color-mix(in srgb,var(--surface) 88%,transparent);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px)}
+.tabs button{flex:1;max-width:120px;display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px 0;font-size:var(--fs-label);font-weight:600;color:var(--ink2);position:relative}
+.tabs .ic{width:46px;height:26px;border-radius:13px;display:grid;place-items:center}
 .tabs svg{width:20px;height:20px}
-.tabs .badge{top:-2px}
-body{padding-bottom:calc(env(safe-area-inset-bottom) + 60px)}
+.tabs button[aria-selected=true]{color:var(--ink)}
+.tabs button[aria-selected=true] .ic{background:color-mix(in srgb,var(--tc) 15%,transparent);color:var(--tc)}
+.tabs [data-tab=list]{--tc:var(--accent)}.tabs [data-tab=offers]{--tc:var(--deal)}.tabs [data-tab=dishes]{--tc:#a0447a}.tabs [data-tab=sugg]{--tc:#3f6fd8}
+.badge{position:absolute;top:-2px;left:50%;margin-left:8px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;border:2px solid var(--surface);box-sizing:content-box;
+  background:var(--warn);color:#fff;font-size:10.5px;font-weight:700;line-height:18px;text-align:center}
 
-/* ---- v36: ens linje 2 overalt, dæmpede flisefarver ---- */
-.sub,.sub *{font-size:12.5px!important;font-family:inherit;line-height:1.35}
-.sub{color:var(--ink2);font-weight:400;margin-top:2px}
-.sub b,.sub .offer,.sub .nt,.sub .stn,.sub .dst{font-weight:600}
-.sub .offer{color:var(--deal-ink)}
-.sub .lk{color:var(--ink3);font-weight:400}
-.sub .lk svg{width:11px!important;height:11px!important}
-.sub.wrap{white-space:normal;text-overflow:clip;-webkit-mask-image:none;mask-image:none}
-.sub.wrap .mq{white-space:normal;display:inline;animation:none}
-.chip,.chip.deal,.movebtn .mvt small{font-size:12px;font-weight:500}
-.movebtn .mvt b{font-size:12.5px;font-weight:600}
-.grp ul li,.offerul li{background:color-mix(in srgb,var(--cc,#7a7f87) 6%,var(--surface))}
-.grp ul li.done{background:color-mix(in srgb,var(--cc,#7a7f87) 3%,var(--surface))}
-.cath{background:color-mix(in srgb,var(--cc) 5%,var(--surface));border-top-color:color-mix(in srgb,var(--cc) 10%,transparent);border-bottom-color:color-mix(in srgb,var(--cc) 8%,transparent)}
-.cath .ci{background:color-mix(in srgb,var(--cc) 12%,var(--surface))}
-.cath .cc{background:color-mix(in srgb,var(--cc) 10%,var(--surface))}
-.chip.deal{background:color-mix(in srgb,var(--deal) 9%,var(--surface))}
-@media (prefers-color-scheme:dark){.grp ul li,.offerul li{background:color-mix(in srgb,var(--cc,#7a7f87) 10%,var(--surface))}}
+/* ---------- kort, overskrifter ---------- */
+.cols{display:block}
+.card{background:var(--surface);border-radius:var(--r-card);box-shadow:var(--shadow);margin:0 0 10px}
+.head{display:flex;align-items:center;gap:10px;padding:10px 12px 8px}
+.head h2{margin:0;font-size:var(--fs-head);font-weight:700;letter-spacing:-.01em}
+.head .hs{font-size:var(--fs-meta);color:var(--ink3)}
+.head .hb{flex:1;min-width:0}
+.head .hr{text-align:right;font-size:var(--fs-label);color:var(--ink3);line-height:1.25}
+.head .hr b{display:block;font-size:14px;color:var(--ink)}
+.head .em{color:var(--accent);font-weight:600}
+.av{width:26px;height:26px;flex:0 0 26px;border-radius:50%;display:grid;place-items:center;background:var(--ink);color:var(--surface);font-size:12px;font-weight:800}
+.av.alt{background:var(--deal);color:var(--on-deal)}
+.prog{height:3px;margin:0 12px 2px;border-radius:2px;background:var(--line);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.cat{position:sticky;top:var(--toph);z-index:5;display:flex;align-items:center;gap:8px;padding:5px 12px;
+  background:color-mix(in srgb,var(--cc) 5%,var(--surface));border-block:1px solid color-mix(in srgb,var(--cc) 10%,transparent)}
+.cat .ci{width:22px;height:22px;flex:0 0 22px;border-radius:7px;display:grid;place-items:center;font-size:13px;background:color-mix(in srgb,var(--cc) 12%,var(--surface))}
+.cat .cn{flex:1;min-width:0;font-size:13px;font-weight:700;color:color-mix(in srgb,var(--cc) 72%,var(--ink));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cat .cn small{margin-left:6px;font-size:var(--fs-label);font-weight:500;color:var(--ink3)}
+.cat .cc{font-size:var(--fs-label);font-weight:700;border-radius:999px;padding:0 7px;color:color-mix(in srgb,var(--cc) 72%,var(--ink));background:color-mix(in srgb,var(--cc) 10%,var(--surface))}
+.empty{padding:16px;text-align:center;font-size:14px;color:var(--ink3)}
+.foot{display:flex;justify-content:center;align-items:center;gap:4px;margin:4px 0 10px}
+.ver{font-size:var(--fs-label);color:var(--ink3);padding:0 6px}
+
+/* ---------- FLISE: én række-komponent til alle faner ---------- */
+.tiles{display:flex;flex-direction:column;gap:5px;padding:6px 8px 8px}
+.tile{display:flex;flex-wrap:wrap;align-items:center;column-gap:10px;row-gap:6px;padding:8px 10px;border-radius:var(--r-tile);
+  background:color-mix(in srgb,var(--cc,#7a7f87) var(--tint),var(--surface));position:relative}
+.tile.done{opacity:.55}
+.tile.done .name{text-decoration:line-through}
+.tile .body{flex:1;min-width:0;cursor:pointer}
+.tile .below{flex:1 0 100%;min-width:0;display:flex}
+.tile.has-lead .below{padding-left:34px}
+.name{display:block;font-size:var(--fs-name);font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.name .alt{margin-left:7px;font-size:var(--fs-meta);font-weight:400;color:var(--ink3)}
+.name .tag{margin-left:6px;vertical-align:1px;font-size:10px;font-weight:700;border-radius:999px;padding:1px 6px;background:var(--warn-soft);color:var(--warn)}
+/* linje 2 – samme format overalt */
+.meta{display:block;margin-top:2px;font-size:var(--fs-meta);line-height:1.35;color:var(--ink2);white-space:nowrap;overflow:hidden}
+.meta .mq{display:inline-block;white-space:nowrap}
+.meta .hl{font-weight:600;color:var(--ink)}
+.meta .dl{font-weight:600;color:var(--deal-ink)}
+.meta .ok{font-weight:600;color:var(--accent)}
+.meta .lk{color:var(--ink3)}
+.meta .lk svg{display:inline;width:11px;height:11px;vertical-align:-1px;margin-right:2px}
+.meta.wrap,.meta.wrap .mq{white-space:normal;display:block}
+.meta.over{-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent)}
+.meta.run .mq{animation:mq var(--t,8s) ease-in-out 2 alternate}
+@keyframes mq{0%,15%{transform:translateX(0)}85%,100%{transform:translateX(var(--d,0))}}
+.price{display:flex;align-items:baseline;gap:6px;margin-top:3px;white-space:nowrap;overflow:hidden}
+.price .now{font-size:16px;font-weight:800;letter-spacing:-.01em}
+.price .was{font-size:var(--fs-meta);color:var(--ink3);text-decoration:line-through}
+.price .save{font-size:var(--fs-meta);font-weight:600;color:var(--accent)}
+
+/* flueben */
+.check{position:relative;width:24px;height:24px;flex:0 0 24px;border-radius:50%;border:2px solid var(--ink3);display:grid;place-items:center;color:var(--on-accent);transition:background .15s}
+.check svg{width:13px;height:13px;opacity:0}
+.tile.done .check{background:var(--accent);border-color:var(--accent)}
+.tile.done .check svg{opacity:1}
+
+/* handlinger til højre */
+.stepper{display:flex;align-items:center;height:34px;border-radius:999px;background:color-mix(in srgb,var(--surface) 75%,transparent)}
+.stepper button{position:relative;width:30px;height:34px;display:grid;place-items:center}
+.stepper svg{width:15px;height:15px;color:var(--ink2)}
+.stepper span{min-width:18px;text-align:center;font-size:14.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.stepper span.u{min-width:42px;font-size:13.5px}
+.add{position:relative;width:36px;height:36px;flex:0 0 36px;border-radius:var(--r-ctl);display:grid;place-items:center;
+  background:color-mix(in srgb,var(--surface) 75%,transparent);color:var(--accent)}
+.add svg{width:18px;height:18px}
+.add.deal{background:var(--deal);color:var(--on-deal)}
+.onlist{display:flex;align-items:center;gap:3px;font-size:var(--fs-label);font-weight:700;color:var(--accent);white-space:nowrap}
+.onlist svg{width:14px;height:14px}
+.check::after,.stepper button::after,.add::after{content:"";position:absolute;inset:-6px -3px}
+.check::after{inset:-10px}
+
+/* tilbudslinje – samme komponent som knap (liste) eller info (forslag) */
+.deal{display:flex;align-items:center;gap:8px;width:100%;min-width:0;padding:6px 10px;border-radius:var(--r-ctl);text-align:left;
+  background:var(--deal-soft);color:var(--deal-ink);font-size:var(--fs-meta)}
+.deal svg{width:15px;height:15px;flex:0 0 15px}
+.deal .dt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.deal .dt b{font-weight:700;margin-right:6px}
+button.deal{background:var(--deal);color:var(--on-deal);min-height:36px}
+.deal.soon{background:transparent;box-shadow:inset 0 0 0 1.5px var(--deal)}
+button.deal.soon{color:var(--deal-ink)}
+.deal.warn{background:var(--warn-soft);color:var(--warn)}
+
+/* ---------- felter og knapper ---------- */
+.fieldrow{display:flex;gap:8px;align-items:center;padding:6px}
+.field{flex:1;min-width:0;display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:var(--r-ctl);background:var(--surface2)}
+.field svg{width:16px;height:16px;flex:0 0 16px;color:var(--ink3)}
+.field input,.field select{flex:1;min-width:0;border:0;background:transparent;padding:8px 0;outline:none}
+.field input::placeholder{color:var(--ink3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:0 14px;border-radius:var(--r-ctl);font-size:13.5px;font-weight:700;background:var(--surface2);color:var(--ink)}
+.btn.pri{background:var(--accent);color:var(--on-accent)}
+.btn.ghost{background:transparent;color:var(--ink2)}
+.btn.danger{background:transparent;color:var(--warn)}
+.btn.icon{width:34px;padding:0}
+.btn svg{width:18px;height:18px}
+.seg{display:flex;gap:2px;margin:0 6px 4px;padding:3px;border-radius:var(--r-ctl);background:var(--surface2)}
+.seg button{flex:1;padding:5px 2px;border-radius:8px;font-size:13px;font-weight:600;line-height:1.2;color:var(--ink2)}
+.seg button small{display:block;font-size:10.5px;font-weight:500;color:var(--ink3)}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 11px;border-radius:999px;font-size:13px;font-weight:600;background:var(--surface2);color:var(--ink)}
+.chip.on{background:var(--accent);color:var(--on-accent)}
+.chip.added{background:var(--accent-soft);color:var(--accent)}
+.chip b{font-weight:700}
+.hint{font-size:var(--fs-meta);color:var(--ink3);padding:0 10px 8px}
+.hint:empty{display:none}
+
+/* redigering (under en flise) */
+.sheet{display:flex;flex-direction:column;gap:8px;padding:4px 8px 10px}
+.sheet .lbl{font-size:var(--fs-label);font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em}
+.sheet .row{display:flex;gap:8px;align-items:center}
+.sheet .unit{font-size:13.5px;font-weight:600;color:var(--ink2)}
+.sheet .btns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+
+/* forslag-dropdown ved søgning */
+.ac .tile{--cc:#7a7f87}
+
+/* ---------- besked, login ---------- */
+.toast{position:fixed;left:12px;right:12px;margin:0 auto;width:fit-content;max-width:460px;z-index:30;bottom:calc(env(safe-area-inset-bottom) + 64px);
+  display:flex;align-items:center;gap:12px;padding:9px 9px 9px 14px;border-radius:14px;background:var(--ink);color:var(--surface);font-size:14px;font-weight:600;
+  box-shadow:0 8px 28px rgba(0,0,0,.25);opacity:0;transform:translateY(16px);transition:opacity .2s,transform .2s;pointer-events:none}
+.toast.show{opacity:1;transform:none;pointer-events:auto}
+.toast button{padding:6px 11px;border-radius:9px;font-size:13.5px;font-weight:700;color:var(--surface);background:color-mix(in srgb,var(--surface) 18%,transparent)}
+.toast button:empty{display:none}
+.auth{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:24px 16px;background:var(--bg)}
+.authcard{width:100%;max-width:380px;display:flex;flex-direction:column;gap:12px;padding:22px 18px;border-radius:var(--r-card);background:var(--surface);box-shadow:var(--shadow)}
+.authcard h2{margin:4px 0 0;font-size:22px;letter-spacing:-.02em}
+.authcard .hs{margin-top:-8px;font-size:var(--fs-meta);color:var(--ink3)}
+.authcard label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:600;color:var(--ink2)}
+.authcard label .field input{padding:11px 0}
+.authcard .err{font-size:13px;color:var(--warn)}
+.authcard .err:empty{display:none}
+.authcard .btn{min-height:46px;font-size:16px}
+.demo{margin:0 0 8px;padding:7px 12px;border-radius:var(--r-ctl);font-size:var(--fs-meta);background:var(--deal-soft);color:var(--deal-ink)}
+
+/* ---------- store skærme: kolonner ---------- */
+.panehead{display:none}
+@media (min-width:860px){
+  body{padding-bottom:24px}.tabs{display:none}
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start}.pane{display:block!important}
+  .panehead{display:block;margin:6px 4px;font-size:var(--fs-head);font-weight:700}
+  .name,.meta{white-space:normal}.meta .mq{white-space:normal;display:inline}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}
+  .meta,.meta .mq{white-space:normal;display:block}.meta.over{-webkit-mask-image:none;mask-image:none}}
 </style>
 </head>
 <body data-tab="list">
-<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v36</span></div></header>
+<header class="top">
+  <div class="ticon" id="ticon"></div>
+  <div class="ttl"><h1 id="ttl">Indkøbsliste</h1><span id="tsub">Lista e blerjes</span></div>
+  <span class="netpill" id="net" hidden></span>
+  <div class="tinfo" id="tinfo"></div>
+</header>
+
 <div class="auth" id="auth" hidden>
   <form class="authcard" id="authForm" autocomplete="on">
-    <div class="authicon" data-ic="cart"></div>
+    <div class="ticon" style="width:44px;height:44px;border-radius:13px;background:var(--accent)" data-ic="cart"></div>
     <h2 id="authTitle">Log ind</h2>
-    <div class="s2" id="authSub">Hyr · familiens indkøbsliste</div>
-    <label class="afield" id="authEmailRow"><span>E-mail</span><input type="email" id="authEmail" autocomplete="username" required></label>
-    <label class="afield"><span id="authPwLabel">Adgangskode · Fjalëkalimi</span><input type="password" id="authPw" autocomplete="current-password" required minlength="6"></label>
-    <label class="afield" id="authPw2Row" hidden><span>Gentag adgangskode · Përsërit</span><input type="password" id="authPw2" autocomplete="new-password" minlength="6"></label>
-    <div class="aerr" id="authErr" role="alert"></div>
-    <button class="abtn" id="authBtn">Log ind</button>
+    <div class="hs" id="authSub">Hyr · familiens indkøbsliste</div>
+    <label id="authEmailRow">E-mail<span class="field"><input type="email" id="authEmail" autocomplete="username" required></span></label>
+    <label>Adgangskode · Fjalëkalimi<span class="field"><input type="password" id="authPw" autocomplete="current-password" required minlength="6"></span></label>
+    <label id="authPw2Row" hidden>Gentag adgangskode · Përsërit<span class="field"><input type="password" id="authPw2" autocomplete="new-password" minlength="6"></span></label>
+    <div class="err" id="authErr" role="alert"></div>
+    <button class="btn pri" id="authBtn">Log ind</button>
   </form>
 </div>
-<div id="demo" class="demo" hidden>Demo: listen gemmes kun på denne enhed.</div>
 
-<div class="cols">
+<main class="cols">
   <div class="pane" id="pane-list">
     <div class="panehead">Indkøbsliste</div>
-    <section class="card addcard">
-      <form class="add" id="addForm" autocomplete="off">
-        <label class="field"><span data-ic="search"></span><input name="t" id="addInput" placeholder="Skriv en vare · Shkruaj artikullin" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
-        <button aria-label="Tilføj" data-ic="plus"></button>
+    <div id="demo" class="demo" hidden>Demo: listen gemmes kun på denne enhed.</div>
+    <section class="card">
+      <form class="fieldrow" id="addForm" autocomplete="off">
+        <label class="field"><span data-ic="search"></span><input id="addInput" placeholder="Skriv en vare · Shkruaj artikullin" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+        <button class="btn pri icon" aria-label="Tilføj" data-ic="plus"></button>
       </form>
-      <ul class="ac" id="ac" hidden></ul>
+      <ul class="tiles ac" id="ac" hidden></ul>
       <div class="hint" id="hint"></div>
     </section>
     <div id="stores"></div>
-    <div class="tools"><button id="clearDone">Ryd afkrydsede</button><button id="logout" hidden>Log ud</button></div>
+    <div class="foot"><button class="btn ghost" id="clearDone">Ryd afkrydsede · Fshi të blerat</button><button class="btn ghost" id="logout" hidden>Log ud · Dil</button><span class="ver" id="ver"></span></div>
   </div>
 
   <div class="pane" id="pane-offers" hidden>
     <div class="panehead">Tilbud</div>
     <section class="card">
-      <div class="sech"><h2>Køb på lager</h2><div class="s2">Blej për rezervë · holdbart, ca. 6 ugers forbrug</div><div class="big" id="stockSave"></div></div>
+      <div class="head"><div class="hb"><h2>Køb på lager</h2><div class="hs">Blej për rezervë · holdbart, ca. 6 ugers forbrug</div><div class="hs em" id="stockSave"></div></div></div>
       <div id="stock"></div>
     </section>
     <section class="card">
-      <div class="sech"><h2>Ugens tilbud</h2><div class="s2">Ofertat e javës · friske varer</div></div>
+      <div class="head"><div class="hb"><h2>Ugens tilbud</h2><div class="hs">Ofertat e javës · friske varer</div></div></div>
       <div id="weekly"></div>
     </section>
   </div>
@@ -453,22 +281,22 @@ body{padding-bottom:calc(env(safe-area-inset-bottom) + 60px)}
   <div class="pane" id="pane-dishes" hidden>
     <div class="panehead">Retter</div>
     <section class="card">
-      <div class="sech"><h2>Jeres retter</h2><div class="s2">Gatimet tuaja · + lægger det, der mangler, på listen</div></div>
+      <div class="head"><div class="hb"><h2>Jeres retter</h2><div class="hs">Gatimet tuaja · + lægger det, der mangler, på listen</div></div></div>
       <div id="dishes"></div>
       <div id="dishForm"></div>
-      <div class="newdish"><button class="dbtn" id="newDish">+ Ny ret · Gatim i ri</button></div>
+      <div class="foot" id="newDishRow"><button class="btn" id="newDish">+ Ny ret · Gatim i ri</button></div>
     </section>
   </div>
 
   <div class="pane" id="pane-sugg" hidden>
     <div class="panehead">Forslag</div>
     <section class="card">
-      <label class="search" style="margin-top:12px"><span data-ic="search"></span><input id="suggSearch" placeholder="Søg · Kërko"></label>
-      <div class="seg chips"><button data-f="due" aria-pressed="true">14 dage<small>14 ditë</small></button><button data-f="d30" aria-pressed="false">30 dage<small>30 ditë</small></button><button data-f="top" aria-pressed="false">Oftest<small>Më shpesh</small></button><button data-f="all" aria-pressed="false">Alle<small>Të gjitha</small></button></div>
+      <div class="fieldrow"><label class="field"><span data-ic="search"></span><input id="suggSearch" placeholder="Søg · Kërko" autocapitalize="off" autocorrect="off"></label></div>
+      <div class="seg" id="seg"><button data-f="due" aria-pressed="true">14 dage<small>14 ditë</small></button><button data-f="d30" aria-pressed="false">30 dage<small>30 ditë</small></button><button data-f="top" aria-pressed="false">Oftest<small>Më shpesh</small></button><button data-f="all" aria-pressed="false">Alle<small>Të gjitha</small></button></div>
       <div id="sugg"></div>
     </section>
   </div>
-</div>
+</main>
 
 <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button id="toastUndo"></button></div>
 <nav class="tabs" role="tablist">
@@ -478,135 +306,209 @@ body{padding-bottom:calc(env(safe-area-inset-bottom) + 60px)}
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
 </nav>
 
-<script src="config.js?v=36"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js?v=37"></script>
+<script src="supabase.js?v=2.45.4"></script>
 <script>
-const qn=v=>{const n=parseFloat(String(v==null?"":v).replace(",","."));return isFinite(n)&&n>0?n:1};
-const unitOf=k=>(k&&BYKEY[k]&&BYKEY[k].unit)||"";
-const stepOf=k=>(k&&BYKEY[k]&&BYKEY[k].step)||1;
-const fmtQ=(n,u)=>(Math.round(n*100)/100).toLocaleString("da-DK")+(u?" "+u:"");
-const STORE_ORDER=["Lidl","365discount","Netto","REMA 1000","føtex","MENY","SuperBrugsen","Al-Rafiden Slagteri"];
-const CATS=[{"id": "fg", "icon": "🥦", "da": "Frugt & grønt", "sq": "Pemë & Perime"}, {"id": "br", "icon": "🥐", "da": "Brød", "sq": "Furra e Bukës"}, {"id": "km", "icon": "🥩", "da": "Kød, fisk & pålæg", "sq": "Mish, Peshk & Meze"}, {"id": "mk", "icon": "🧀", "da": "Mejeri & køl", "sq": "Bulmeti & Frigoriferi"}, {"id": "ko", "icon": "🥫", "da": "Kolonial", "sq": "Produkte të Thata"}, {"id": "rh", "icon": "🧼", "da": "Rengøring & hygiejne", "sq": "Pastrimi & Higjiena"}, {"id": "fr", "icon": "🧊", "da": "Frost", "sq": "Produkte të Ngrira"}, {"id": "dr", "icon": "🥤", "da": "Drikkevarer", "sq": "Pije"}, {"id": "sn", "icon": "🍪", "da": "Slik & snacks", "sq": "Çokollata & Çipsa"}, {"id": "nf", "icon": "🧸", "da": "Non-food", "sq": "Jo-ushqimore"}, {"id": "an", "icon": "🛒", "da": "Andet", "sq": "Tjera"}];
-const CATALOG=[];
-function setCatalog(list){CATALOG.length=0; list.forEach(e=>CATALOG.push(e)); reindex()}
-const CAT=Object.fromEntries(CATS.map(c=>[c.id,c]));
-let BYKEY={};
-const cfg=window.INDKOB_CONFIG||{};
-const live=!!(cfg.url&&cfg.anonKey&&window.supabase);
-let items=[], bought={}, offers=[], dishes=[], sb=null;
+"use strict";
+const VERSION="v37";
+/* =========================================================
+   GRUNDLAG
+   ========================================================= */
 const $=s=>document.querySelector(s);
-const SV=(d,w=2)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+function el(tag,cls,text){const e=document.createElement(tag); if(cls)e.className=cls; if(text!=null)e.textContent=text; return e}
+const SV=(d,w=2)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const IC={
   cart:SV('<circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3.5h2.6l2.4 11.2a1.6 1.6 0 0 0 1.6 1.3h8.4a1.6 1.6 0 0 0 1.6-1.2l1.6-7.3H6"/>',1.9),
   tag:SV('<path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="8" cy="8" r="1.5"/>',1.9),
   bulb:SV('<path d="M9 18h6M10 21.5h4"/><path d="M12 2.5a6.5 6.5 0 0 0-3.8 11.8c.5.4.8 1 .8 1.7V16h6v-.1c0-.6.3-1.2.8-1.6A6.5 6.5 0 0 0 12 2.5Z"/>',1.9),
+  pot:SV('<path d="M4 10h16v4a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6v-4Z"/><path d="M2 10h20M9 6.5c0-1 .8-1.5.8-2.5M13 6.5c0-1 .8-1.5.8-2.5"/>',1.9),
   plus:SV('<path d="M12 5v14M5 12h14"/>',2.4),
   minus:SV('<path d="M5 12h14"/>',2.4),
   arrow:SV('<path d="M5 12h14M13 6l6 6-6 6"/>',2.4),
   check:SV('<path d="m5 12.5 4.5 4.5L19 7.5"/>',3),
   search:SV('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',2),
-  pot:SV('<path d="M4 10h16v4a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6v-4Z"/><path d="M2 10h20M9 6.5c0-1 .8-1.5.8-2.5M13 6.5c0-1 .8-1.5.8-2.5"/>',1.9),
   trash:SV('<path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/>',2)};
 const svgEl=n=>{const t=document.createElement("template"); t.innerHTML=IC[n]; return t.content.firstChild};
-document.querySelectorAll("[data-ic]").forEach(e=>e.innerHTML=IC[e.dataset.ic]);
-const status=t=>$("#status").textContent=t;
+document.querySelectorAll("[data-ic]").forEach(e=>e.append(svgEl(e.dataset.ic)));
 const uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
 const fold=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9æøå ]/g," ").replace(/\s+/g," ").trim();
+const local={load(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+const qn=v=>{const n=parseFloat(String(v==null?"":v).replace(",","."));return isFinite(n)&&n>0?n:1};
+const round2=n=>Math.round(n*100)/100;
+const kr=n=>n==null?"":Number(n).toLocaleString("da-DK",{minimumFractionDigits:2,maximumFractionDigits:2})+" kr.";
+const fmtQ=(n,u)=>round2(n).toLocaleString("da-DK")+(u?" "+u:"");
 
-/* ---------- genkendelse af varer (dansk + albansk) ---------- */
-let INDEX=[];
+const STORE_ORDER=["Lidl","365discount","Netto","REMA 1000","føtex","MENY","SuperBrugsen","Al-Rafiden Slagteri"];
+const CATS=[{id:"fg",icon:"🥦",da:"Frugt & grønt",sq:"Pemë & Perime"},{id:"br",icon:"🥐",da:"Brød",sq:"Furra e Bukës"},{id:"km",icon:"🥩",da:"Kød, fisk & pålæg",sq:"Mish, Peshk & Meze"},{id:"mk",icon:"🧀",da:"Mejeri & køl",sq:"Bulmeti & Frigoriferi"},{id:"ko",icon:"🥫",da:"Kolonial",sq:"Produkte të Thata"},{id:"rh",icon:"🧼",da:"Rengøring & hygiejne",sq:"Pastrimi & Higjiena"},{id:"fr",icon:"🧊",da:"Frost",sq:"Produkte të Ngrira"},{id:"dr",icon:"🥤",da:"Drikkevarer",sq:"Pije"},{id:"sn",icon:"🍪",da:"Slik & snacks",sq:"Çokollata & Çipsa"},{id:"nf",icon:"🧸",da:"Non-food",sq:"Jo-ushqimore"},{id:"an",icon:"🛒",da:"Andet",sq:"Tjera"}];
+const CAT=Object.fromEntries(CATS.map(c=>[c.id,c]));
+const catOf=id=>CAT[id]?id:"an";
+
+const cfg=window.INDKOB_CONFIG||{};
+const live=!!(cfg.url&&cfg.anonKey&&window.supabase);
+let items=[], bought={}, offers=[], dishes=[], sb=null;
+
+/* ---------- katalog og genkendelse ---------- */
+const CATALOG=[]; let BYKEY={}, INDEX=[];
 function reindex(){
   BYKEY=Object.fromEntries(CATALOG.map(c=>[c.key,c]));
   INDEX=[]; CATALOG.forEach(c=>[c.da,c.sq,...(c.alias||[])].forEach(w=>{const f=fold(w); if(f.length>=2)INDEX.push([f,c])}));
   INDEX.sort((a,b)=>b[0].length-a[0].length);
 }
+function setCatalog(list){CATALOG.length=0; list.forEach(e=>CATALOG.push(e)); reindex()}
 function addProduct(p){const i=CATALOG.findIndex(c=>c.key===p.key); const e={key:p.key,da:p.da,sq:p.sq||p.da,cat:p.cat||"an",store:p.store||"Lidl",alias:[],own:true};
   if(i>=0)Object.assign(CATALOG[i],e); else CATALOG.push(e); reindex()}
-reindex();
 function match(text){
   const f=fold(text); if(!f)return null;
-  for(const [w,c] of INDEX){ if(f===w)return c }
-  for(const [w,c] of INDEX){ if(w.length>=3&&(` ${f} `.includes(` ${w} `)||(f.length>=4&&w.startsWith(f))))return c }
-  for(const [w,c] of INDEX){ if(w.length>=4&&f.includes(w))return c }
+  for(const [w,c] of INDEX){if(f===w)return c}
+  for(const [w,c] of INDEX){if(w.length>=3&&(` ${f} `.includes(` ${w} `)||(f.length>=4&&w.startsWith(f))))return c}
+  for(const [w,c] of INDEX){if(w.length>=4&&f.includes(w))return c}
   return null;
 }
+function suggestFor(text){
+  const f=fold(text); if(!f)return [];
+  const score=e=>{let best=0; for(const w of [e.sq,e.da,...(e.alias||[])]){const x=fold(w); if(!x)continue;
+      if(x===f)best=Math.max(best,4); else if(x.startsWith(f))best=Math.max(best,3); else if(x.split(" ").some(p=>p.startsWith(f)))best=Math.max(best,2); else if(f.length>=4&&x.includes(f))best=Math.max(best,1)}
+    return best};
+  const catHit=new Set(f.length>=3?CATS.filter(c=>[c.da,c.sq].some(n=>fold(n).split(" ").some(w=>w.startsWith(f)))).map(c=>c.id):[]);
+  return CATALOG.map(e=>[Math.max(score(e),catHit.has(e.cat)?1.5:0),e]).filter(x=>x[0]>0).sort((a,b)=>(b[0]-a[0])||((b[1].n||0)-(a[1].n||0))).slice(0,10).map(x=>x[1]);
+}
+const unitOf=k=>(k&&BYKEY[k]&&BYKEY[k].unit)||"";
+const stepOf=k=>(k&&BYKEY[k]&&BYKEY[k].step)||1;
 
-/* ---------- data ---------- */
-const local={load(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+/* =========================================================
+   DATA: skrivninger går gennem én kø, så intet tabes uden net
+   ========================================================= */
+let queue=local.load("indkob-queue")||[], flushing=false, online=navigator.onLine;
+function netState(){
+  const p=$("#net");
+  if(!live){p.hidden=true;return}
+  if(!online){p.hidden=false;p.className="netpill";p.textContent="Offline"}
+  else if(queue.length){p.hidden=false;p.className="netpill sync";p.textContent="Sender…"}
+  else p.hidden=true;
+}
+const isNetErr=e=>!navigator.onLine||/fetch|network|load failed|timeout/i.test(String(e&&(e.message||e)));
+async function runOp(op){
+  const t=sb.from(op.table);
+  if(op.kind==="insert")return t.insert(op.row);
+  if(op.kind==="upsert")return t.upsert(op.row);
+  if(op.kind==="update")return t.update(op.changes).eq("id",op.id);
+  if(op.kind==="delete")return t.delete().in(op.col||"id",op.vals);
+}
+async function send(op){
+  if(!live)return;
+  if(queue.length||!online){queue.push(op); local.save("indkob-queue",queue); netState(); return}
+  let res; try{res=await runOp(op)}catch(e){res={error:e}}
+  if(res&&res.error){
+    if(isNetErr(res.error)){online=false; queue.push(op); local.save("indkob-queue",queue); netState(); return}
+    toast("Kunne ikke gemme ændringen");
+  }
+}
+async function flush(){
+  if(!live||flushing||!queue.length)return; flushing=true; netState();
+  while(queue.length){
+    let res; try{res=await runOp(queue[0])}catch(e){res={error:e}}
+    if(res&&res.error&&isNetErr(res.error)){online=false; break}
+    queue.shift(); local.save("indkob-queue",queue);
+  }
+  flushing=false; if(!queue.length)online=true; netState();
+}
+addEventListener("online",()=>{online=true; flush().then(()=>loaded&&refresh())});
+addEventListener("offline",()=>{online=false; netState()});
+function cacheSoon(){if(live&&loadedOrCached)local.save("indkob-cache",{items,offers,dishes,bought})}
+let loadedOrCached=false;
+const saveDemo=()=>{if(!live){local.save("indkob-items",items);local.save("indkob-bought",bought);local.save("indkob-dishes",dishes)}};
+function changed(){render(); cacheSoon(); saveDemo()}
+
 async function loadAll(){
   {const c=local.load("indkob-catalog"); if(Array.isArray(c))setCatalog(c)}
   if(!live){dishes=local.load("indkob-dishes")||[];items=local.load("indkob-items")||[];bought=local.load("indkob-bought")||{};offers=local.load("indkob-offers")||[];(local.load("indkob-products")||[]).forEach(addProduct);$("#demo").hidden=false;render();return}
   const recovering=/type=recovery/.test(location.hash);
   sb=window.supabase.createClient(cfg.url,cfg.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-  sb.auth.onAuthStateChange((ev)=>{
-    if(ev==="PASSWORD_RECOVERY")showAuth("recover");
-    if(ev==="SIGNED_OUT")showAuth("login");
-  });
+  sb.auth.onAuthStateChange(ev=>{if(ev==="PASSWORD_RECOVERY")showAuth("recover"); if(ev==="SIGNED_OUT")showAuth("login")});
   const {data:{session}}=await sb.auth.getSession();
-  if(recovering){showAuth("recover"); return}
-  if(!session){showAuth("login"); return}
-  hideAuth(); loadData();
+  if(recovering){showAuth("recover");return}
+  if(!session){showAuth("login");return}
+  hideAuth();
+  const c=local.load("indkob-cache"); if(c){items=c.items||[];offers=c.offers||[];dishes=c.dishes||[];bought=c.bought||{};loadedOrCached=true;render()}
+  else showLoading();
+  loadData();
 }
 let loaded=false;
+function showLoading(){$("#stores").replaceChildren(el("div","card empty","Henter listen …"))}
+async function fetchAll(){
+  return Promise.all([sb.from("items").select("*").order("created_at"),sb.from("bought").select("key,at").order("at"),sb.from("offers").select("*").gte("valid_to",today()),
+    sb.from("products").select("*"),sb.from("catalog").select("data").limit(5000),sb.from("dishes").select("*").order("name_da")]);
+}
+async function refresh(){
+  let r; try{r=await fetchAll()}catch(e){online=false; netState(); return false}
+  const [a,b,o,pr,cg,ds]=r;
+  if(a.error){if(isNetErr(a.error)){online=false;netState();return false} toast("Kunne ikke hente listen"); return false}
+  online=true; loadedOrCached=true;
+  if(cg.data&&cg.data.length){setCatalog(cg.data.map(x=>x.data)); local.save("indkob-catalog",CATALOG.filter(e=>!e.own))}
+  (pr.data||[]).forEach(addProduct);
+  items=a.data; offers=o.data||[]; dishes=ds.data||[]; bought={}; (b.data||[]).forEach(x=>{if(x.at)bought[x.key]=String(x.at).slice(0,10)});
+  changed(); netState(); return true;
+}
 async function loadData(){
   if(loaded)return; loaded=true;
-  const [a,b,o,pr,cg,ds]=await Promise.all([sb.from("items").select("*").order("created_at"),sb.from("bought").select("key,at").order("at"),sb.from("offers").select("*").gte("valid_to",today()),sb.from("products").select("*"),sb.from("catalog").select("data").limit(5000),sb.from("dishes").select("*").order("name_da")]);
-  dishes=ds.data||[];
-  if(cg.data&&cg.data.length){setCatalog(cg.data.map(r=>r.data)); local.save("indkob-catalog",CATALOG.filter(e=>!e.own))}
-  offers=o.data||[]; (pr.data||[]).forEach(addProduct);
-  if(a.error){status("Kunne ikke hente listen");return}
-  items=a.data; (b.data||[]).forEach(r=>{bought[r.key]=r.at.slice(0,10)}); render(); status("");
-  sb.channel("items").on("postgres_changes",{event:"*",schema:"public",table:"items"},p=>{
-    if(p.eventType==="DELETE")items=items.filter(i=>i.id!==p.old.id);
-    else{const i=items.findIndex(x=>x.id===p.new.id); if(i>=0)items[i]=p.new; else items.push(p.new)}
-    render();
-  }).on("postgres_changes",{event:"*",schema:"public",table:"offers"},async()=>{const r=await sb.from("offers").select("*").gte("valid_to",today()); offers=r.data||offers; render()})
-  .on("postgres_changes",{event:"*",schema:"public",table:"products"},p=>{if(p.new&&p.new.key){addProduct(p.new);render()}})
-  .on("postgres_changes",{event:"*",schema:"public",table:"dishes"},async()=>{const r=await sb.from("dishes").select("*").order("name_da"); dishes=r.data||dishes; renderDishes()})
-  .on("postgres_changes",{event:"INSERT",schema:"public",table:"bought"},p=>{bought[p.new.key]=p.new.at.slice(0,10);render()}).subscribe();
+  await flush(); await refresh();
+  sb.channel("indkob")
+    .on("postgres_changes",{event:"*",schema:"public",table:"items"},p=>{
+      if(p.eventType==="DELETE")items=items.filter(i=>i.id!==p.old.id);
+      else{const i=items.findIndex(x=>x.id===p.new.id); if(i>=0)items[i]=p.new; else items.push(p.new)}
+      changed()})
+    .on("postgres_changes",{event:"*",schema:"public",table:"offers"},async()=>{const r=await sb.from("offers").select("*").gte("valid_to",today()); if(r.data){offers=r.data; changed()}})
+    .on("postgres_changes",{event:"*",schema:"public",table:"products"},p=>{if(p.new&&p.new.key){addProduct(p.new); changed()}})
+    .on("postgres_changes",{event:"*",schema:"public",table:"dishes"},async()=>{const r=await sb.from("dishes").select("*").order("name_da"); if(r.data){dishes=r.data; changed()}})
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"bought"},p=>{if(p.new&&p.new.key){bought[p.new.key]=String(p.new.at||today()).slice(0,10); changed()}})
+    .subscribe();
+  setInterval(()=>{if(queue.length)flush()},30000);
 }
-const saveLocal=()=>{if(!live){local.save("indkob-items",items);local.save("indkob-bought",bought)}};
+
+/* ---------- ændringer i listen ---------- */
 async function saveProduct(p){
   addProduct(p);
-  if(live){const {error}=await sb.from("products").upsert({key:p.key,da:p.da,sq:p.sq||p.da,cat:p.cat||"an",store:p.store||"Lidl"}); if(error)status("Vare ikke husket")}
-  else{const all=CATALOG.filter(c=>c.own).map(({key,da,sq,cat,store})=>({key,da,sq,cat,store})); local.save("indkob-products",all)}
+  if(live)send({kind:"upsert",table:"products",row:{key:p.key,da:p.da,sq:p.sq||p.da,cat:p.cat||"an",store:p.store||"Lidl"}});
+  else local.save("indkob-products",CATALOG.filter(c=>c.own).map(({key,da,sq,cat,store})=>({key,da,sq,cat,store})));
 }
 async function addItem(text,qty,entry,storeOverride,note){
   entry=entry||match(text);
   if(!entry){const p={key:"u:"+fold(text),da:text,sq:text,cat:"an",store:"Lidl"}; await saveProduct(p); entry=BYKEY[p.key]}
-  const existing=entry&&items.find(i=>i.key===entry.key&&!i.checked);
-  if(existing&&storeOverride&&existing.store!==storeOverride){return patch(existing.id,{store:storeOverride,qty:String(Math.max(qn(existing.qty),qty))})}
-  if(existing){const ch={qty:String(Math.round((qn(existing.qty)+qty)*100)/100)}; if(note)ch.note=note; return patch(existing.id,ch)}
-  const it={id:uid(),text:entry?entry.da:text,name_da:entry?entry.da:null,name_sq:entry?entry.sq:null,key:entry?entry.key:null,
-    qty:String(qty),store:storeOverride||(entry?entry.store:"Lidl"),category:entry?entry.cat:"an",note:note||null,suggested:false,checked:false,created_at:new Date().toISOString()};
-  items.push(it); render();
-  if(live){const {created_at,...row}=it; const {error}=await sb.from("items").insert(row); if(error)status("Ikke gemt – prøv igen")} else saveLocal();
+  const existing=items.find(i=>i.key===entry.key&&!i.checked);
+  if(existing&&storeOverride&&existing.store!==storeOverride)return patch(existing.id,{store:storeOverride,qty:String(Math.max(qn(existing.qty),qty))});
+  if(existing){const ch={qty:String(round2(qn(existing.qty)+qty))}; if(note)ch.note=note; return patch(existing.id,ch)}
+  const it={id:uid(),text:entry.da,name_da:entry.da,name_sq:entry.sq,key:entry.key,qty:String(qty),store:storeOverride||entry.store||"Lidl",
+    category:entry.cat||"an",note:note||null,suggested:false,checked:false,created_at:new Date().toISOString()};
+  items.push(it); changed();
+  const {created_at,...row}=it; send({kind:"insert",table:"items",row});
 }
-async function patch(id,changes){
+function patch(id,ch){
   const it=items.find(i=>i.id===id); if(!it)return;
-  Object.assign(it,changes); render();
-  if(live){const {error}=await sb.from("items").update(changes).eq("id",id); if(error)status("Ikke gemt – prøv igen")} else saveLocal();
+  Object.assign(it,ch); changed(); send({kind:"update",table:"items",id,changes:ch});
 }
-async function toggle(it){
-  const v=!it.checked; await patch(it.id,{checked:v});
+function toggle(it){
+  const v=!it.checked; patch(it.id,{checked:v});
   if(!it.key)return;
   const store=it.store||"Lidl";
   if(v){
-    bought[it.key]=today();
+    it._prevBought=bought[it.key]; bought[it.key]=today();
     const e=BYKEY[it.key]||{};
-    const row={key:it.key,item_id:it.id,name_da:it.name_da||e.da||it.text,name_sq:it.name_sq||e.sq||null,
-      qty:qn(it.qty),store,price:unitPrice(it.key,store)};
-    if(live){const {error}=await sb.from("bought").insert(row); if(error)status("Køb ikke registreret")} else saveLocal();
+    send({kind:"insert",table:"bought",row:{key:it.key,item_id:it.id,name_da:it.name_da||e.da||it.text,name_sq:it.name_sq||e.sq||null,qty:qn(it.qty),store,price:unitPrice(it.key,store)}});
   }else{
-    if(live){await sb.from("bought").delete().eq("item_id",it.id)}
+    if(it._prevBought)bought[it.key]=it._prevBought; else delete bought[it.key];
+    send({kind:"delete",table:"bought",col:"item_id",vals:[it.id]});
   }
-  render();
+  changed();
 }
-async function remove(ids,quiet){
-  const gone=items.filter(i=>ids.includes(i.id));
-  items=items.filter(i=>!ids.includes(i.id)); render();
-  if(!quiet&&gone.length)toast(gone.length===1?`${names(gone[0])[0]} slettet`:`${gone.length} varer ryddet`,()=>restore(gone));
-  if(live){const {error}=await sb.from("items").delete().in("id",ids); if(error)status("Ikke slettet – prøv igen")} else saveLocal();
+function remove(ids,quiet){
+  const gone=items.filter(i=>ids.includes(i.id)); if(!gone.length)return;
+  items=items.filter(i=>!ids.includes(i.id)); changed();
+  if(!quiet)toast(gone.length===1?`${gone[0].name_da||gone[0].text} slettet`:`${gone.length} varer ryddet`,()=>restore(gone));
+  send({kind:"delete",table:"items",vals:ids});
+}
+function restore(rows){
+  items.push(...rows); changed();
+  rows.forEach(({created_at,_prevBought,...row})=>send({kind:"insert",table:"items",row}));
 }
 
 /* ---------- login ---------- */
@@ -621,229 +523,74 @@ function showAuth(mode){
   $("#authPw").autocomplete=rec?"new-password":"current-password"; $("#authPw").value=""; $("#authPw2").value="";
   $("#authBtn").textContent=rec?"Gem adgangskode":"Log ind";
 }
-function hideAuth(){ $("#auth").hidden=true; $("#logout").hidden=!live }
+function hideAuth(){$("#auth").hidden=true; $("#logout").hidden=!live}
 $("#authForm").addEventListener("submit",async ev=>{
   ev.preventDefault(); const btn=$("#authBtn"); btn.disabled=true; $("#authErr").textContent="";
   try{
     if(authMode==="recover"){
       const pw=$("#authPw").value;
-      if(pw!==$("#authPw2").value){$("#authErr").textContent="De to adgangskoder er ikke ens."; return}
+      if(pw!==$("#authPw2").value){$("#authErr").textContent="De to adgangskoder er ikke ens.";return}
       const {error}=await sb.auth.updateUser({password:pw});
-      if(error){$("#authErr").textContent="Kunne ikke gemme: "+error.message; return}
+      if(error){$("#authErr").textContent="Kunne ikke gemme adgangskoden. Prøv igen.";return}
       history.replaceState(null,"",location.pathname); hideAuth(); toast("Ny adgangskode gemt"); loadData();
     }else{
       const {error}=await sb.auth.signInWithPassword({email:$("#authEmail").value.trim(),password:$("#authPw").value});
-      if(error){$("#authErr").textContent="Forkert e-mail eller adgangskode."; return}
+      if(error){$("#authErr").textContent="Forkert e-mail eller adgangskode.";return}
       hideAuth(); loadData();
     }
   }finally{btn.disabled=false}
 });
-$("#logout").onclick=async()=>{await sb.auth.signOut(); ["indkob-catalog"].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}}); location.reload()};
+$("#logout").onclick=async()=>{await sb.auth.signOut(); ["indkob-catalog","indkob-cache","indkob-queue"].forEach(local.del); location.reload()};
+
 /* ---------- besked med fortryd ---------- */
-let toastT=null;
+let toastT=0;
 function toast(msg,undo){
   const t=$("#toast"); $("#toastMsg").textContent=msg; const u=$("#toastUndo"); u.textContent=undo?"Fortryd":"";
   u.onclick=undo?()=>{undo(); t.classList.remove("show")}:null;
   t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),undo?5000:2200);
 }
-async function restore(rows){
-  items.push(...rows); render();
-  if(live){const {error}=await sb.from("items").insert(rows.map(({created_at,...r})=>r)); if(error)status("Ikke gendannet")} else saveLocal();
-}
-/* ---------- priser og tilbud ---------- */
+
+/* =========================================================
+   PRISER, TILBUD, RYTME
+   ========================================================= */
 function today(){const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)}
-const kr=n=>n==null?"":Number(n).toLocaleString("da-DK",{minimumFractionDigits:2,maximumFractionDigits:2})+" kr.";
-const dshort=d=>{const [y,m,dd]=d.split("-");return `${+dd}/${+m}`};
-const refOf=(o,key)=>o.ref_price!=null?+o.ref_price:(BYKEY[key]&&BYKEY[key].price);
-function offersFor(key){return key?offers.filter(o=>o.key===key&&o.valid_to>=today()):[]}
-function bestElsewhere(key,store){
-  return offersFor(key).filter(o=>o.store!==store&&refOf(o,key)!=null&&+o.price<refOf(o,key)).sort((a,b)=>started(b)-started(a)||0).sort((a,b)=>(refOf(b,key)-b.price)-(refOf(a,key)-a.price))[0]||null;
-}
-function sameStore(key,store){return offersFor(key).find(o=>o.store===store&&started(o))||offersFor(key).find(o=>o.store===store)||null}
-function unitPrice(key,store){const o=sameStore(key,store); if(o&&started(o))return +o.price; if(store==="Lidl"){const now=offersFor(key).map(x=>x.ref_price).find(x=>x!=null); if(now!=null)return +now} const e=BYKEY[key]; return e&&e.price!=null?e.price:null}
+const dshort=d=>{const [,m,dd]=d.split("-");return `${+dd}/${+m}`};
 const WD=["søn.","man.","tirs.","ons.","tors.","fre.","lør."];
 const dayDiff=d=>Math.round((Date.parse(d)-Date.parse(today()))/864e5);
 const wd=d=>WD[new Date(d+"T12:00:00").getDay()];
 const started=o=>!o.valid_from||o.valid_from<=today();
 function when(o){
   if(!started(o)){const n=dayDiff(o.valid_from); return n===1?"starter i morgen":`starter ${wd(o.valid_from)} ${dshort(o.valid_from)}`}
-  const n=dayDiff(o.valid_to);
-  return n<=0?"udløber i dag":n===1?"udløber i morgen":`udløber ${wd(o.valid_to)} ${dshort(o.valid_to)}`;
+  const n=dayDiff(o.valid_to); return n<=0?"udløber i dag":n===1?"udløber i morgen":`udløber ${wd(o.valid_to)} ${dshort(o.valid_to)}`;
 }
-function priceSpan(key,store,here){
-  const own=sameStore(key,store), e=BYKEY[key];
-  const sp=document.createElement("span");
-  const now=offersFor(key).map(o=>o.ref_price).find(x=>x!=null);
-  const usual=e&&e.price!=null?e.price:null;
-  const at=here?"":`@${store} `;
-  if(own){sp.className="offer"; sp.textContent=`${at}tilbud ${kr(own.price)} · ${when(own)}`}
-  else{const t=(store==="Lidl"&&now!=null?`${kr(now)}`+(usual!=null&&Math.abs(now-usual)>=1?` · plejer ${kr(usual)}`:""):(usual!=null?`ca. ${kr(usual)}`:"")); sp.textContent=(at+t).trim()}
-  return sp;
+const refOf=(o,key)=>o.ref_price!=null?+o.ref_price:(BYKEY[key]&&BYKEY[key].price);
+const offersFor=key=>key?offers.filter(o=>o.key===key&&o.valid_to>=today()):[];
+function bestElsewhere(key,store){
+  return offersFor(key).filter(o=>o.store!==store&&refOf(o,key)!=null&&+o.price<refOf(o,key))
+    .sort((a,b)=>(refOf(b,key)-b.price)-(refOf(a,key)-a.price)||(started(b)-started(a)))[0]||null;
 }
-function cheapChip(key,store,onMove){
-  const b=bestElsewhere(key,store); if(!b)return null;
-  const c=document.createElement("span"); c.className="chip deal"+(started(b)?"":" soon");
-  c.append(svgEl("tag"),document.createTextNode(`${b.store} ${kr(b.price)} · spar ${kr(refOf(b,key)-b.price)} · ${when(b)}`+(b.note?` · ${b.note}`:"")));
-  return c;
-}
-function liveDeal(key,store){const b=bestElsewhere(key,store); return b&&started(b)?b:null}
-function addButton(e,qty,onDone){
-  const d=liveDeal(e.key,e.store);
-  const b=document.createElement("button"); b.className="addbtn"+(d?" deal":""); b.append(svgEl("plus"));
-  b.setAttribute("aria-label",d?`Tilføj ${e.da} på tilbud @${d.store}`:`Tilføj ${e.da}`);
-  b.onclick=ev=>{ev.stopPropagation(); addItem(e.da,qty,e,d?d.store:undefined); toast(`${e.da} lagt på listen · ${d?d.store:(e.store||"Lidl")}`); if(onDone)onDone()};
-  return b;
+function sameStore(key,store){return offersFor(key).find(o=>o.store===store&&started(o))||offersFor(key).find(o=>o.store===store)||null}
+function unitPrice(key,store){const o=sameStore(key,store); if(o&&started(o))return +o.price;
+  if(store==="Lidl"){const now=offersFor(key).map(x=>x.ref_price).find(x=>x!=null); if(now!=null)return +now}
+  const e=BYKEY[key]; return e&&e.price!=null?e.price:null}
+/* prisdel til linje 2: "15,00 kr." / "tilbud 15,00 kr. · udløber …" / "@MENY ca. 19,95 kr." */
+function pricePart(key,store,showStore){
+  const own=sameStore(key,store), e=BYKEY[key]||{};
+  if(own)return el("span","dl",`${showStore?store+" ":""}tilbud ${kr(own.price)} · ${when(own)}`);
+  const now=store==="Lidl"?offersFor(key).map(o=>o.ref_price).find(x=>x!=null):null, usual=e.price;
+  const t=now!=null?kr(now)+(usual!=null&&Math.abs(now-usual)>=1?` · plejer ${kr(usual)}`:""):(usual!=null?`ca. ${kr(usual)}`:"");
+  return t?(showStore?`${store} ${t}`:t):null;
 }
 function lookFor(key,store){
   const o=sameStore(key,store); if(o&&o.title)return o.title+(o.size?` (${o.size})`:"");
-  const e=BYKEY[key]; if(e&&e.prod&&e.prod.length&&store===(e.store||"Lidl"))return e.prod.join(" / ");
-  return "";
+  const e=BYKEY[key]; return e&&e.prod&&e.prod.length&&store===(e.store||"Lidl")?e.prod.join(" / "):"";
 }
-function nameEl(da,sq){const nm=document.createElement("span"); nm.className="nm"; nm.append(document.createTextNode(da));
-  if(sq&&sq!==da){const a=document.createElement("span"); a.className="ai"; a.textContent=sq; nm.append(a)} return nm}
-function lookIn(text){if(!text)return null; const l=document.createElement("span"); l.className="lk"; l.append(svgEl("search"),document.createTextNode(text)); return l}
-function lookLine(text){if(!text)return null; const l=document.createElement("span"); l.className="look"; l.append(svgEl("search"),document.createTextNode(text)); return l}
-function pills(parts){const d=document.createElement("div"); d.className="pills";
-  parts.filter(Boolean).forEach(x=>{if(typeof x==="string"){const p=document.createElement("span"); p.className="pill"; p.textContent=x; d.append(p)} else {x.classList.add("pill"); d.append(x)}}); return d}
-function alt(text){if(!text)return null; const a=document.createElement("span"); a.className="alt"; a.textContent=text; return a}
-function subLine(parts){const s=document.createElement("span"); s.className="sub"; const m=document.createElement("span"); m.className="mq"; s.append(m);
-  parts.filter(x=>x&&(typeof x==="string"||x.textContent)).forEach((x,i)=>{if(i)m.append(" · "); m.append(typeof x==="string"?document.createTextNode(x):x)});
-  mqPending.add(s); scheduleMq(); return s}
-/* rullende tekst på linje 2, når den er for lang */
-const mqPending=new Set(); let mqRaf=0;
-function scheduleMq(){if(!mqRaf)mqRaf=requestAnimationFrame(()=>{mqRaf=0; mqPending.forEach(fitMq)})}
-function fitMq(s){
-  if(!s.isConnected){mqPending.delete(s);return}
-  if(s.classList.contains("wrap")){mqPending.delete(s);return}
-  if(!s.offsetParent)return; /* skjult fane – prøv igen ved fanskift */
-  mqPending.delete(s);
-  const m=s.firstChild, d=m.scrollWidth-s.clientWidth;
-  if(d>6){s.classList.add("run"); s.style.setProperty("--d",(-d-4)+"px"); s.style.setProperty("--t",Math.max(7,d/22+5)+"s")}
-  else s.classList.remove("run");
-}
-function remeasureMq(){document.querySelectorAll(".sub").forEach(x=>mqPending.add(x)); scheduleMq()}
-addEventListener("resize",remeasureMq);
-function metaChips(key,store,onMove){
-  const box=document.createElement("div"); box.className="meta";
-  const own=sameStore(key,store), e=BYKEY[key];
-  const p=document.createElement("span"); p.className="chip"+(own?" offer":"");
-  const now=offersFor(key).map(o=>o.ref_price).find(x=>x!=null);
-  const usual=e&&e.price!=null?e.price:null;
-  p.textContent=own?`@${store} tilbud ${kr(own.price)} · ${when(own)}`
-    :`@${store}`+(store==="Lidl"&&now!=null?` nu ca. ${kr(now)}`+(usual!=null&&Math.abs(now-usual)>=1?` · I plejer at give ${kr(usual)}`:""):(usual!=null?` ca. ${kr(usual)}`:""));
-  box.append(p);
-  const b=bestElsewhere(key,store);
-  if(b){const c=document.createElement(onMove?"button":"span"); c.className="chip cheap";
-    c.textContent=`Billigere @${b.store} ${kr(b.price)} · spar ${kr(refOf(b,key)-b.price)} · ${when(b)}`+(b.note?` · ${b.note}`:"");
-    if(onMove){c.setAttribute("aria-label",`Flyt til ${b.store}`); c.onclick=()=>onMove(b.store)}
-    box.append(c)}
-  return box;
-}
+const dealText=(b,key)=>`${kr(b.price)} · spar ${kr(refOf(b,key)-b.price)} · ${when(b)}${b.note?" · "+b.note:""}`;
 
-/* ---------- visning ---------- */
-const catName=id=>{const c=CAT[id]||CAT.an; return `${c.icon} ${c.da} · ${c.sq}`};
-function names(it){
-  if(it.name_sq||it.name_da){return [it.name_da||it.name_sq, it.name_da&&it.name_sq&&it.name_sq!==it.name_da?it.name_sq:""]}
-  const e=it.key&&BYKEY[it.key]; if(e)return [e.da,e.sq!==e.da?e.sq:""];
-  return [it.text,""];
-}
-function row(it){
-  const li=document.createElement("li"); if(it.checked)li.className="done"; let fullBtn=null;
-  const c=document.createElement("button"); c.className="check"; c.setAttribute("aria-label","Afkryds"); c.append(svgEl("check")); c.onclick=()=>toggle(it);
-  const t=document.createElement("div"); t.className="txt";
-  const [a,b]=names(it);
-  const nm=nameEl(a,b);
-  if(it.suggested){const s=document.createElement("span"); s.className="tag"; s.textContent="forslag"; nm.append(s)}
-  t.append(nm);
-  {const ps=it.key?priceSpan(it.key,it.store||"Lidl",true):null; let nt=null; if(it.note){nt=document.createElement("b"); nt.className="nt"; nt.textContent=it.note}
-  t.append(subLine([nt, ps&&ps.textContent?ps:null, it.key?lookIn(lookFor(it.key,it.store||"Lidl")):null]))}
-  if(it.key){const st=it.store||"Lidl", e=BYKEY[it.key], home=(e&&e.store)||"Lidl"; const m=document.createElement("div"); m.className="meta";
-    const dl=!it.checked&&bestElsewhere(it.key,st);
-    if(dl){const mv=document.createElement("button"); mv.className="movebtn"+(started(dl)?"":" soon");
-      const tx=document.createElement("span"); tx.className="mvt";
-      const t1=document.createElement("b"); t1.textContent=`Flyt til ${dl.store}`;
-      const t2=document.createElement("small"); t2.textContent=`${kr(dl.price)} · spar ${kr(refOf(dl,it.key)-dl.price)} · ${started(dl)?when(dl):"gælder fra "+wd(dl.valid_from)+" "+dshort(dl.valid_from)}`+(dl.note?` · ${dl.note}`:"");
-      tx.append(t1,t2); mv.append(svgEl("tag"),tx,svgEl("arrow"));
-      mv.setAttribute("aria-label",`Flyt ${a} til ${dl.store}`);
-      mv.onclick=()=>{patch(it.id,{store:dl.store}); toast(`${a} flyttet til ${dl.store}`,()=>patch(it.id,{store:st}))}; mv.classList.add("full"); fullBtn=mv}
-    else{const ch=cheapChip(it.key,st); if(ch)m.append(ch)}
-    if(st!==home&&!offersFor(it.key).some(o=>o.store===st)&&!(e&&e.own)){const w=document.createElement("button"); w.className="chip warn"; w.textContent=`Tilbuddet @${st} er udløbet → flyt tilbage til ${home}`; w.onclick=()=>patch(it.id,{store:home}); m.append(w)}
-    if(m.childNodes.length)t.append(m)}
-  t.onclick=ev=>{if(ev.target.closest("button"))return; openEditor(li,it)};
-  const q=document.createElement("div"); q.className="qty";
-  const n=qn(it.qty), stp=stepOf(it.key), u=unitOf(it.key), more=n-stp>0.0001;
-  const minus=document.createElement("button"); minus.append(svgEl(more?"minus":"trash")); minus.setAttribute("aria-label",more?"Færre":"Slet");
-  minus.onclick=()=>more?patch(it.id,{qty:String(Math.round((n-stp)*100)/100)}):remove([it.id]);
-  const sp=document.createElement("span"); sp.textContent=fmtQ(n,u); if(u)sp.className="u";
-  const plus=document.createElement("button"); plus.append(svgEl("plus")); plus.setAttribute("aria-label","Flere"); plus.onclick=()=>patch(it.id,{qty:String(Math.round((n+stp)*100)/100)});
-  q.append(minus,sp,plus);
-  li.append(c,t,q); if(fullBtn){li.classList.add("wrap"); li.append(fullBtn)} return li;
-}
-function openEditor(li,it){
-  const nx=li.nextElementSibling; if(nx&&nx.classList.contains("editor")){nx.remove();return}
-  const ed=document.createElement("li"); ed.className="editor";
-  const cs=document.createElement("select"); CATS.forEach(c=>{const o=document.createElement("option"); o.value=c.id; o.textContent=`${c.icon} ${c.da} · ${c.sq}`; if((it.category||"an")===c.id)o.selected=true; cs.append(o)});
-  const ss=document.createElement("select"); [...new Set([...STORE_ORDER,it.store||"Lidl"])].forEach(n=>{const o=document.createElement("option"); o.value=n; o.textContent=n; if((it.store||"Lidl")===n)o.selected=true; ss.append(o)});
-  const e0=it.key&&BYKEY[it.key], u=unitOf(it.key);
-  const qrow=document.createElement("div"); qrow.className="row2";
-  const qi=document.createElement("input"); qi.type="text"; qi.inputMode="decimal"; qi.value=fmtQ(qn(it.qty),""); qi.setAttribute("aria-label","Mængde");
-  const ql=document.createElement("span"); ql.className="ul"; ql.textContent=u||"stk.";
-  const ni=document.createElement("input"); ni.type="text"; ni.placeholder=e0&&e0.forms?"Udskæring / bemærkning":"Bemærkning"; ni.value=it.note||"";
-  qrow.append(qi,ql); ed.append(qrow);
-  if(e0&&e0.forms){const fw=document.createElement("div"); fw.className="forms";
-    e0.forms.forEach(f=>{const b=document.createElement("button"); b.textContent=f; if((ni.value||"").toLowerCase()===f.toLowerCase())b.className="on"; b.onclick=()=>{ni.value=ni.value===f?"":f; fw.querySelectorAll("button").forEach(x=>x.className=x.textContent===ni.value?"on":"")}; fw.append(b)});
-    ed.append(fw)}
-  ed.append(ni);
-  const ok=document.createElement("button"); ok.textContent="Gem";
-  ok.onclick=async()=>{const cat=cs.value, store=ss.value; await patch(it.id,{category:cat,store,qty:String(qn(qi.value)),note:ni.value.trim()||null});
-    const e=it.key&&BYKEY[it.key]; if(e&&(e.own||!e.n))await saveProduct({key:e.key,da:e.da,sq:e.sq,cat,store})};
-  ed.append(cs,ss,ok); li.after(ed);
-}
-function catHead(id,count){
-  const c=CAT[id]||CAT.an; const h=document.createElement("div"); h.className="cath";
-  const i=document.createElement("span"); i.className="ci"; i.textContent=c.icon;
-  const n=document.createElement("span"); n.className="cn"; n.textContent=c.da; const sm=document.createElement("small"); sm.textContent=c.sq; n.append(sm);
-  h.append(i,n); if(count!=null){const k=document.createElement("span"); k.className="cc"; k.textContent=count; h.append(k)} return h;
-}
-function group(id,count,lis,cls){const g=document.createElement("div"); g.className="grp c-"+((CAT[id]&&id)||"an");
-  g.append(catHead(id,count)); const ul=document.createElement("ul"); if(cls)ul.className=cls; lis.forEach(l=>ul.append(l)); g.append(ul); return g}
-const HEAD={list:["Indkøbsliste","Lista e blerjes","cart"],offers:["Tilbud","Ofertat","tag"],dishes:["Retter","Gatimet","pot"],sugg:["Forslag","Sugjerime","bulb"]};
-let tab="list", info={};
-function setHead(){const [a,b,ic]=HEAD[tab]; $("#ttl").textContent=a; $("#tsub").textContent=b; $("#ticon").innerHTML=IC[ic];
-  const x=info[tab]; $("#tinfo").innerHTML=x?`<b>${x[0]}</b>${x[1]}`:""}
-function render(){
-  const wrap=$("#stores"); wrap.innerHTML="";
-  const rank=(arr,x)=>((arr.indexOf(x)+1)||99);
-  const stores=[...new Set(items.map(i=>i.store||"Lidl"))].sort((a,b)=>rank(STORE_ORDER,a)-rank(STORE_ORDER,b));
-  if(!items.length){const e=document.createElement("div"); e.className="card empty"; e.textContent="Listen er tom. Skriv en vare ovenfor, eller tilføj fra Forslag."; wrap.append(e)}
-  const catIds=CATS.map(c=>c.id); let grand=0;
-  stores.forEach(s=>{
-    const list=items.filter(i=>(i.store||"Lidl")===s);
-    const card=document.createElement("section"); card.className="card";
-    const left=list.filter(i=>!i.checked).length;
-    const tot=list.filter(i=>!i.checked).reduce((a,i)=>a+(unitPrice(i.key,s)||0)*qn(i.qty),0); grand+=tot;
-    const h=document.createElement("div"); h.className="storeh";
-    const av=document.createElement("span"); av.className="av"+(s==="Lidl"?"":" alt"); av.textContent=s.replace(/[^A-Za-zÆØÅæøå0-9]/g,"").slice(0,1).toUpperCase();
-    const sn=document.createElement("div"); sn.className="sn"; const nb=document.createElement("b"); nb.textContent=s; const ns=document.createElement("span");
-    ns.textContent=left?`${left} af ${list.length} tilbage`:"Alt er købt ✓"; sn.append(nb,ns);
-    h.append(av,sn);
-    if(tot>0){const sm=document.createElement("div"); sm.className="sum"; sm.innerHTML=`<b>${kr(Math.round(tot))}</b>ca. i alt`; h.append(sm)}
-    card.append(h);
-    const pg=document.createElement("div"); pg.className="prog"; const pi=document.createElement("i"); pi.style.width=(list.length?100*(list.length-left)/list.length:0)+"%"; pg.append(pi); card.append(pg);
-    const cats=[...new Set(list.map(i=>i.category||"an"))].sort((a,b)=>rank(catIds,a)-rank(catIds,b));
-    cats.forEach(c=>{
-      const arr=list.filter(i=>(i.category||"an")===c).sort((a,b)=>a.checked-b.checked);
-      card.append(group(c,arr.filter(i=>!i.checked).length||"✓",arr.map(row)));
-    });
-    wrap.append(card);
-  });
-  const open=items.filter(i=>!i.checked).length; const bl=$("#b-list"); bl.hidden=!open; bl.textContent=open;
-  info.list=open?[`${open} ${open===1?"vare":"varer"}`,grand>0?`ca. ${kr(Math.round(grand))}`:""]:null;
-  renderSugg(); renderOffers(); renderDishes(); setHead();
-}
-/* sandsynlighed for at varen købes inden for H dage, ud fra jeres egne mellemrum mellem køb.
-   Testet på kvitteringerne: 14 dage (≥60 %) ~46 forslag, 74 % købes; 30 dage (≥60 %) ~81 forslag, 80 % købes */
+/* rytme: sandsynlighed for køb inden for H dage ud fra egne mellemrum (testet på kvitteringerne) */
 const probCache=new Map();
+function lastBought(e){const a=e.last||"", b=bought[e.key]||""; return a>b?a:b}
+function daysSince(d){return d?Math.floor((Date.now()-Date.parse(d))/864e5):null}
 function dueProb(e,H=14){
   if(!e.gaps||e.gaps.length<3||(e.n||0)<4)return 0;
   const t=daysSince(lastBought(e)); if(t==null)return 0;
@@ -853,225 +600,339 @@ function dueProb(e,H=14){
   else p=alive.filter(g=>g<=t+H).length/alive.length;
   probCache.set(ck,p); return p;
 }
-function lastBought(e){const a=e.last||"", b=bought[e.key]||""; return a>b?a:b}
-function daysSince(d){return d?Math.floor((Date.now()-Date.parse(d))/864e5):null}
-const SHELF=new Set(["ko","rh","fr"]);
-const SHELF_KEYS=new Set(["kaffe","te","ris","pasta","olie","hvedemel","sukker","honning","toiletpapir","koekkenrulle","affaldsposer","vaskemiddel","opvask","saft"]);
+const isDue=(e,H=14)=>dueProb(e,H)>=0.6;
+const SHELF=new Set(["ko","rh","fr"]), SHELF_KEYS=new Set(["kaffe","te","ris","pasta","olie","hvedemel","sukker","honning","toiletpapir","koekkenrulle","affaldsposer","vaskemiddel","opvask","saft"]);
 const holdbar=e=>SHELF.has(e.cat)||SHELF_KEYS.has(e.key);
-function maxOf(o){const m=/maks\.?\s*(\d+)/i.exec(`${o.note||""} ${o.title||""}`); return m?+m[1]:null}
-function renderOffers(){
-  const t=today(); const stock=$("#stock"), weekly=$("#weekly"); stock.innerHTML=""; weekly.innerHTML="";
-  const rel=offers.filter(o=>o.valid_to>=t&&BYKEY[o.key]).map(o=>({o,e:BYKEY[o.key],save:(refOf(o,o.key)||0)-o.price})).filter(x=>x.save>0)
+const maxOf=o=>{const m=/maks\.?\s*(\d+)/i.exec(`${o.note||""} ${o.title||""}`); return m?+m[1]:null};
+
+/* =========================================================
+   KOMPONENTER – bruges ens i alle faner
+   ========================================================= */
+function nameEl(da,sq,tag){const n=el("span","name",da); if(sq&&sq!==da)n.append(el("span","alt",sq)); if(tag)n.append(el("span","tag",tag)); return n}
+function lookPart(text){if(!text)return null; const s=el("span","lk"); s.append(svgEl("search"),document.createTextNode(text)); return s}
+/* linje 2: dele adskilt af " · " – rulles én gang, når den er for lang */
+function metaLine(parts,wrap){
+  const m=el("span","meta"+(wrap?" wrap":"")), q=el("span","mq"); m.append(q);
+  parts.filter(x=>x&&(typeof x==="string"||x.textContent)).forEach((x,i)=>{if(i)q.append(" · "); q.append(typeof x==="string"?document.createTextNode(x):x)});
+  if(!wrap)mqObserve(m);
+  return m;
+}
+const strong=(t,cls="hl")=>t?el("b",cls,t):null;
+/* FLISE: lead (fx flueben) · navn + linje 2 · handling til højre · evt. linje under */
+function tile({cat,cls,lead,name,alt,tag,meta,wrap,extra,act,below,onTap}){
+  const li=el("li","tile c-"+(cat||"an")+(cls?" "+cls:""));
+  if(lead){li.append(lead); li.classList.add("has-lead")}
+  const b=el("div","body"); b.append(nameEl(name,alt,tag)); if(meta)b.append(metaLine(meta,wrap)); (extra||[]).forEach(x=>x&&b.append(x));
+  if(onTap)b.onclick=ev=>{if(!ev.target.closest("button"))onTap(ev)};
+  li.append(b); if(act)li.append(act);
+  if(below){const w=el("div","below"); w.append(below); li.append(w)}
+  return li;
+}
+function addBtn(label,onClick,deal){const b=el("button","add"+(deal?" deal":"")); b.append(svgEl("plus")); b.setAttribute("aria-label",label); b.onclick=ev=>{ev.stopPropagation(); onClick()}; return b}
+function onListMark(){const s=el("span","onlist"); s.append(svgEl("check"),document.createTextNode("På listen")); return s}
+/* tilbudslinje: knap i listen (flyt), info i forslag/søgning */
+function dealLine(b,key,onMove){
+  const d=el(onMove?"button":"div","deal"+(started(b)?"":" soon"));
+  d.append(svgEl("tag"));
+  const t=el("span","dt"); t.append(el("b",null,onMove?`Flyt til ${b.store}`:b.store), document.createTextNode(dealText(b,key)));
+  d.append(t);
+  if(onMove){d.append(svgEl("arrow")); d.setAttribute("aria-label",`Flyt til ${b.store}: ${dealText(b,key)}`); d.onclick=onMove}
+  return d;
+}
+function stepper(n,unit,step,onSet,onDelete){
+  const w=el("div","stepper"), more=n-step>1e-4;
+  const m=el("button"); m.append(svgEl(more?"minus":"trash")); m.setAttribute("aria-label",more?"Færre":"Slet");
+  m.onclick=()=>more?onSet(round2(n-step)):onDelete();
+  const s=el("span",unit?"u":null,fmtQ(n,unit));
+  const p=el("button"); p.append(svgEl("plus")); p.setAttribute("aria-label","Flere"); p.onclick=()=>onSet(round2(n+step));
+  w.append(m,s,p); return w;
+}
+function catHead(id,count){
+  const c=CAT[catOf(id)], h=el("div","cat");
+  h.append(el("span","ci",c.icon)); const n=el("span","cn",c.da); n.append(el("small",null,c.sq)); h.append(n);
+  if(count!=null)h.append(el("span","cc",String(count)));
+  return h;
+}
+function group(id,count,lis){const g=el("div","grp c-"+catOf(id)); g.append(catHead(id,count)); const ul=el("ul","tiles"); lis.forEach(l=>ul.append(l)); g.append(ul); return g}
+function tilesList(lis){const ul=el("ul","tiles"); lis.forEach(l=>ul.append(l)); return ul}
+function emptyBox(t){return el("div","empty",t)}
+
+/* rullende linje 2: måles når den bliver synlig, rulles to gange (frem og tilbage) og står så stille */
+const mqIO="IntersectionObserver" in window?new IntersectionObserver(es=>es.forEach(en=>{if(en.isIntersecting)fitMq(en.target)}),{threshold:.9}):null;
+function mqObserve(m){if(mqIO)mqIO.observe(m)}
+function fitMq(m){
+  const q=m.firstChild, d=q.scrollWidth-m.clientWidth;
+  if(d>6){m.classList.add("over"); m.style.setProperty("--d",(-d-4)+"px"); m.style.setProperty("--t",Math.max(5,d/22+3)+"s");
+    if(!m.classList.contains("run")){m.classList.add("run"); q.addEventListener("animationend",()=>m.classList.remove("run"),{once:true})}}
+  else m.classList.remove("over","run");
+}
+
+/* =========================================================
+   FANER
+   ========================================================= */
+const HEAD={list:["Indkøbsliste","Lista e blerjes","cart"],offers:["Tilbud","Ofertat","tag"],dishes:["Retter","Gatimet","pot"],sugg:["Forslag","Sugjerime","bulb"]};
+let tab="list", info={};
+const dirty=new Set(["offers","dishes","sugg"]);
+function setHead(){
+  const [a,b,ic]=HEAD[tab]; $("#ttl").textContent=a; $("#tsub").textContent=b; $("#ticon").replaceChildren(svgEl(ic));
+  const x=info[tab], ti=$("#tinfo"); ti.replaceChildren(); if(x){ti.append(el("b",null,x[0]),document.createTextNode(x[1]||""))}
+}
+const desktop=()=>matchMedia("(min-width:860px)").matches;
+/* render: indkøbslisten altid, de andre faner kun når de vises */
+function render(){
+  renderList(); counts();
+  ["offers","dishes","sugg"].forEach(n=>dirty.add(n));
+  if(tab!=="list"||desktop())renderPane(tab);
+  if(desktop())["offers","dishes","sugg"].forEach(renderPane);
+  setHead();
+}
+function renderPane(n){if(n==="list"||!dirty.has(n))return; dirty.delete(n); ({offers:renderOffers,dishes:renderDishes,sugg:renderSugg})[n]()}
+function onListKeys(){return new Set(items.filter(i=>!i.checked&&i.key).map(i=>i.key))}
+function counts(){
+  const open=items.filter(i=>!i.checked).length, on=onListKeys();
+  const bl=$("#b-list"); bl.hidden=!open; bl.textContent=open;
+  const dueN=CATALOG.filter(e=>isDue(e)&&!on.has(e.key)).length; const bs=$("#b-sugg"); bs.hidden=!dueN; bs.textContent=dueN;
+  const offN=offerRows().length; const bo=$("#b-offers"); bo.hidden=!offN; bo.textContent=offN;
+}
+
+/* ---------- Indkøbsliste ---------- */
+function names(it){
+  if(it.name_da||it.name_sq)return [it.name_da||it.name_sq,it.name_sq&&it.name_sq!==it.name_da?it.name_sq:""];
+  const e=it.key&&BYKEY[it.key]; return e?[e.da,e.sq!==e.da?e.sq:""]:[it.text,""];
+}
+let editingItem=null;
+function listTile(it){
+  const st=it.store||"Lidl", e=BYKEY[it.key]||{}, home=e.store||"Lidl", [a,b]=names(it);
+  const chk=el("button","check"); chk.append(svgEl("check")); chk.setAttribute("aria-label",(it.checked?"Fjern flueben: ":"Afkryds: ")+a); chk.onclick=()=>toggle(it);
+  let below=null;
+  if(it.key&&!it.checked){
+    const d=bestElsewhere(it.key,st);
+    if(d)below=dealLine(d,it.key,()=>{patch(it.id,{store:d.store}); toast(`${a} flyttet til ${d.store}`,()=>patch(it.id,{store:st}))});
+    else if(st!==home&&!offersFor(it.key).some(o=>o.store===st)&&!e.own){
+      below=el("button","deal warn"); below.append(svgEl("arrow"),el("span","dt",`Tilbuddet i ${st} er udløbet – flyt tilbage til ${home}`)); below.onclick=()=>patch(it.id,{store:home})}
+  }
+  const t=tile({cat:catOf(it.category),cls:it.checked?"done":"",lead:chk,name:a,alt:b,
+    meta:[strong(it.note), it.key?pricePart(it.key,st,false):null, it.key?lookPart(lookFor(it.key,st)):null],
+    act:stepper(qn(it.qty),unitOf(it.key),stepOf(it.key),v=>patch(it.id,{qty:String(v)}),()=>remove([it.id])),
+    below,onTap:()=>{editingItem=editingItem===it.id?null:it.id; renderList()}});
+  return t;
+}
+function itemSheet(it){
+  const s=el("li","sheet"), e0=BYKEY[it.key]||{}, u=unitOf(it.key);
+  const qf=el("label","field"); const qi=el("input"); qi.inputMode="decimal"; qi.value=fmtQ(qn(it.qty),""); qi.setAttribute("aria-label","Mængde"); qf.append(qi);
+  const qr=el("div","row"); qr.append(qf,el("span","unit",u||"stk."));
+  const nf=el("label","field"); const ni=el("input"); ni.placeholder=e0.forms?"Udskæring / bemærkning":"Bemærkning · Shënim"; ni.value=it.note||""; nf.append(ni);
+  const sel=(opts,val)=>{const f=el("label","field"), s=el("select"); opts.forEach(([v,t])=>{const o=el("option",null,t); o.value=v; if(v===val)o.selected=true; s.append(o)}); f.append(s); return [f,s]};
+  const [cf,cs]=sel(CATS.map(c=>[c.id,`${c.icon} ${c.da}`]),catOf(it.category));
+  const [sf,ss]=sel([...new Set([...STORE_ORDER,it.store||"Lidl"])].map(n=>[n,n]),it.store||"Lidl");
+  s.append(el("span","lbl","Mængde · Sasia"),qr);
+  if(e0.forms){const ch=el("div","chips"); e0.forms.forEach(f=>{const c=el("button","chip"+(ni.value===f?" on":""),f); c.type="button";
+    c.onclick=()=>{ni.value=ni.value===f?"":f; ch.querySelectorAll(".chip").forEach(x=>x.classList.toggle("on",x.textContent===ni.value))}; ch.append(c)});
+    s.append(el("span","lbl","Udskæring"),ch)}
+  s.append(nf,el("span","lbl","Kategori og butik"),cf,sf);
+  const btns=el("div","btns"), no=el("button","btn ghost","Luk"), ok=el("button","btn pri","Gem · Ruaj");
+  no.onclick=()=>{editingItem=null; renderList()};
+  ok.onclick=()=>{const cat=cs.value, store=ss.value; editingItem=null; patch(it.id,{category:cat,store,qty:String(qn(qi.value)),note:ni.value.trim()||null});
+    if(it.key&&(e0.own||!e0.n))saveProduct({key:it.key,da:e0.da||it.text,sq:e0.sq,cat,store})};
+  btns.append(no,ok); s.append(btns); return s;
+}
+function renderList(){
+  const wrap=$("#stores"); wrap.replaceChildren();
+  const rank=(arr,x)=>(arr.indexOf(x)+1)||99, catIds=CATS.map(c=>c.id);
+  if(!items.length)wrap.append(el("div","card empty","Listen er tom. Skriv en vare ovenfor, eller tilføj fra Forslag eller Retter."));
+  let grand=0;
+  [...new Set(items.map(i=>i.store||"Lidl"))].sort((a,b)=>rank(STORE_ORDER,a)-rank(STORE_ORDER,b)).forEach(s=>{
+    const list=items.filter(i=>(i.store||"Lidl")===s), open=list.filter(i=>!i.checked);
+    const tot=open.reduce((a,i)=>a+(unitPrice(i.key,s)||0)*qn(i.qty),0); grand+=tot;
+    const card=el("section","card"), h=el("div","head");
+    h.append(el("span","av"+(s==="Lidl"?"":" alt"),s.replace(/[^A-Za-zÆØÅæøå0-9]/g,"").slice(0,1).toUpperCase()));
+    const hb=el("div","hb"); hb.append(el("h2",null,s),el("div","hs",open.length?`${open.length} af ${list.length} tilbage`:"Alt er købt ✓")); h.append(hb);
+    if(tot>0){const r=el("div","hr"); r.append(el("b",null,kr(Math.round(tot))),document.createTextNode("ca. i alt")); h.append(r)}
+    const pg=el("div","prog"), pi=el("i"); pi.style.width=(100*(list.length-open.length)/list.length)+"%"; pg.append(pi);
+    card.append(h,pg);
+    [...new Set(list.map(i=>catOf(i.category)))].sort((a,b)=>rank(catIds,a)-rank(catIds,b)).forEach(c=>{
+      const arr=list.filter(i=>catOf(i.category)===c).sort((a,b)=>a.checked-b.checked);
+      const lis=[]; arr.forEach(it=>{lis.push(listTile(it)); if(editingItem===it.id)lis.push(itemSheet(it))});
+      card.append(group(c,arr.filter(i=>!i.checked).length||"✓",lis));
+    });
+    wrap.append(card);
+  });
+  const open=items.filter(i=>!i.checked).length;
+  info.list=open?[`${open} ${open===1?"vare":"varer"}`,grand>0?`ca. ${kr(Math.round(grand))}`:""]:null;
+  if(tab==="list")setHead();
+}
+
+/* ---------- søgning ved skrivefeltet ---------- */
+function renderAc(){
+  const box=$("#ac"), v=$("#addInput").value; box.replaceChildren();
+  const list=suggestFor(v), on=onListKeys();
+  list.forEach(e=>{
+    const d=bestElsewhere(e.key,e.store), live_=d&&started(d)?d:null;
+    const act=on.has(e.key)?onListMark():addBtn(live_?`Tilføj ${e.da} på tilbud i ${live_.store}`:`Tilføj ${e.da}`,()=>{
+      addItem(e.da,e.qty||1,e,live_?live_.store:undefined); toast(`${e.da} lagt på listen · ${live_?live_.store:(e.store||"Lidl")}`);
+      $("#addInput").value=""; renderAc(); $("#addInput").focus()},!!live_);
+    const t=tile({cat:catOf(e.cat),name:e.da,alt:e.sq,meta:[pricePart(e.key,e.store,(e.store||"Lidl")!=="Lidl"),e.n?`plejer ×${e.qty||1}`:(e.own?"egen vare":""),lookPart(lookFor(e.key,e.store))],
+      act,below:d?dealLine(d,e.key):null,onTap:()=>act.click&&act.click()});
+    box.append(t);
+  });
+  box.hidden=!list.length;
+  $("#hint").textContent=v&&!list.length?"Ny vare – tryk + for at tilføje. Tryk bagefter på varen for at vælge kategori og butik.":"";
+}
+
+/* ---------- Tilbud ---------- */
+function offerRows(){
+  const t=today();
+  return offers.filter(o=>o.valid_to>=t&&BYKEY[o.key]).map(o=>({o,e:BYKEY[o.key],save:(refOf(o,o.key)||0)-o.price})).filter(x=>x.save>0)
     .sort((a,b)=>b.save*(b.e.qty||1)-a.save*(a.e.qty||1));
-  const onList=new Map(items.filter(i=>!i.checked&&i.key).map(i=>[i.key,i]));
+}
+function renderOffers(){
+  const rel=offerRows(), on=new Map(items.filter(i=>!i.checked&&i.key).map(i=>[i.key,i]));
   let total=0;
   const draw=(box,arr,stockMode)=>{
-    if(!arr.length){const d=document.createElement("div"); d.className="empty"; d.textContent="Ingen lige nu."; box.append(d); return}
-    const ul=document.createElement("ul"); ul.className="offerul";
-    arr.forEach(({o,e,save})=>{
+    box.replaceChildren();
+    if(!arr.length){box.append(emptyBox("Ingen lige nu."));return}
+    box.append(tilesList(arr.map(({o,e,save})=>{
       const weekly=e.tot?e.tot/52:(e.every?(e.qty||1)*7/e.every:(e.qty||1)/2);
-      let q=stockMode?Math.max(e.qty||1,Math.round(weekly*6)):(e.qty||1);
-      const mx=maxOf(o); if(mx)q=Math.min(q,mx);
+      let q=stockMode?Math.max(e.qty||1,Math.round(weekly*6)):(e.qty||1); const mx=maxOf(o); if(mx)q=Math.min(q,mx);
       if(stockMode)total+=save*q;
-      const li=document.createElement("li"); li.className="offerli tile c-"+(CAT[e.cat]?e.cat:"an");
-      const tx=document.createElement("div"); tx.className="txt";
-      tx.append(nameEl(e.da,e.sq));
-      {const st=document.createElement("b"); st.className="stn"; st.textContent=o.store;
-       tx.append(subLine([st, when(o), o.note||"", lookIn((o.title||"")+(o.size?` (${o.size})`:""))]))}
-      const pl=document.createElement("div"); pl.className="priceline";
-      const nw=document.createElement("span"); nw.className="now"; nw.textContent=kr(o.price);
-      const was=document.createElement("span"); was.className="was"; was.textContent=kr(refOf(o,o.key));
-      const sv=document.createElement("span"); sv.className="save"; sv.textContent=`Spar ${kr(Math.round(save*q*100)/100)}`+(q>1?` på ${q} stk.`:"");
-      sv.textContent=`spar ${kr(Math.round(save*q*100)/100)}`+(q>1?` på ${q} stk.`:"");
-      pl.append(nw,was,sv); tx.append(pl);
-      li.append(tx);
-      const it=onList.get(e.key);
-      if(it&&it.store===o.store){const s=document.createElement("span"); s.className="on"; s.append(svgEl("check"),document.createTextNode("På listen")); li.append(s)}
-      else{const b=document.createElement("button"); b.className="addbtn"+(started(o)?" deal":""); b.append(svgEl("plus")); b.setAttribute("aria-label",`Tilføj ${q} stk. ${e.da} @${o.store}`); b.onclick=()=>{addItem(e.da,q,e,o.store); toast(`${q>1?q+" × ":""}${e.da} lagt på listen · ${o.store}`)}; li.append(b)}
-      ul.append(li);
-    });
-    box.append(ul);
+      const it=on.get(e.key);
+      const act=it&&it.store===o.store?onListMark():addBtn(`Tilføj ${q} stk. ${e.da} i ${o.store}`,()=>{addItem(e.da,q,e,o.store); toast(`${q>1?q+" × ":""}${e.da} lagt på listen · ${o.store}`)},started(o));
+      const pr=el("div","price"); pr.append(el("span","now",kr(o.price)),el("span","was",kr(refOf(o,o.key))),el("span","save",`spar ${kr(round2(save*q))}${q>1?` på ${q} stk.`:""}`));
+      return tile({cat:catOf(e.cat),name:e.da,alt:e.sq,meta:[strong(o.store),when(o),o.note||"",lookPart((o.title||"")+(o.size?` (${o.size})`:""))],extra:[pr],act});
+    })));
   };
-  draw(stock,rel.filter(x=>holdbar(x.e)),true);
-  draw(weekly,rel.filter(x=>!holdbar(x.e)),false);
+  draw($("#stock"),rel.filter(x=>holdbar(x.e)),true);
+  draw($("#weekly"),rel.filter(x=>!holdbar(x.e)),false);
   $("#stockSave").textContent=total>0?`Spar ca. ${kr(Math.round(total))} ved at købe på lager nu`:"";
-  const bo=$("#b-offers"); bo.hidden=!rel.length; bo.textContent=rel.length;
-  const allSave=rel.reduce((a,x)=>a+x.save*(x.e.qty||1),0);
-  info.offers=rel.length?[`${rel.length} tilbud`,`spar ca. ${kr(Math.round(allSave))}`]:null;
+  const all=rel.reduce((a,x)=>a+x.save*(x.e.qty||1),0);
+  info.offers=rel.length?[`${rel.length} tilbud`,`spar ca. ${kr(Math.round(all))}`]:null;
+  if(tab==="offers")setHead();
 }
+
+/* ---------- Forslag ---------- */
 let suggFilter="due";
 function renderSugg(){
-  const box=$("#sugg"); box.innerHTML="";
-  const q=fold($("#suggSearch").value);
-  const onList=new Set(items.filter(i=>!i.checked&&i.key).map(i=>i.key));
-  const isDue=e=>dueProb(e,14)>=0.6; const isDue30=e=>dueProb(e,30)>=0.6;
+  const box=$("#sugg"); box.replaceChildren();
+  const q=fold($("#suggSearch").value), on=onListKeys(), H=suggFilter==="d30"?30:14;
   let list=CATALOG.filter(e=>!q||fold(e.da).includes(q)||fold(e.sq).includes(q)||(e.alias||[]).some(a=>fold(a).includes(q)));
-  const dueCount=CATALOG.filter(e=>isDue(e)&&!onList.has(e.key)).length; const bs=$("#b-sugg"); bs.hidden=!dueCount; bs.textContent=dueCount;
-
-  if(!q&&suggFilter==="due")list=list.filter(e=>isDue(e)&&!onList.has(e.key));
-  if(!q&&suggFilter==="d30")list=list.filter(e=>isDue30(e)&&!onList.has(e.key));
+  if(!q&&suggFilter==="due")list=list.filter(e=>isDue(e,14)&&!on.has(e.key));
+  if(!q&&suggFilter==="d30")list=list.filter(e=>isDue(e,30)&&!on.has(e.key));
   if(!q&&suggFilter==="top")list=list.filter(e=>(e.n||0)>=2);
-  {const lbl=q?"fundet":({due:"inden for 14 dage",d30:"inden for 30 dage",top:"købt mindst 2 gange i år",all:"i alt"})[suggFilter];
-   info.sugg=[`${list.length} ${list.length===1?"vare":"varer"}`,lbl]; if(tab==="sugg")setHead();}
-  if(!list.length){const e=document.createElement("div"); e.className="empty"; e.textContent=(suggFilter==="due"||suggFilter==="d30")&&!q?"Intet er ved at slippe op i perioden. Se \"Oftest\".":"Ingen varer fundet."; box.append(e); return}
-  const mk=e=>{
-      const li=document.createElement("li");
-      const t=document.createElement("div"); t.className="txt";
-      const nm=nameEl(e.da,e.sq);
-      if(isDue(e)&&(q||(suggFilter!=="due"&&suggFilter!=="d30"))){const s=document.createElement("span"); s.className="tag due"; s.textContent="inden 14 dage"; nm.append(s)}
-      t.append(nm);
-      const d=daysSince(lastBought(e));
-      const freq=suggFilter==="top"&&!q?(e.n?`${e.n} gange i år`:""):(e.every?`hver ${e.every}. dag`:"");
-      t.append(subLine([priceSpan(e.key,e.store,(e.store||"Lidl")==="Lidl"), freq, d!=null?(d>365?"sidst >1 år":`sidst ${d} d. siden`):"", lookIn(lookFor(e.key,e.store))]));
-      const ch=cheapChip(e.key,e.store); if(ch){const m=document.createElement("div"); m.className="meta"; m.append(ch); t.append(m)}
-      li.append(t);
-      if(onList.has(e.key)){const o=document.createElement("span"); o.className="on"; o.append(svgEl("check"),document.createTextNode("På listen")); li.append(o)}
-      else li.append(addButton(e,e.qty||1));
-      return li;
-  };
+  info.sugg=[`${list.length} ${list.length===1?"vare":"varer"}`,q?"fundet":({due:"inden for 14 dage",d30:"inden for 30 dage",top:"købt mindst 2 gange i år",all:"i alt"})[suggFilter]];
+  if(tab==="sugg")setHead();
+  if(!list.length){box.append(emptyBox((suggFilter==="due"||suggFilter==="d30")&&!q?"Intet er ved at slippe op i perioden. Se “Oftest”.":"Ingen varer fundet."));return}
   const top=suggFilter==="top"&&!q;
+  const mk=e=>{
+    const d=bestElsewhere(e.key,e.store), live_=d&&started(d)?d:null, ds=daysSince(lastBought(e));
+    const act=on.has(e.key)?onListMark():addBtn(live_?`Tilføj ${e.da} på tilbud i ${live_.store}`:`Tilføj ${e.da}`,()=>{addItem(e.da,e.qty||1,e,live_?live_.store:undefined); toast(`${e.da} lagt på listen · ${live_?live_.store:(e.store||"Lidl")}`)},!!live_);
+    return tile({cat:catOf(e.cat),name:e.da,alt:e.sq,tag:isDue(e)&&(q||(suggFilter!=="due"&&suggFilter!=="d30"))?"inden 14 dage":null,
+      meta:[pricePart(e.key,e.store,(e.store||"Lidl")!=="Lidl"),top?(e.n?`${e.n} gange i år`:""):(e.every?`hver ${e.every}. dag`:""),ds!=null?(ds>365?"sidst for over et år siden":`sidst for ${ds} d. siden`):"",lookPart(lookFor(e.key,e.store))],
+      act,below:d?dealLine(d,e.key):null});
+  };
   CATS.forEach(c=>{
-    const arr=list.filter(e=>e.cat===c.id).sort(top?((a,b)=>(b.n||0)-(a.n||0)):((a,b)=>(dueProb(b,suggFilter==="d30"?30:14)-dueProb(a,suggFilter==="d30"?30:14))||((b.n||0)-(a.n||0))||((b.nall||0)-(a.nall||0))));
-    if(!arr.length)return;
-    box.append(group(c.id,arr.length,arr.map(mk),"nocheck"));
+    const arr=list.filter(e=>catOf(e.cat)===c.id).sort(top?((a,b)=>(b.n||0)-(a.n||0)):((a,b)=>(dueProb(b,H)-dueProb(a,H))||((b.n||0)-(a.n||0))||((b.nall||0)-(a.nall||0))));
+    if(arr.length)box.append(group(c.id,arr.length,arr.map(mk)));
   });
 }
 
-/* ---------- retter ---------- */
-let openDish=null, editing=null;
-const saveDishesLocal=()=>{if(!live)local.save("indkob-dishes",dishes)};
+/* ---------- Retter ---------- */
+let openDish=null, editingDish=null;
 const ingName=k=>(BYKEY[k]&&BYKEY[k].da)||k;
-function onListKeys(){return new Set(items.filter(i=>!i.checked&&i.key).map(i=>i.key))}
-async function addDish(d){
-  const on=onListKeys(); const miss=(d.items||[]).filter(x=>!on.has(x.key)&&BYKEY[x.key]);
-  if(!miss.length){toast("Alt til "+d.name_da+" er allerede på listen");return}
-  for(const x of miss) await addItem(BYKEY[x.key].da,x.qty||1,BYKEY[x.key]);
+function addDish(d){
+  const on=onListKeys(), miss=(d.items||[]).filter(x=>!on.has(x.key)&&BYKEY[x.key]);
+  if(!miss.length){toast(`Alt til ${d.name_da} er allerede på listen`);return}
+  miss.forEach(x=>addItem(BYKEY[x.key].da,x.qty||1,BYKEY[x.key]));
   const keys=new Set(miss.map(x=>x.key));
-  toast(`${d.name_da}: ${miss.length} ${miss.length===1?"vare":"varer"} lagt på listen`,()=>{const ids=items.filter(i=>!i.checked&&keys.has(i.key)).map(i=>i.id); remove(ids,true)});
+  toast(`${d.name_da}: ${miss.length} ${miss.length===1?"vare":"varer"} lagt på listen`,()=>remove(items.filter(i=>!i.checked&&keys.has(i.key)).map(i=>i.id),true));
 }
 async function saveDish(d){
-  if(live){
-    if(d.id){const {error}=await sb.from("dishes").update({name_da:d.name_da,name_sq:d.name_sq,items:d.items}).eq("id",d.id); if(error){status("Ret ikke gemt");return}}
-    else{const {data,error}=await sb.from("dishes").insert({name_da:d.name_da,name_sq:d.name_sq,items:d.items}).select().single(); if(error){status("Ret ikke gemt");return} d=data}
-  }else if(!d.id)d.id=uid();
+  const row={name_da:d.name_da,name_sq:d.name_sq,items:d.items};
+  if(!d.id){d.id=uid()}
   const i=dishes.findIndex(x=>x.id===d.id); if(i>=0)dishes[i]=d; else dishes.push(d);
-  dishes.sort((a,b)=>a.name_da.localeCompare(b.name_da,"da")); saveDishesLocal(); editing=null; renderDishes();
+  dishes.sort((a,b)=>a.name_da.localeCompare(b.name_da,"da")); editingDish=null; changed();
+  send(i>=0?{kind:"update",table:"dishes",id:d.id,changes:row}:{kind:"insert",table:"dishes",row:{id:d.id,...row}});
 }
-async function deleteDish(d){
-  dishes=dishes.filter(x=>x.id!==d.id); openDish=null; renderDishes(); saveDishesLocal();
-  if(live){const {error}=await sb.from("dishes").delete().eq("id",d.id); if(error)status("Ikke slettet")}
-  toast(d.name_da+" slettet",()=>{const {id,...rest}=d; saveDish(live?rest:d)});
+function deleteDish(d){
+  dishes=dishes.filter(x=>x.id!==d.id); openDish=null; changed();
+  send({kind:"delete",table:"dishes",vals:[d.id]});
+  toast(`${d.name_da} slettet`,()=>{const c={...d}; delete c.id; saveDish(c)});
 }
 function renderDishes(){
-  const box=$("#dishes"); if(!box)return; box.innerHTML="";
-  const on=onListKeys();
-  if(!dishes.length){const e=document.createElement("div"); e.className="empty"; e.textContent="Ingen retter endnu. Tryk \"Ny ret\"."; box.append(e)}
-  const ul=document.createElement("ul"); ul.className="offerul";
+  const box=$("#dishes"), on=onListKeys(); box.replaceChildren();
+  if(!dishes.length)box.append(emptyBox("Ingen retter endnu. Tryk “Ny ret”."));
+  const lis=[];
   dishes.forEach(d=>{
-    const li=document.createElement("li"); li.className="dish tile";
-    const t=document.createElement("div"); t.className="txt";
-    t.append(nameEl(d.name_da,d.name_sq));
-    const ks=(d.items||[]).map(x=>x.key);
-    const miss=ks.filter(k=>!on.has(k)).length;
-    const st=document.createElement("b"); st.className="dst"+(miss?"":" ok"); st.textContent=miss?`Mangler ${miss}`:"✓ På listen";
-    {const sl=subLine([st, ks.map(ingName).join(" · ")]); sl.classList.add("wrap"); t.append(sl)}
-    t.onclick=()=>{openDish=openDish===d.id?null:d.id; editing=null; renderDishes()};
-    li.append(t);
-    if(miss){const b=document.createElement("button"); b.className="addbtn"; b.append(svgEl("plus")); b.setAttribute("aria-label","Læg ingredienser til "+d.name_da+" på listen"); b.onclick=()=>addDish(d); li.append(b)}
-    else{const o=document.createElement("span"); o.className="on"; o.append(svgEl("check")); li.append(o)}
-    ul.append(li);
+    const ks=(d.items||[]).map(x=>x.key), miss=ks.filter(k=>!on.has(k)).length;
+    const act=miss?addBtn(`Læg det, der mangler til ${d.name_da}, på listen`,()=>addDish(d)):onListMark();
+    lis.push(tile({cat:"dish",name:d.name_da,alt:d.name_sq,wrap:true,meta:[miss?strong(`Mangler ${miss}`,"dl"):strong("Alt på listen","ok"),ks.map(ingName).join(" · ")],
+      act,onTap:()=>{openDish=openDish===d.id?null:d.id; editingDish=null; renderDishes()}}));
     if(openDish===d.id){
-      const det=document.createElement("li"); det.className="dishdet";
-      const wrap=document.createElement("div"); wrap.className="ingl";
-      ks.forEach(k=>{const c=document.createElement("button"); const isOn=on.has(k); c.className="ingchip"+(isOn?" on":""); c.append(document.createTextNode(ingName(k)));
-        if(!isOn){const pl=document.createElement("b"); pl.textContent="+"; c.append(pl); c.onclick=()=>{const e=BYKEY[k]; if(e){addItem(e.da,1,e); toast(e.da+" lagt på listen")}}} else c.disabled=true;
-        wrap.append(c)});
-      const btns=document.createElement("div"); btns.className="dbtns";
-      const ed=document.createElement("button"); ed.className="dbtn"; ed.textContent="Rediger · Ndrysho"; ed.onclick=()=>{editing={...d,items:[...(d.items||[])]}; renderDishes()};
-      const dl=document.createElement("button"); dl.className="dbtn del"; dl.textContent="Slet ret"; dl.onclick=()=>deleteDish(d);
-      btns.append(ed,dl); det.append(wrap,btns); ul.append(det);
+      const s=el("li","sheet"), ch=el("div","chips");
+      ks.forEach(k=>{const isOn=on.has(k), c=el("button","chip"+(isOn?" added":""),ingName(k)); c.type="button";
+        if(isOn){c.disabled=true; c.prepend(svgEl("check"))} else {c.append(el("b",null,"+")); c.onclick=()=>{const e=BYKEY[k]; if(e){addItem(e.da,1,e); toast(`${e.da} lagt på listen`)}}}
+        ch.append(c)});
+      const btns=el("div","btns"), dl=el("button","btn danger","Slet ret"), ed=el("button","btn","Rediger · Ndrysho");
+      dl.onclick=()=>deleteDish(d); ed.onclick=()=>{editingDish={...d,items:[...(d.items||[])]}; renderDishes()};
+      btns.append(dl,ed); s.append(el("span","lbl","Tryk på en ingrediens for at tilføje den"),ch,btns); lis.push(s);
     }
   });
-  box.append(ul);
+  if(lis.length)box.append(tilesList(lis));
   renderDishForm();
 }
 function renderDishForm(){
-  const f=$("#dishForm"); f.innerHTML=""; $("#newDish").parentElement.hidden=!!editing;
-  if(!editing)return;
-  const d=editing;
-  const form=document.createElement("div"); form.className="dform";
-  const mk=(lbl,val,ph,on)=>{const l=document.createElement("label"); l.className="lbl"; l.textContent=lbl; const i=document.createElement("input"); i.value=val||""; i.placeholder=ph; i.oninput=()=>on(i.value); l.append(i); return l};
-  form.append(mk("Navn på dansk",d.name_da,"fx Pasta med kødsovs",v=>d.name_da=v), mk("Navn på albansk",d.name_sq,"p.sh. Makarona me mish",v=>d.name_sq=v));
-  const il=document.createElement("div"); il.className="lbl"; il.textContent="Ingredienser · Përbërësit"; form.append(il);
-  const chips=document.createElement("div"); chips.className="ingl";
-  const drawChips=()=>{chips.innerHTML=""; d.items.forEach((x,ix)=>{const c=document.createElement("button"); c.className="ingchip"; c.append(document.createTextNode(ingName(x.key))); const b=document.createElement("b"); b.textContent="×"; c.append(b); c.onclick=()=>{d.items.splice(ix,1); drawChips()}; chips.append(c)})};
-  drawChips(); form.append(chips);
-  const si=document.createElement("input"); si.placeholder="Tilføj ingrediens · Shto përbërës"; si.autocomplete="off"; si.setAttribute("autocapitalize","off");
-  const ac=document.createElement("ul"); ac.className="ac";
-  si.oninput=()=>{ac.innerHTML=""; suggestFor(si.value).slice(0,6).forEach(e=>{const li=document.createElement("li"); li.className="";
-    const t=document.createElement("div"); t.className="txt"; const n=document.createElement("span"); n.className="nm"; n.textContent=e.da; t.append(n); const a=alt(e.sq!==e.da?e.sq:""); if(a)t.append(a); li.append(t);
-    li.onclick=()=>{if(!d.items.some(x=>x.key===e.key))d.items.push({key:e.key,qty:1}); si.value=""; ac.innerHTML=""; drawChips(); si.focus()}; ac.append(li)})};
-  form.append(si,ac);
-  const btns=document.createElement("div"); btns.className="dbtns";
-  const ok=document.createElement("button"); ok.className="dbtn pri"; ok.textContent="Gem ret"; ok.onclick=()=>{if(!d.name_da||!d.name_da.trim()){toast("Skriv et navn på retten");return} if(!d.items.length){toast("Tilføj mindst én ingrediens");return} d.name_da=d.name_da.trim(); d.name_sq=(d.name_sq||"").trim()||null; saveDish(d)};
-  const no=document.createElement("button"); no.className="dbtn"; no.textContent="Annuller"; no.onclick=()=>{editing=null; renderDishes()};
-  btns.append(ok,no); form.append(btns); f.append(form);
+  const f=$("#dishForm"); f.replaceChildren(); $("#newDishRow").hidden=!!editingDish;
+  if(!editingDish)return;
+  const d=editingDish, s=el("div","sheet");
+  const inp=(val,ph,on)=>{const l=el("label","field"), i=el("input"); i.value=val||""; i.placeholder=ph; i.oninput=()=>on(i.value); l.append(i); return l};
+  s.append(el("span","lbl","Navn · Emri"),inp(d.name_da,"Dansk, fx Pasta med kødsovs",v=>d.name_da=v),inp(d.name_sq,"Shqip, p.sh. Makarona me mish",v=>d.name_sq=v));
+  const ch=el("div","chips");
+  const draw=()=>{ch.replaceChildren(); d.items.forEach((x,ix)=>{const c=el("button","chip",ingName(x.key)); c.type="button"; c.append(el("b",null,"×")); c.setAttribute("aria-label","Fjern "+ingName(x.key)); c.onclick=()=>{d.items.splice(ix,1); draw()}; ch.append(c)})};
+  draw();
+  const sf=el("label","field"); sf.append(svgEl("search")); const si=el("input"); si.placeholder="Tilføj ingrediens · Shto përbërës"; si.autocomplete="off"; sf.append(si);
+  const ac=el("ul","tiles ac");
+  si.oninput=()=>{ac.replaceChildren(); suggestFor(si.value).slice(0,6).forEach(e=>{
+    const t=tile({cat:catOf(e.cat),name:e.da,alt:e.sq,act:addBtn("Tilføj "+e.da,()=>pick())});
+    const pick=()=>{if(!d.items.some(x=>x.key===e.key))d.items.push({key:e.key,qty:1}); si.value=""; ac.replaceChildren(); draw(); si.focus()};
+    t.querySelector(".body").onclick=pick; ac.append(t)})};
+  s.append(el("span","lbl","Ingredienser · Përbërësit"),ch,sf,ac);
+  const btns=el("div","btns"), no=el("button","btn ghost","Annuller"), ok=el("button","btn pri","Gem ret · Ruaj");
+  no.onclick=()=>{editingDish=null; renderDishes()};
+  ok.onclick=()=>{if(!(d.name_da||"").trim()){toast("Skriv et navn på retten");return} if(!d.items.length){toast("Tilføj mindst én ingrediens");return}
+    d.name_da=d.name_da.trim(); d.name_sq=(d.name_sq||"").trim()||null; saveDish(d)};
+  btns.append(no,ok); s.append(btns); f.append(s);
+  setTimeout(()=>{const i=f.querySelector("input"); if(i&&!i.value)i.focus()},30);
 }
-$("#newDish").onclick=()=>{editing={name_da:"",name_sq:"",items:[]}; openDish=null; renderDishes(); setTimeout(()=>{const i=$("#dishForm input"); if(i)i.focus()},50)};
-/* ---------- hændelser ---------- */
-function suggestFor(text){
-  const f=fold(text); if(!f)return [];
-  const score=e=>{let best=0; for(const w of [e.sq,e.da,...(e.alias||[])]){const x=fold(w); if(!x)continue;
-      if(x===f)best=Math.max(best,4); else if(x.startsWith(f))best=Math.max(best,3); else if(x.split(" ").some(p=>p.startsWith(f)))best=Math.max(best,2); else if(f.length>=4&&x.includes(f))best=Math.max(best,1)}
-    return best};
-  const catHit=new Set(f.length>=3?CATS.filter(c=>[c.da,c.sq].some(n=>fold(n).split(" ").some(w=>w.startsWith(f)))).map(c=>c.id):[]);
-  const sc=e=>Math.max(score(e),catHit.has(e.cat)?1.5:0);
-  return CATALOG.map(e=>[sc(e),e]).filter(x=>x[0]>0).sort((a,b)=>(b[0]-a[0])||((b[1].n||0)-(a[1].n||0))).slice(0,10).map(x=>x[1]);
-}
-function renderAc(){
-  const box=$("#ac"), v=$("#addInput").value; box.innerHTML="";
-  const list=suggestFor(v);
-  const onList=new Set(items.filter(i=>!i.checked&&i.key).map(i=>i.key));
-  list.forEach(e=>{
-    const li=document.createElement("li");
-    const t=document.createElement("div"); t.className="txt";
-    t.append(nameEl(e.da,e.sq));
-    t.append(subLine([priceSpan(e.key,e.store), lookIn(lookFor(e.key,e.store))]));
-    const ch=cheapChip(e.key,e.store); if(ch){const m=document.createElement("div"); m.className="meta"; m.append(ch); t.append(m)}
-    const u=document.createElement("span"); u.className="usual";
-    u.textContent=onList.has(e.key)?"på listen ✓":(e.n?`plejer ×${e.qty||1}`:(e.own?"egen vare":""));
-    li.append(t,u);
-    const done=()=>{$("#addInput").value=""; renderAc(); $("#addInput").focus()};
-    if(!onList.has(e.key)){const pb=addButton(e,e.qty||1,done); li.append(pb); li.onclick=()=>pb.click()}
-    box.append(li);
-  });
-  box.hidden=!list.length;
-  const m=match(v); $("#hint").textContent=v&&!list.length?(m?`→ ${m.da} · ${m.sq}`:"Ny vare – tryk Tilføj. Tryk derefter på varen for at vælge kategori og butik."):"";
-}
-$("#addInput").addEventListener("input",renderAc);
 
+/* =========================================================
+   HÆNDELSER
+   ========================================================= */
+$("#addInput").addEventListener("input",renderAc);
 $("#addForm").addEventListener("submit",ev=>{ev.preventDefault();
   let v=$("#addInput").value.trim(); if(!v)return;
   let qty=null, note=null;
   const mq=v.match(/(\d+(?:[.,]\d+)?)\s*(kg|kilo|g|gram)\b/i);
   if(mq){qty=parseFloat(mq[1].replace(",",".")); if(/^g/i.test(mq[2]))qty=qty/1000; v=v.replace(mq[0]," ")}
-  const mf=v.match(/\b(i\s+skiver|skiver|i\s+tern|tern|terninger|strimler|hel(?:t)?\s+stykke|hakket)\b/i);
-  if(mf&&!/^hakket\s+okse/i.test(v.trim())){note=mf[1].toLowerCase().replace(/^skiver$/,"i skiver").replace(/^(tern|terninger)$/,"i tern"); note=note[0].toUpperCase()+note.slice(1); v=v.replace(mf[0]," ")}
+  const mf=v.match(/\b(i\s+skiver|skiver|i\s+tern|tern|terninger|strimler|hel(?:t)?\s+stykke)\b/i);
+  if(mf){note=mf[1].toLowerCase().replace(/^skiver$/,"i skiver").replace(/^(tern|terninger)$/,"i tern"); note=note[0].toUpperCase()+note.slice(1); v=v.replace(mf[0]," ")}
   v=v.replace(/\s+/g," ").trim(); if(!v)return;
-  const top=suggestFor(v)[0]; const e=match(v)||top||null;
-  $("#addInput").value=""; addItem(v,qty||(e&&e.qty)||1,e&&fold(v).length>=2?e:null,undefined,note); renderAc()});
-$("#clearDone").onclick=()=>{const ids=items.filter(i=>i.checked).map(i=>i.id); if(ids.length)remove(ids)};
-$("#suggSearch").addEventListener("input",renderSugg);
-document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{suggFilter=b.dataset.f;document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",x===b));renderSugg()});
-document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
-  tab=b.dataset.tab; document.body.dataset.tab=tab; setHead();
-  document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
-  ["list","offers","dishes","sugg"].forEach(n=>$("#pane-"+n).hidden=b.dataset.tab!==n); window.scrollTo(0,0); remeasureMq();
+  const e=match(v)||suggestFor(v)[0]||null;
+  $("#addInput").value=""; addItem(v,qty||(e&&e.qty)||1,e&&fold(v).length>=2?e:null,undefined,note); renderAc();
 });
-if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}
+$("#clearDone").onclick=()=>{const ids=items.filter(i=>i.checked).map(i=>i.id); if(ids.length)remove(ids); else toast("Ingen afkrydsede varer")};
+$("#suggSearch").addEventListener("input",renderSugg);
+$("#seg").querySelectorAll("button").forEach(b=>b.onclick=()=>{suggFilter=b.dataset.f; $("#seg").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b)); renderSugg()});
+$("#newDish").onclick=()=>{editingDish={name_da:"",name_sq:"",items:[]}; openDish=null; renderDishes()};
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+  tab=b.dataset.tab; document.body.dataset.tab=tab;
+  document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
+  ["list","offers","dishes","sugg"].forEach(n=>$("#pane-"+n).hidden=n!==tab);
+  renderPane(tab); setHead(); scrollTo(0,0);
+});
 const setTop=()=>document.documentElement.style.setProperty("--toph",$(".top").offsetHeight+"px");
 addEventListener("resize",setTop);
-let scl=false; addEventListener("scroll",()=>{const c=scrollY>28; if(c!==scl){scl=c; document.body.classList.toggle("scrolled",c); requestAnimationFrame(setTop)}},{passive:true}); setHead(); setTop(); loadAll();
+let scl=false; addEventListener("scroll",()=>{const c=scrollY>8; if(c!==scl){scl=c; document.body.classList.toggle("scrolled",c)}},{passive:true});
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+$("#ver").textContent=VERSION; setHead(); setTop(); netState(); loadAll();
 </script>
 </body>
 </html>

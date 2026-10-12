@@ -89,3 +89,21 @@ alter publication supabase_realtime add table public.dishes;
 -- v31: Al-Rafiden Slagteri, kg-mængder og udskæring
 alter table public.bought alter column qty type numeric using qty::numeric;
 -- katalog: store="Al-Rafiden Slagteri", unit="kg", step=0.5, forms=[...] for oksekød/hakket oksekød/gullasch
+
+-- v37: tilbud tilføjes kun via denne funktion (bruges af den faste opgave; kun ejer/administrator)
+create or replace function public.add_offers(p jsonb) returns integer
+language sql security invoker set search_path = public as $fn$
+  with ins as (
+    insert into public.offers (key, store, title, size, price, ref_price, valid_from, valid_to, note)
+    select left(x->>'key',80), x->>'store', left(x->>'title',120), left(x->>'size',40),
+           (x->>'price')::numeric, (x->>'ref_price')::numeric, (x->>'valid_from')::date, (x->>'valid_to')::date, left(x->>'note',60)
+    from jsonb_array_elements(p) x
+    where x->>'store' in ('Lidl','Netto','REMA 1000','føtex','MENY','365discount','SuperBrugsen')
+      and (x->>'price')::numeric > 0 and (x->>'ref_price')::numeric > (x->>'price')::numeric
+      and (x->>'valid_to')::date >= current_date
+      and exists (select 1 from public.catalog c where c.key = x->>'key')
+      and not exists (select 1 from public.offers o where o.key = x->>'key' and o.store = x->>'store' and o.valid_to = (x->>'valid_to')::date)
+    returning 1)
+  select count(*)::int from ins
+$fn$;
+revoke all on function public.add_offers(jsonb) from public, anon, authenticated;
