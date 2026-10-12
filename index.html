@@ -354,10 +354,42 @@ li.wrap{flex-wrap:wrap;row-gap:5px}
 .sub.run .mq{animation:mq var(--t,8s) ease-in-out infinite alternate}
 @keyframes mq{0%,18%{transform:translateX(0)}82%,100%{transform:translateX(var(--d,0))}}
 @media (prefers-reduced-motion:reduce){.sub{white-space:normal}.sub .mq{white-space:normal;display:inline}.sub.run{-webkit-mask-image:none;mask-image:none}}
+
+/* ---- v35: lavere søgefelt, mindre topoverskrift, menu længere nede ---- */
+.top{padding:calc(env(safe-area-inset-top) + 2px) 16px 6px;gap:9px}
+.top .ticon{width:26px;height:26px;flex-basis:26px;border-radius:8px}
+.top .ticon svg{width:15px;height:15px}
+.top .tt{display:flex;align-items:baseline;gap:7px;min-width:0}
+.top h1{font-size:18px;white-space:nowrap}
+.top .tsub{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .tinfo{font-size:11px;line-height:1.2}
+.top .tinfo b{font-size:13px}
+.top .ver{font-size:9px}
+body.scrolled .top h1{font-size:16px}
+.addcard{padding:6px;border-radius:14px;margin-bottom:8px}
+.add .field{border-radius:10px;padding:0 10px}
+.add input{padding:7px 0;font-size:16px}
+.add .field svg{width:16px;height:16px}
+.add>button{width:34px;height:34px;flex-basis:34px;border-radius:10px}
+.add>button svg{width:18px;height:18px}
+.search input{padding:7px 0}
+.storeh{padding:8px 12px 6px}
+.storeh .av{width:26px;height:26px;flex-basis:26px;font-size:12px}
+.storeh .sn b{font-size:15.5px}
+.storeh .sn span{font-size:11.5px}
+.storeh .sum b{font-size:14px}
+.sech{padding:9px 12px 2px}
+.sech h2{font-size:14.5px}
+.tabs{padding:3px 8px max(4px,calc(env(safe-area-inset-bottom) - 18px))}
+.tabs button{font-size:10.5px;gap:1px;padding:2px 0}
+.tabs .ic{height:26px;width:48px}
+.tabs svg{width:20px;height:20px}
+.tabs .badge{top:-2px}
+body{padding-bottom:calc(env(safe-area-inset-bottom) + 60px)}
 </style>
 </head>
 <body data-tab="list">
-<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v34</span></div></header>
+<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v35</span></div></header>
 <div class="auth" id="auth" hidden>
   <form class="authcard" id="authForm" autocomplete="on">
     <div class="authicon" data-ic="cart"></div>
@@ -427,7 +459,7 @@ li.wrap{flex-wrap:wrap;row-gap:5px}
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
 </nav>
 
-<script src="config.js?v=34"></script>
+<script src="config.js?v=35"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const qn=v=>{const n=parseFloat(String(v==null?"":v).replace(",","."));return isFinite(n)&&n>0?n:1};
