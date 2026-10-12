@@ -386,10 +386,29 @@ body.scrolled .top h1{font-size:16px}
 .tabs svg{width:20px;height:20px}
 .tabs .badge{top:-2px}
 body{padding-bottom:calc(env(safe-area-inset-bottom) + 60px)}
+
+/* ---- v36: ens linje 2 overalt, dæmpede flisefarver ---- */
+.sub,.sub *{font-size:12.5px!important;font-family:inherit;line-height:1.35}
+.sub{color:var(--ink2);font-weight:400;margin-top:2px}
+.sub b,.sub .offer,.sub .nt,.sub .stn,.sub .dst{font-weight:600}
+.sub .offer{color:var(--deal-ink)}
+.sub .lk{color:var(--ink3);font-weight:400}
+.sub .lk svg{width:11px!important;height:11px!important}
+.sub.wrap{white-space:normal;text-overflow:clip;-webkit-mask-image:none;mask-image:none}
+.sub.wrap .mq{white-space:normal;display:inline;animation:none}
+.chip,.chip.deal,.movebtn .mvt small{font-size:12px;font-weight:500}
+.movebtn .mvt b{font-size:12.5px;font-weight:600}
+.grp ul li,.offerul li{background:color-mix(in srgb,var(--cc,#7a7f87) 6%,var(--surface))}
+.grp ul li.done{background:color-mix(in srgb,var(--cc,#7a7f87) 3%,var(--surface))}
+.cath{background:color-mix(in srgb,var(--cc) 5%,var(--surface));border-top-color:color-mix(in srgb,var(--cc) 10%,transparent);border-bottom-color:color-mix(in srgb,var(--cc) 8%,transparent)}
+.cath .ci{background:color-mix(in srgb,var(--cc) 12%,var(--surface))}
+.cath .cc{background:color-mix(in srgb,var(--cc) 10%,var(--surface))}
+.chip.deal{background:color-mix(in srgb,var(--deal) 9%,var(--surface))}
+@media (prefers-color-scheme:dark){.grp ul li,.offerul li{background:color-mix(in srgb,var(--cc,#7a7f87) 10%,var(--surface))}}
 </style>
 </head>
 <body data-tab="list">
-<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v35</span></div></header>
+<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v36</span></div></header>
 <div class="auth" id="auth" hidden>
   <form class="authcard" id="authForm" autocomplete="on">
     <div class="authicon" data-ic="cart"></div>
@@ -459,7 +478,7 @@ body{padding-bottom:calc(env(safe-area-inset-bottom) + 60px)}
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
 </nav>
 
-<script src="config.js?v=35"></script>
+<script src="config.js?v=36"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const qn=v=>{const n=parseFloat(String(v==null?"":v).replace(",","."));return isFinite(n)&&n>0?n:1};
@@ -695,6 +714,7 @@ const mqPending=new Set(); let mqRaf=0;
 function scheduleMq(){if(!mqRaf)mqRaf=requestAnimationFrame(()=>{mqRaf=0; mqPending.forEach(fitMq)})}
 function fitMq(s){
   if(!s.isConnected){mqPending.delete(s);return}
+  if(s.classList.contains("wrap")){mqPending.delete(s);return}
   if(!s.offsetParent)return; /* skjult fane – prøv igen ved fanskift */
   mqPending.delete(s);
   const m=s.firstChild, d=m.scrollWidth-s.clientWidth;
@@ -954,7 +974,7 @@ function renderDishes(){
     const ks=(d.items||[]).map(x=>x.key);
     const miss=ks.filter(k=>!on.has(k)).length;
     const st=document.createElement("b"); st.className="dst"+(miss?"":" ok"); st.textContent=miss?`Mangler ${miss}`:"✓ På listen";
-    t.append(subLine([st, ks.map(ingName).join(" · ")]));
+    {const sl=subLine([st, ks.map(ingName).join(" · ")]); sl.classList.add("wrap"); t.append(sl)}
     t.onclick=()=>{openDish=openDish===d.id?null:d.id; editing=null; renderDishes()};
     li.append(t);
     if(miss){const b=document.createElement("button"); b.className="addbtn"; b.append(svgEl("plus")); b.setAttribute("aria-label","Læg ingredienser til "+d.name_da+" på listen"); b.onclick=()=>addDish(d); li.append(b)}
