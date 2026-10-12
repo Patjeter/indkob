@@ -9,18 +9,24 @@
 create or replace view public.lidl_soeg with (security_invoker = true) as
 with p as (
   select lp.*, lower(translate(lp.heading, 'ÆØÅÄÖÜÉ', 'æøåäöüé')) as hl,
-         case when lp.offer_price is not null and lp.offer_to >= current_date and (lp.offer_from is null or lp.offer_from <= current_date + 3)
-              then lp.offer_price end as tilbud
+         -- en "tilbudspris", der gælder i over 35 dage (Lidls lange katalog maj–dec.), er reelt en fast pris
+         (lp.offer_price is not null and lp.offer_to >= current_date and lp.offer_to - coalesce(lp.offer_from, lp.first_seen) > 35) as lang
     from public.lidl_products lp
+), q as (
+  select p.*,
+         case when offer_price is not null and offer_to >= current_date and not lang and (offer_from is null or offer_from <= current_date + 3)
+              then offer_price end as tilbud,
+         coalesce(normal_price, case when lang then offer_price end) as fast
+    from p
 )
 select pkey, heading, brand, own_brand, size_from, unit, qty_si, si_unit,
-       normal_price, normal_kind,
+       fast as normal_price, case when normal_price is not null then normal_kind when lang then 'fast' end as normal_kind,
        tilbud as offer_price, case when tilbud is not null then offer_from end as offer_from, case when tilbud is not null then offer_to end as offer_to,
-       coalesce(tilbud, normal_price) as price,
-       case when qty_si > 0 then round(coalesce(tilbud, normal_price) / qty_si, 2) end as unit_price,
+       coalesce(tilbud, fast) as price,
+       case when qty_si > 0 then round(coalesce(tilbud, fast) / qty_si, 2) end as unit_price,
        last_seen
-  from p
- where coalesce(tilbud, normal_price) is not null
+  from q
+ where coalesce(tilbud, fast) is not null
    and last_seen >= current_date - 120
    -- non-food
    and coalesce(upper(brand), '') !~ '^(SILVERCREST|PARKSIDE|LIVARNO|LUPILU|CRIVIT|ESMARA|LIVERGY|PEPPERTS|MELINERA|AURIOL|ERNESTO|POWERFIX|ULTIMATE SPEED|MIOMARE|TRONIC|ZOOFARI)'
