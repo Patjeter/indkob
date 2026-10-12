@@ -223,19 +223,22 @@ begin
       or (holdbar and (save_buy >= 8 or pct >= 0.20))             -- holdbart: værd at købe på lager
       or (not holdbar and p14 >= 0.30);                           -- friskt: skal sandsynligvis bruges inden 14 dage
   select count(*) into rel from _ok;
-  with worthy as (                                               -- 50 kr.-reglen: andre kæder kun når turen er det værd
+  with best_all as (                                             -- billigste pr. kg/l/stk pr. vare, alle kæder
+    select distinct on (key) * from _ok order by key, offer_unit, valid_from
+  ), uniq_all as (                                               -- samme tilbud kun én gang (til den vare I køber oftest)
+    select distinct on (offer_id) * from best_all order by offer_id, n desc
+  ), worthy as (                                                 -- 50 kr.-reglen regnes på det, der faktisk vises
     select 'Lidl'::text as store
     union
-    select store from (select store, key, max(save_buy) s from _ok where store <> 'Lidl' group by store, key) x
-     group by store having sum(s) >= 50
-  ), best as (                                                   -- billigste pr. kg/l/stk pr. vare
+    select store from uniq_all where store <> 'Lidl' group by store having sum(save_buy) >= 50
+  ), keep as (
+    select * from uniq_all where store in (select store from worthy) or on_list
+  ), fallback as (                                               -- vare fra en kæde der ikke er turen værd → Lidls tilbud, hvis der er et
     select distinct on (key) * from _ok
-     where store in (select store from worthy) or on_list
+     where store = 'Lidl' and key not in (select key from keep) and offer_id not in (select offer_id from keep)
      order by key, offer_unit, valid_from
-  ), uniq as (                                                   -- samme tilbud kun én gang
-    select distinct on (offer_id) * from best order by offer_id, n desc
   ), top as (
-    select * from uniq order by save_buy desc limit 20
+    select * from (select * from keep union all select * from fallback) x order by save_buy desc limit 20
   ), ins as (
     insert into offers (key, store, title, size, price, ref_price, valid_from, valid_to, note, source)
     select key, store, left(heading, 120), left(size, 40), price, round(ref_unit * qty_si, 2), valid_from, valid_to,
