@@ -30,9 +30,10 @@ create table if not exists public.tjek_jobs (
 create table if not exists public.watch (
   key text primary key, name text not null, cat text, n int,
   inc text not null, exc text, req text,
-  ref_price numeric, ref_qty numeric, ref_si text,
+  ref_price numeric, ref_qty numeric, ref_si text, usual int not null default 1,
   active boolean not null default true
 );
+alter table public.watch add column if not exists usual int not null default 1;
 create table if not exists public.offer_test (
   key text, name text, offer_id text, store text, heading text, price numeric, pre_price numeric,
   size text, offer_unit numeric, ref_unit numeric, saving numeric, valid_from date, valid_to date,
@@ -128,7 +129,8 @@ begin
            lower(translate(t.heading || ' ' || coalesce(t.description,''), 'ÆØÅÄÖÜÉ', 'æøåäöüé')) as txt
       from tjek_offers t
      where t.valid_to >= current_date and t.valid_from <= current_date + 4
-       and not (t.store = 'Lidl' and t.pre_price is null and coalesce(t.description,'') ~* 'fast\s+lav\s+pris')
+       -- Lidls faste priser ("Fast lav pris" og det lange katalog maj–dec.) er standardpriser, ikke tilbud
+       and not (t.store = 'Lidl' and t.pre_price is null and (coalesce(t.description,'') ~* 'fast\s+lav\s+pris' or t.valid_to - t.valid_from > 35))
   ), m as (
     select w.*, o.id as oid, o.store, o.heading, o.price, o.pre_price, o.qty_si, o.si_unit, o.valid_from, o.valid_to, o.txt,
            coalesce(o.size_from::text,'?') || coalesce(o.unit,'') as size,
@@ -143,11 +145,13 @@ begin
         when txt ~ beef then 'oksekød'
         when req is not null and txt !~ req then 'mangler krav (' || left(req, 30) || ')'
         when ou is null then 'mængde ukendt'
-        when si_unit is distinct from ref_si then 'anden enhed (' || coalesce(si_unit,'?') || ')'
+        -- kg og liter regnes som samme enhed (fx sauce i kg eller l)
+        when (case when si_unit in ('kg','l') then 'kg' else si_unit end) is distinct from (case when ref_si in ('kg','l') then 'kg' else ref_si end)
+          then 'anden enhed (' || coalesce(si_unit,'?') || ')'
         when qty_si < ref_qty * 0.4 or qty_si > ref_qty * 3 then 'anden pakkestørrelse'
         when ou > ru * 0.95 then 'ikke billigere'
         when ou < ru * 0.35 then 'mistænkeligt billig'
-        when (ru - ou) * ref_qty < 1.5 then 'under 1,50 kr. sparet'
+        when (ru - ou) * ref_qty * usual < 1.5 then 'under 1,50 kr. sparet'
         else null end as why
       from m
   )
