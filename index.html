@@ -310,10 +310,34 @@ li+li::before{left:46px}
 li.wrap{flex-wrap:wrap;row-gap:5px}
 .movebtn.full{flex:1 1 calc(100% - 34px);min-width:0;max-width:calc(100% - 34px);margin-left:34px;width:auto}
 .movebtn.full .mvt{min-width:0}
+
+/* ---- v33: samme tæthed på alle faner ---- */
+.top{padding-top:calc(env(safe-area-inset-top) + 4px);padding-bottom:6px}
+.top h1{font-size:20px}
+.top .tsub{font-size:12px;margin-top:0}
+.top .ticon{width:30px;height:30px;flex-basis:30px;border-radius:9px}
+.top .ticon svg{width:17px;height:17px}
+.top .tinfo{font-size:11.5px}
+.top .tinfo b{font-size:14px}
+.sech{padding:10px 14px 2px}
+.sech h2{font-size:15px}
+.sech .s2{font-size:12px;margin-top:0}
+.sech .big{font-size:12.5px;margin-top:3px}
+.sub .stn{color:var(--ink);font-weight:700}
+.sub .dst{color:var(--deal-ink);font-weight:700}
+.sub .dst.ok{color:var(--accent)}
+.offerli .priceline{flex-wrap:nowrap;white-space:nowrap;overflow:hidden}
+.priceline .now{font-size:16px}
+.priceline .was,.priceline .save{font-size:12px}
+.chip{max-width:100%;overflow:hidden}
+.chip.deal{white-space:nowrap;text-overflow:ellipsis;display:inline-block;padding:2px 8px}
+.chip.deal svg{vertical-align:-2px;margin-right:3px}
+.meta{margin-top:3px}
+.addcard{margin-top:0}
 </style>
 </head>
 <body data-tab="list">
-<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v32</span></div></header>
+<header class="top"><div class="ticon" id="ticon"></div><div class="tt"><h1 id="ttl">Indkøbsliste</h1><div class="tsub" id="tsub">Lista e blerjes</div></div><div class="tinfo"><span id="tinfo"></span><span id="status"></span><span class="ver">v33</span></div></header>
 <div class="auth" id="auth" hidden>
   <form class="authcard" id="authForm" autocomplete="on">
     <div class="authicon" data-ic="cart"></div>
@@ -346,11 +370,11 @@ li.wrap{flex-wrap:wrap;row-gap:5px}
   <div class="pane" id="pane-offers" hidden>
     <div class="panehead">Tilbud</div>
     <section class="card">
-      <div class="sech"><h2>Køb på lager</h2><div class="s2">Blej për rezervë · holdbare varer, ca. 6 ugers forbrug</div><div class="big" id="stockSave"></div></div>
+      <div class="sech"><h2>Køb på lager</h2><div class="s2">Blej për rezervë · holdbart, ca. 6 ugers forbrug</div><div class="big" id="stockSave"></div></div>
       <div id="stock"></div>
     </section>
     <section class="card">
-      <div class="sech"><h2>Ugens tilbud</h2><div class="s2">Ofertat e javës · friske varer, kun til denne uge</div></div>
+      <div class="sech"><h2>Ugens tilbud</h2><div class="s2">Ofertat e javës · friske varer</div></div>
       <div id="weekly"></div>
     </section>
   </div>
@@ -358,7 +382,7 @@ li.wrap{flex-wrap:wrap;row-gap:5px}
   <div class="pane" id="pane-dishes" hidden>
     <div class="panehead">Retter</div>
     <section class="card">
-      <div class="sech"><h2>Jeres retter</h2><div class="s2">Gatimet tuaja · tryk + for at lægge det, der mangler, på listen</div></div>
+      <div class="sech"><h2>Jeres retter</h2><div class="s2">Gatimet tuaja · + lægger det, der mangler, på listen</div></div>
       <div id="dishes"></div>
       <div id="dishForm"></div>
       <div class="newdish"><button class="dbtn" id="newDish">+ Ny ret · Gatim i ri</button></div>
@@ -383,7 +407,7 @@ li.wrap{flex-wrap:wrap;row-gap:5px}
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
 </nav>
 
-<script src="config.js?v=32"></script>
+<script src="config.js?v=33"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const qn=v=>{const n=parseFloat(String(v==null?"":v).replace(",","."));return isFinite(n)&&n>0?n:1};
@@ -766,14 +790,14 @@ function renderOffers(){
       const li=document.createElement("li"); li.className="offerli";
       const tx=document.createElement("div"); tx.className="txt";
       tx.append(nameEl(e.da,e.sq));
-      {const l=lookIn((o.title||"")+(o.size?` (${o.size})`:"")); if(l)tx.append(subLine([l]))}
+      {const st=document.createElement("b"); st.className="stn"; st.textContent=o.store;
+       tx.append(subLine([st, when(o), o.note||"", lookIn((o.title||"")+(o.size?` (${o.size})`:""))]))}
       const pl=document.createElement("div"); pl.className="priceline";
       const nw=document.createElement("span"); nw.className="now"; nw.textContent=kr(o.price);
       const was=document.createElement("span"); was.className="was"; was.textContent=kr(refOf(o,o.key));
       const sv=document.createElement("span"); sv.className="save"; sv.textContent=`Spar ${kr(Math.round(save*q*100)/100)}`+(q>1?` på ${q} stk.`:"");
+      sv.textContent=`spar ${kr(Math.round(save*q*100)/100)}`+(q>1?` på ${q} stk.`:"");
       pl.append(nw,was,sv); tx.append(pl);
-      const sp=document.createElement("span"); sp.className="store"; sp.textContent=o.store;
-      pl.append(pills([sp, when(o), o.note||""]));
       li.append(tx);
       const it=onList.get(e.key);
       if(it&&it.store===o.store){const s=document.createElement("span"); s.className="on"; s.append(svgEl("check"),document.createTextNode("På listen")); li.append(s)}
@@ -860,12 +884,11 @@ function renderDishes(){
   dishes.forEach(d=>{
     const li=document.createElement("li"); li.className="dish";
     const t=document.createElement("div"); t.className="txt";
-    const nm=document.createElement("span"); nm.className="nm"; nm.textContent=d.name_da; t.append(nm);
-    const a=alt(d.name_sq&&d.name_sq!==d.name_da?d.name_sq:""); if(a)t.append(a);
+    t.append(nameEl(d.name_da,d.name_sq));
     const ks=(d.items||[]).map(x=>x.key);
-    const ing=document.createElement("span"); ing.className="ings"; ing.textContent=ks.map(ingName).join(" · "); t.append(ing);
     const miss=ks.filter(k=>!on.has(k)).length;
-    const st=document.createElement("span"); st.className="st"+(miss?"":" ok"); st.textContent=miss?`${miss} af ${ks.length} mangler på listen`:"Alt er på listen ✓"; t.append(st);
+    const st=document.createElement("b"); st.className="dst"+(miss?"":" ok"); st.textContent=miss?`Mangler ${miss}`:"✓ På listen";
+    t.append(subLine([st, ks.map(ingName).join(" · ")]));
     t.onclick=()=>{openDish=openDish===d.id?null:d.id; editing=null; renderDishes()};
     li.append(t);
     if(miss){const b=document.createElement("button"); b.className="addbtn"; b.append(svgEl("plus")); b.setAttribute("aria-label","Læg ingredienser til "+d.name_da+" på listen"); b.onclick=()=>addDish(d); li.append(b)}
