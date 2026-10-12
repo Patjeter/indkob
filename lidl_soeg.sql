@@ -1,0 +1,39 @@
+-- v50: Lidls sortiment kan søges i appen
+-- Visning over prisregistret (lidl_products) med familiens faste regler lagt på i databasen:
+--   aldrig svinekød (svage ord som pølse/salami kun ok med kylling/kalkun/fisk …), aldrig oksekød,
+--   slik kun når det står gelatinefrit/vegansk/halal, ingen non-food (værktøj, tøj, blomster …),
+--   og kun varer med en pris, der gælder nu (fast pris / førpris, eller et tilbud der ikke er udløbet).
+-- security_invoker: RLS på lidl_products gælder stadig ("kun familien").
+-- Kør i Supabase → SQL Editor.
+
+create or replace view public.lidl_soeg with (security_invoker = true) as
+with p as (
+  select lp.*, lower(translate(lp.heading, 'ÆØÅÄÖÜÉ', 'æøåäöüé')) as hl,
+         case when lp.offer_price is not null and lp.offer_to >= current_date and (lp.offer_from is null or lp.offer_from <= current_date + 3)
+              then lp.offer_price end as tilbud
+    from public.lidl_products lp
+)
+select pkey, heading, brand, own_brand, size_from, unit, qty_si, si_unit,
+       normal_price, normal_kind,
+       tilbud as offer_price, case when tilbud is not null then offer_from end as offer_from, case when tilbud is not null then offer_to end as offer_to,
+       coalesce(tilbud, normal_price) as price,
+       case when qty_si > 0 then round(coalesce(tilbud, normal_price) / qty_si, 2) end as unit_price,
+       last_seen
+  from p
+ where coalesce(tilbud, normal_price) is not null
+   and last_seen >= current_date - 120
+   -- non-food
+   and coalesce(upper(brand), '') !~ '^(SILVERCREST|PARKSIDE|LIVARNO|LUPILU|CRIVIT|ESMARA|LIVERGY|PEPPERTS|MELINERA|AURIOL|ERNESTO|POWERFIX|ULTIMATE SPEED|MIOMARE|TRONIC|ZOOFARI)'
+   and hl !~ '(brændende kærlighed|flamingoblomst|krysantemum|lyng|lilje|orkidé|potteplante|plantebeskyttelse|knæpude|julestjerne|tulipan|buket|skriveartik|julekalenderbog|møllehjul)'
+   and not (brand is null and hl ~ '^roser?$')
+   -- svinekød
+   and hl !~ '(svin|skinke|bacon|flæsk|medister|rullepølse|hamburgerryg|kamsteg|nakkefilet|nakkekotelet|ribbensteg|spareribs|pepperoni|serrano|prosciutto|chorizo|leverpostej|frikadelle|wienerpølse|grillpølse|hotdogpølse|spegepølse|mortadella|kassler|pulled pork|porchetta|(^|[^a-zæøåäöüé])gris($|[^a-zæøåäöüé]))'
+   and not (hl ~ '(pølse|salami|postej|paté|pate|frankfurter|pålæg)' and hl !~ '(kylling|kalkun|fjerkræ|fisk|laks|tun|reje|vegansk|vegetar|plantebaseret|veggie)')
+   -- oksekød (kun fra slagteren)
+   and hl !~ '(okse|kalv|entrecote|rumpsteak|ribeye|tournedos|culotte|flanksteak|cevapcici|roastbeef|pastrami|angus|wagyu)'
+   and not (hl ~ '(hakket kød|hakkebøf|burgerbøf|hamburgerbøf)' and hl !~ '(kalkun|kylling|fjerkræ|vegansk|vegetar|plantebaseret|veggie)')
+   -- slik med gelatine
+   and not (hl ~ '(vingummi|bland.?selv|jelly beans|lakrids|skumfidus|marshmallow|haribo|malaco|matador|winegum|(^|[^a-zæøåäöüé])slik)' and hl !~ '(vegan|veggie|gelatinefri|uden gelatine|katjes|halal)');
+
+revoke all on public.lidl_soeg from anon;
+grant select on public.lidl_soeg to authenticated;
