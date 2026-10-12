@@ -105,6 +105,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .cat .cc{font-size:var(--fs-s);font-weight:400;color:var(--ink3)}
 .empty{padding:16px;text-align:center;font-size:var(--fs-s);color:var(--ink3)}
 .foot{display:flex;justify-content:center;align-items:center;gap:4px;margin:4px 0 10px}
+.trip .tripbody{display:flex;flex-direction:column;gap:10px;padding:0 20px 14px}.trip .tripbody .btn{align-self:flex-start}
 .notify{display:flex;flex-direction:column;padding:12px 20px 14px;margin-bottom:10px}.notify .seg{margin:10px 0 0}
 .ver{font-size:var(--fs-xs);color:var(--ink3);padding:0 6px}
 
@@ -312,11 +313,11 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
 </nav>
 
-<script src="config.js?v=46"></script>
+<script src="config.js?v=47"></script>
 <script src="supabase.js?v=2.45.4"></script>
 <script>
 "use strict";
-const VERSION="v46";
+const VERSION="v47";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -571,8 +572,23 @@ function when(o){
   const n=dayDiff(o.valid_to); return n<=0?"udløber i dag":n===1?"udløber i morgen":`udløber ${wd(o.valid_to)} ${dshort(o.valid_to)}`;
 }
 const refOf=(o,key)=>o.ref_price!=null?+o.ref_price:(BYKEY[key]&&BYKEY[key].price);
-// når den automatiske, kuraterede tilbudsliste findes, vises kun den (tilbudsopgavens rækker bruges kun til sammenligning)
-const shownOffers=()=>offers.some(o=>o.source==="auto")?offers.filter(o=>o.source==="auto"):offers;
+// automatikken gemmer ALLE godkendte tilbud (ét pr. vare) og markerer Tilbud-fanens udvalg (featured).
+// Findes de, bruges kun de; tilbudsopgavens rækker bruges så kun til sammenligning.
+const autoOffers=()=>offers.some(o=>o.source==="auto");
+const shownOffers=()=>autoOffers()?offers.filter(o=>o.source==="auto"):offers;
+const featuredOffers=()=>autoOffers()?offers.filter(o=>o.source==="auto"&&o.featured):offers;
+/* 50 kr.-reglen på det, I faktisk skal købe: varer på listen lagt sammen pr. kæde, hvor de er billigere end der, hvor de står nu */
+const MIN_TRIP=50;
+function tripPlan(){
+  const m=new Map();
+  items.filter(i=>!i.checked&&i.key).forEach(it=>{
+    const d=bestElsewhere(it.key,it.store||"Lidl"); if(!d)return;
+    const save=round2((refOf(d,it.key)-d.price)*Math.min(qn(it.qty)||1,20)); if(save<=0)return;
+    const x=m.get(d.store)||{store:d.store,save:0,list:[]}; x.save=round2(x.save+save); x.list.push({it,d}); m.set(d.store,x);
+  });
+  return m;
+}
+const worthStores=()=>new Set([...tripPlan().values()].filter(x=>x.save>=MIN_TRIP).map(x=>x.store));
 const offersFor=key=>key?shownOffers().filter(o=>o.key===key&&o.valid_to>=today()):[];
 function bestElsewhere(key,store){
   return offersFor(key).filter(o=>o.store!==store&&refOf(o,key)!=null&&+o.price<refOf(o,key))
@@ -644,8 +660,8 @@ function tile({cat,cls,lead,name,alt,tag,meta,wrap,extra,act,below,sheet,onTap})
 function addBtn(label,onClick,deal){const b=el("button","add"+(deal?" deal":"")); b.append(svgEl("plus")); b.setAttribute("aria-label",label); b.onclick=ev=>{ev.stopPropagation(); onClick()}; return b}
 function onListMark(){const s=el("span","onlist"); s.append(svgEl("check"),document.createTextNode("På listen")); return s}
 /* tilbudslinje: knap i listen (flyt), info i forslag/søgning */
-function dealLine(b,key,q,onMove){
-  const d=el("div","deal"+(started(b)?"":" soon")); d.append(svgEl("tag"),el("span","dt",dealText(b,key,q,!!onMove)));
+function dealLine(b,key,q,onMove,brief=!!onMove){
+  const d=el("div","deal"+(started(b)?"":" soon")); d.append(svgEl("tag"),el("span","dt",dealText(b,key,q,brief)));
   if(onMove){const m=el("button","mv","Flyt"); m.setAttribute("aria-label",`Flyt til ${b.store}`); m.onclick=onMove; d.append(m)}
   return d;
 }
@@ -706,7 +722,7 @@ function listTile(it){
   let below=null, d=null;
   if(it.key&&!it.checked){
     d=bestElsewhere(it.key,st);
-    if(d)below=dealLine(d,it.key,qn(it.qty),()=>{patch(it.id,{store:d.store}); toast(`${a} flyttet til ${d.store}`,()=>patch(it.id,{store:st}))});
+    if(d)below=dealLine(d,it.key,qn(it.qty),WORTH.has(d.store)?()=>{patch(it.id,{store:d.store}); toast(`${a} flyttet til ${d.store}`,()=>patch(it.id,{store:st}))}:null,true);
     else if(st!==home&&!offersFor(it.key).some(o=>o.store===st)&&!e.own){
       below=el("div","deal warn"); below.append(el("span","dt",`Tilbuddet i ${st} er udløbet`)); const m=el("button","mv","Flyt til "+home); m.onclick=()=>patch(it.id,{store:home}); below.append(m)}
   }
@@ -736,8 +752,23 @@ function itemSheet(it){
     if(it.key&&(e0.own||!e0.n))saveProduct({key:it.key,da:e0.da||it.text,sq:e0.sq,cat,store})};
   btns.append(no,ok); s.append(btns); return s;
 }
+let WORTH=new Set();
+function tripCard(x){
+  const card=el("section","card trip"), h=el("div","head");
+  h.append(el("span","av alt",x.store.replace(/[^A-Za-zÆØÅæøå0-9]/g,"").slice(0,1).toUpperCase()));
+  const hb=el("div","hb"); hb.append(el("h2",null,`Billigere i ${x.store}`),el("div","hs",`Më lirë në ${x.store}`)); h.append(hb);
+  const r=el("div","hr"); r.append(el("b",null,kr(Math.round(x.save))),document.createTextNode("at spare")); h.append(r);
+  const body=el("div","tripbody");
+  body.append(metaLine([`${x.list.length} ${x.list.length===1?"vare":"varer"}: `+x.list.map(({it})=>names(it)[0]).join(", ")],true));
+  const b=el("button","btn",`Flyt ${x.list.length===1?"varen":x.list.length+" varer"} til ${x.store}`);
+  b.onclick=()=>{const prev=x.list.map(({it})=>[it.id,it.store]); x.list.forEach(({it})=>patch(it.id,{store:x.store}));
+    toast(`${x.list.length} ${x.list.length===1?"vare":"varer"} flyttet til ${x.store}`,()=>prev.forEach(([id,st])=>patch(id,{store:st})))};
+  body.append(b); card.append(h,body); return card;
+}
 function renderList(){
   const wrap=$("#stores"); wrap.replaceChildren();
+  const plan=tripPlan(); WORTH=new Set([...plan.values()].filter(x=>x.save>=MIN_TRIP).map(x=>x.store));
+  [...plan.values()].filter(x=>WORTH.has(x.store)).sort((a,b)=>b.save-a.save).forEach(x=>wrap.append(tripCard(x)));
   const rank=(arr,x)=>(arr.indexOf(x)+1)||99, catIds=CATS.map(c=>c.id);
   if(!items.length)wrap.append(el("div","card empty","Listen er tom. Skriv en vare ovenfor, eller tilføj fra Forslag eller Retter."));
   let grand=0;
@@ -767,7 +798,7 @@ function renderAc(){
   const box=$("#ac"), v=$("#addInput").value; box.replaceChildren();
   const list=suggestFor(v), on=onListKeys();
   list.forEach(e=>{
-    const d=bestElsewhere(e.key,e.store), live_=d&&started(d)?d:null;
+    const d=bestElsewhere(e.key,e.store), live_=d&&started(d)&&worthStores().has(d.store)?d:null;
     const act=on.has(e.key)?onListMark():addBtn(live_?`Tilføj ${e.da} på tilbud i ${live_.store}`:`Tilføj ${e.da}`,()=>{
       addItem(e.da,e.qty||1,e,live_?live_.store:undefined); toast(`${e.da} lagt på listen · ${live_?live_.store:(e.store||"Lidl")}`);
       $("#addInput").value=""; renderAc(); $("#addInput").focus()});
@@ -784,7 +815,7 @@ function offerRows(){
   const t=today();
   // kun ét tilbud pr. vare: det med størst besparelse (automatikken og tilbudsopgaven kan finde samme vare)
   const best=new Map();
-  shownOffers().filter(o=>o.valid_to>=t&&BYKEY[o.key]).map(o=>({o,e:BYKEY[o.key],save:(refOf(o,o.key)||0)-o.price})).filter(x=>x.save>0)
+  featuredOffers().filter(o=>o.valid_to>=t&&BYKEY[o.key]).map(o=>({o,e:BYKEY[o.key],save:(refOf(o,o.key)||0)-o.price})).filter(x=>x.save>0)
     .forEach(x=>{const b=best.get(x.o.key); if(!b||x.save>b.save)best.set(x.o.key,x)});
   return [...best.values()].sort((a,b)=>b.save*(b.e.qty||1)-a.save*(a.e.qty||1));
 }
@@ -825,9 +856,9 @@ function renderSugg(){
   info.sugg=[`${list.length} ${list.length===1?"vare":"varer"}`];
   if(tab==="sugg")setHead();
   if(!list.length){box.append(emptyBox((suggFilter==="due"||suggFilter==="d30")&&!q?"Intet er ved at slippe op i perioden. Se “Oftest”.":"Ingen varer fundet."));return}
-  const top=suggFilter==="top"&&!q;
+  const top=suggFilter==="top"&&!q, WORTH_S=worthStores();
   const mk=e=>{
-    const d=bestElsewhere(e.key,e.store), live_=d&&started(d)?d:null, ds=daysSince(lastBought(e));
+    const d=bestElsewhere(e.key,e.store), live_=d&&started(d)&&WORTH_S.has(d.store)?d:null, ds=daysSince(lastBought(e));
     const act=on.has(e.key)?onListMark():addBtn(live_?`Tilføj ${e.da} på tilbud i ${live_.store}`:`Tilføj ${e.da}`,()=>{addItem(e.da,e.qty||1,e,live_?live_.store:undefined); toast(`${e.da} lagt på listen · ${live_?live_.store:(e.store||"Lidl")}`)});
     const freq=top?(e.n?`${e.n} gange i år`:""):(e.every?`hver ${e.every}. dag`:"");
     const last=ds==null?"":ds>365?"sidst for over et år siden":ds===0?"købt i dag":`sidst for ${ds} d. siden`;

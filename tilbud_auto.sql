@@ -179,6 +179,8 @@ revoke all on function public.tjek_fetch_catalogs(), public.tjek_fetch_offers(),
 
 -- 5) DRIFT: kuratér og læg tilbud i appen (offers, source = 'auto')
 alter table public.offers add column if not exists source text not null default 'claude';
+alter table public.offers add column if not exists offer_id text;                     -- Tjek-tilbuddets id
+alter table public.offers add column if not exists featured boolean not null default false;  -- med i Tilbud-fanens udvalg
 
 -- sandsynlighed for at varen købes inden for h dage – samme model som appen (egne mellemrum mellem køb)
 create or replace function public.due_prob(k text, h int default 14) returns numeric
@@ -223,6 +225,7 @@ begin
       or (holdbar and (save_buy >= 8 or pct >= 0.20))             -- holdbart: værd at købe på lager
       or (not holdbar and p14 >= 0.30);                           -- friskt: skal sandsynligvis bruges inden 14 dage
   select count(*) into rel from _ok;
+  create temp table _top on commit drop as
   with best_all as (                                             -- billigste pr. kg/l/stk pr. vare, alle kæder
     select distinct on (key) * from _ok order by key, offer_unit, valid_from
   ), uniq_all as (                                               -- samme tilbud kun én gang (til den vare I køber oftest)
@@ -237,16 +240,25 @@ begin
     select distinct on (key) * from _ok
      where store = 'Lidl' and key not in (select key from keep) and offer_id not in (select offer_id from keep)
      order by key, offer_unit, valid_from
-  ), top as (
-    select * from (select * from keep union all select * from fallback) x order by save_buy desc limit 20
-  ), ins as (
-    insert into offers (key, store, title, size, price, ref_price, valid_from, valid_to, note, source)
-    select key, store, left(heading, 120), left(size, 40), price, round(ref_unit * qty_si, 2), valid_from, valid_to,
-           left((regexp_match(coalesce(description,''), '[Mm]aks\.?\s*\d+[^.\n]*'))[1], 60), 'auto'
-      from top
-    returning store
-  ) select count(*), string_agg(distinct store, ', ') into n, butikker from ins;
-  return jsonb_build_object('godkendte', kand, 'relevante', rel, 'vist_i_appen', n, 'butikker', butikker);
+  )
+  select * from (select * from keep union all select * from fallback) x order by save_buy desc limit 20;
+
+  -- a) ALLE godkendte tilbud – ét pr. vare (det billigste pr. kg/l/stk) – så appen altid kan vise, hvor en vare er billigst
+  insert into offers (key, store, title, size, price, ref_price, valid_from, valid_to, note, source, offer_id, featured)
+  select t.key, t.store, left(t.heading, 120), left(t.size, 40), t.price, round(t.ref_unit * o.qty_si, 2), t.valid_from, t.valid_to,
+         left((regexp_match(coalesce(o.description,''), '[Mm]aks\.?\s*\d+[^.\n]*'))[1], 60), 'auto', t.offer_id, false
+    from offer_test t join tjek_offers o on o.id = t.offer_id
+   where t.status = 'valgt';
+  -- b) Tilbud-fanens udvalg (højst 20) markeres; Lidl-reserver der ikke allerede findes, tilføjes
+  update offers f set featured = true from _top x where f.source = 'auto' and f.key = x.key and f.offer_id = x.offer_id;
+  insert into offers (key, store, title, size, price, ref_price, valid_from, valid_to, note, source, offer_id, featured)
+  select key, store, left(heading, 120), left(size, 40), price, round(ref_unit * qty_si, 2), valid_from, valid_to,
+         left((regexp_match(coalesce(description,''), '[Mm]aks\.?\s*\d+[^.\n]*'))[1], 60), 'auto', offer_id, true
+    from _top x
+   where not exists (select 1 from offers f where f.source = 'auto' and f.key = x.key and f.offer_id = x.offer_id);
+  select count(*) filter (where featured), string_agg(distinct store, ', ') filter (where featured), count(*)
+    into n, butikker, kand from offers where source = 'auto';
+  return jsonb_build_object('varer_med_tilbud', kand, 'relevante', rel, 'udvalgt_til_tilbud_fanen', n, 'butikker', butikker);
 end $$;
 revoke all on function public.publish_offers(), public.due_prob(text, int) from public, anon;
 grant execute on function public.due_prob(text, int) to authenticated;
