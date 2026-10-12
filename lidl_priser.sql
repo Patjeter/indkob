@@ -168,3 +168,65 @@ revoke all on function public.lidl_fetch(), public.lidl_process() from public, a
 select cron.unschedule(jobname) from cron.job where jobname in ('lidl-priser', 'lidl-hent', 'lidl-gem');
 select cron.schedule('lidl-hent', '20 4 * * *', $c$ select public.lidl_fetch(); $c$);
 select cron.schedule('lidl-gem',  '25 4 * * *', $c$ select public.lidl_process(); $c$);
+
+-- v48: Lidls standardpriser kobles på familiens faste varer (watch)
+--   normal_* = Lidls aktuelle pris på det produkt, I plejer at købe (genkendt på mærke/første ord i jeres kvitteringsnavn)
+--   own_*    = billigste Lidl-eget mærke til samme slags vare, når I i dag køber et andet mærke
+create table if not exists public.lidl_alt (
+  key text primary key,
+  normal_heading text, normal_price numeric, normal_size text, normal_unit numeric, normal_fam numeric,
+  own_heading text, own_price numeric, own_size text, own_unit numeric, own_save numeric,
+  updated date not null default current_date
+);
+alter table public.lidl_alt enable row level security;
+drop policy if exists "kun familien" on public.lidl_alt;
+create policy "kun familien" on public.lidl_alt for select to authenticated using (public.is_family());
+revoke all on public.lidl_alt from anon;
+revoke insert, update, delete on public.lidl_alt from authenticated;
+grant select on public.lidl_alt to authenticated;
+
+create or replace function public.lidl_alt_refresh() returns jsonb
+language plpgsql security invoker set search_path = public as $$
+declare c_norm int; c_own int;
+begin
+  delete from lidl_alt;
+  insert into lidl_alt (key, normal_heading, normal_price, normal_size, normal_unit, normal_fam,
+                        own_heading, own_price, own_size, own_unit, own_save)
+  with w as (
+    select w.*, lower(translate(split_part(coalesce(c.data->'prod'->>0, w.name), ' ', 1), 'ÆØÅÄÖÜÉ', 'æøåäöüé')) as fw
+      from watch w join catalog c on c.key = w.key where w.active
+  ), lp as (
+    select p.*, lower(translate(p.heading, 'ÆØÅÄÖÜÉ', 'æøåäöüé')) as hl
+      from lidl_products p
+     where p.normal_price is not null and p.normal_seen >= current_date - 90 and p.unit_price is not null
+  ), m as (
+    select w.key, w.fw, w.ref_qty, w.ref_price, lp.*
+      from w join lp on lp.hl ~ w.inc and (w.exc is null or lp.hl !~ w.exc) and (w.req is null or lp.hl ~ w.req)
+       and (case when lp.si_unit in ('kg','l') then 'kg' else lp.si_unit end) = (case when w.ref_si in ('kg','l') then 'kg' else w.ref_si end)
+       and lp.qty_si between w.ref_qty * 0.4 and w.ref_qty * 3
+       -- samme sikkerhedsregler som tilbuddene: aldrig svin eller okse
+       and lp.hl !~ '(svin|skinke|bacon|flæsk|medister|rullepølse|hamburgerryg|kamsteg|spegepølse|leverpostej|frikadelle|pepperoni|chorizo|okse|kalv|entrecote|rumpsteak|cevapcici|roastbeef)'
+  ), nrm as (            -- jeres eget produkt hos Lidl
+    select distinct on (key) * from m where length(fw) >= 3 and position(fw in hl) > 0 order by key, normal_seen desc, unit_price
+  ), own as (            -- billigste Lidl-eget alternativ
+    select distinct on (key) * from m where own_brand order by key, unit_price
+  ), x as (
+    select w.key, w.ref_qty,
+           n.heading nh, n.normal_price np, coalesce(n.size_from::text,'') || coalesce(n.unit,'') ns, n.unit_price nu, n.own_brand n_own, n.pkey npk,
+           o.heading oh, o.normal_price op, coalesce(o.size_from::text,'') || coalesce(o.unit,'') os, o.unit_price ou, o.pkey opk,
+           coalesce(n.unit_price, w.ref_price / nullif(w.ref_qty,0)) fam_unit
+      from w left join nrm n on n.key = w.key left join own o on o.key = w.key
+  )
+  select key, nh, np, ns, nu, round(nu * ref_qty, 2),
+         case when show_own then oh end, case when show_own then op end, case when show_own then os end, case when show_own then ou end,
+         case when show_own then round((fam_unit - ou) * ref_qty, 2) end
+    from (select x.*, (oh is not null and coalesce(n_own, false) = false and opk is distinct from npk
+                       and ou <= fam_unit * 0.9 and (fam_unit - ou) * ref_qty >= 1.5) as show_own from x) y
+   where nh is not null or show_own;
+  select count(*) filter (where normal_price is not null), count(*) filter (where own_price is not null) into c_norm, c_own from lidl_alt;
+  return jsonb_build_object('lidl_pris_på_jeres_vare', c_norm, 'lidls_eget_alternativ', c_own);
+end $$;
+revoke all on function public.lidl_alt_refresh() from public, anon, authenticated;
+
+select cron.unschedule(jobname) from cron.job where jobname = 'lidl-alt';
+select cron.schedule('lidl-alt', '28 4 * * *', $c$ select public.lidl_alt_refresh(); $c$);

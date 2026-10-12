@@ -135,8 +135,10 @@ begin
     select w.*, o.id as oid, o.store, o.heading, o.price, o.pre_price, o.qty_si, o.si_unit, o.valid_from, o.valid_to, o.txt,
            coalesce(o.size_from::text,'?') || coalesce(o.unit,'') as size,
            case when o.qty_si > 0 then round(o.price / o.qty_si, 2) end as ou,
-           round(w.ref_price / nullif(w.ref_qty,0), 2) as ru
+           -- normalpris pr. kg/l/stk: Lidls aktuelle pris på jeres produkt, ellers jeres kvitteringspris
+           round(coalesce(la.normal_unit, w.ref_price / nullif(w.ref_qty,0)), 2) as ru
       from o join watch w on w.active and o.hl ~ w.inc and (w.exc is null or o.hl !~ w.exc)
+      left join lidl_alt la on la.key = w.key
   ), r as (
     select m.*,
       case
