@@ -108,6 +108,8 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .trip .tripbody{display:flex;flex-direction:column;gap:10px;padding:0 20px 14px}.trip .tripbody .btn{align-self:flex-start}
 .notify{display:flex;flex-direction:column;padding:12px 20px 14px;margin-bottom:10px}.notify .seg{margin:10px 0 0}
 .ver{font-size:var(--fs-xs);color:var(--ink3);padding:0 6px}
+.more{padding-bottom:14px}.more .mtxt{margin:0 20px 10px;font-size:var(--fs-s);line-height:1.45;color:var(--ink2)}.more .mtxt.dim{color:var(--ink3)}
+.more .seg{margin:0 20px}.more .ver{padding:0}.more .mrow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 20px}
 
 /* ---------- FLISE: én række-komponent til alle faner ---------- */
 .tiles{display:flex;flex-direction:column;gap:8px;padding:8px}
@@ -277,9 +279,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
       <div class="hint" id="hint"></div>
     </section>
     <div id="stores"></div>
-    <div class="foot"><button class="btn ghost" id="clearDone">Ryd afkrydsede</button><button class="btn ghost" id="notifyBtn" hidden>Notifikationer</button><button class="btn ghost" id="logout" hidden>Log ud</button><span class="ver" id="ver"></span></div>
-    <div class="card notify" id="notify" hidden><b class="name">Notifikationer</b><span class="l1">Njoftime</span><span class="meta wrap"><span class="mq" id="notifyTxt">Besked når den anden tilføjer varer til listen</span></span>
-      <div class="seg" id="notifySeg"><button data-l="off" aria-pressed="true">Fra</button><button data-l="da" aria-pressed="false">Dansk</button><button data-l="sq" aria-pressed="false">Shqip</button></div></div>
+    <div class="foot"><button class="btn ghost" id="clearDone">Ryd afkrydsede</button></div>
   </div>
 
   <div class="pane" id="pane-offers" hidden>
@@ -312,6 +312,25 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
       <div id="sugg"></div>
     </section>
   </div>
+
+  <div class="pane" id="pane-more" hidden>
+    <div class="panehead">Mere</div>
+    <section class="card more" id="notify">
+      <div class="head"><div class="hb"><h2>Notifikationer</h2><div class="hs">Njoftime</div></div></div>
+      <p class="mtxt" id="notifyTxt">Besked på telefonen, når den anden tilføjer varer til listen.</p>
+      <div class="seg" id="notifySeg"><button data-l="off" aria-pressed="true">Fra</button><button data-l="da" aria-pressed="false">Dansk</button><button data-l="sq" aria-pressed="false">Shqip</button></div>
+      <p class="mtxt dim" id="notifyOff" hidden>Læg appen på hjemmeskærmen og log ind for at få notifikationer.</p>
+    </section>
+    <section class="card more" id="kvitInfo">
+      <div class="head"><div class="hb"><h2>Kvitteringer</h2><div class="hs">Kuponat</div></div><div class="hr" id="kvitN"></div></div>
+      <p class="mtxt" id="kvitTxt">Lidl Plus-kvitteringerne hentes automatisk søndag og torsdag aften. De bruges til Forslag, og varer I har købt, bliver krydset af.</p>
+    </section>
+    <section class="card more">
+      <div class="head"><div class="hb"><h2>Konto</h2><div class="hs">Llogaria</div></div></div>
+      <p class="mtxt" id="who">Demo – intet gemmes</p>
+      <div class="mrow"><button class="btn" id="logout" hidden>Log ud</button><span class="ver">Version <span id="ver"></span></span></div>
+    </section>
+  </div>
 </main>
 
 <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button id="toastUndo"></button></div>
@@ -320,6 +339,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
   <button role="tab" aria-selected="false" data-tab="offers"><span class="ic" data-ic="tag"></span>Tilbud<span class="badge" id="b-offers" hidden></span></button>
   <button role="tab" aria-selected="false" data-tab="dishes"><span class="ic" data-ic="pot"></span>Retter</button>
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
+  <button role="tab" aria-selected="false" data-tab="more"><span class="ic" data-ic="menu"></span>Mere</button>
 </nav>
 
 <script src="config.js?v=49"></script>
@@ -327,7 +347,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v52";
+const VERSION="v53";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -338,6 +358,7 @@ const IC={
   cart:SV('<circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3.5h2.6l2.4 11.2a1.6 1.6 0 0 0 1.6 1.3h8.4a1.6 1.6 0 0 0 1.6-1.2l1.6-7.3H6"/>',1.9),
   tag:SV('<path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="8" cy="8" r="1.5"/>',1.9),
   bulb:SV('<path d="M9 18h6M10 21.5h4"/><path d="M12 2.5a6.5 6.5 0 0 0-3.8 11.8c.5.4.8 1 .8 1.7V16h6v-.1c0-.6.3-1.2.8-1.6A6.5 6.5 0 0 0 12 2.5Z"/>',1.9),
+  menu:SV('<path d="M4 6.5h16M4 12h16M4 17.5h16"/>',2),
   pot:SV('<path d="M4 10h16v4a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6v-4Z"/><path d="M2 10h20M9 6.5c0-1 .8-1.5.8-2.5M13 6.5c0-1 .8-1.5.8-2.5"/>',1.9),
   plus:SV('<path d="M12 5v14M5 12h14"/>',2.4),
   minus:SV('<path d="M5 12h14"/>',2.4),
@@ -544,7 +565,7 @@ function showAuth(mode){
   $("#authPw").autocomplete=rec?"new-password":"current-password"; $("#authPw").value=""; $("#authPw2").value="";
   $("#authBtn").textContent=rec?"Gem adgangskode":"Log ind";
 }
-function hideAuth(){$("#auth").hidden=true; $("#logout").hidden=!live; $("#notifyBtn").hidden=!pushOK}
+function hideAuth(){$("#auth").hidden=true; $("#logout").hidden=!live}
 $("#authForm").addEventListener("submit",async ev=>{
   ev.preventDefault(); const btn=$("#authBtn"); btn.disabled=true; $("#authErr").textContent="";
   try{
@@ -596,7 +617,7 @@ async function kvitShow(){
   ok.onclick=async()=>{
     if(!fresh.length){done(); box.hidden=true; return}
     ok.disabled=true; no.disabled=true; ok.textContent="Gemmer …";
-    const {data,error}=await sb.rpc("kvit_ingest",{rows:fresh});
+    const {data,error}=await sb.rpc("kvit_ingest",{rows:fresh}); kvitStat=null; dirty.add("more");
     if(error){ok.disabled=false; no.disabled=false; ok.textContent="Prøv igen"; box.dataset.state="error"; box.append(el("div","res","Kunne ikke gemme: "+error.message)); return}
     done(); box.dataset.state="done"; box.dataset.result=JSON.stringify(data);
     const u=(data.ukendte||[]).length;
@@ -803,9 +824,9 @@ function emptyBox(t){return el("div","empty",t)}
 /* =========================================================
    FANER
    ========================================================= */
-const HEAD={list:["Indkøbsliste","Lista e blerjes","cart"],offers:["Tilbud","Ofertat","tag"],dishes:["Retter","Gatimet","pot"],sugg:["Forslag","Sugjerime","bulb"]};
+const HEAD={list:["Indkøbsliste","Lista e blerjes","cart"],offers:["Tilbud","Ofertat","tag"],dishes:["Retter","Gatimet","pot"],sugg:["Forslag","Sugjerime","bulb"],more:["Mere","Më shumë","menu"]};
 let tab="list", info={};
-const dirty=new Set(["offers","dishes","sugg"]);
+const dirty=new Set(["offers","dishes","sugg","more"]);
 function setHead(){
   const [a,b,ic]=HEAD[tab]; $("#ttl").textContent=a; $("#tsub").textContent=b; $("#ticon").replaceChildren(svgEl(ic));
   const x=info[tab], ti=$("#tinfo"); ti.replaceChildren(); if(x)ti.append(el("b",null,x[0]));
@@ -814,12 +835,25 @@ const desktop=()=>matchMedia("(min-width:860px)").matches;
 /* render: indkøbslisten altid, de andre faner kun når de vises */
 function render(){
   renderList(); counts();
-  ["offers","dishes","sugg"].forEach(n=>dirty.add(n));
+  ["offers","dishes","sugg","more"].forEach(n=>dirty.add(n));
   if(tab!=="list"||desktop())renderPane(tab);
-  if(desktop())["offers","dishes","sugg"].forEach(renderPane);
+  if(desktop())["offers","dishes","sugg","more"].forEach(renderPane);
   setHead();
 }
-function renderPane(n){if(n==="list"||!dirty.has(n))return; dirty.delete(n); ({offers:renderOffers,dishes:renderDishes,sugg:renderSugg})[n]()}
+function renderPane(n){if(n==="list"||!dirty.has(n))return; dirty.delete(n); ({offers:renderOffers,dishes:renderDishes,sugg:renderSugg,more:renderMore})[n]()}
+/* ---------- Mere: notifikationer, kvitteringer, konto ---------- */
+let kvitStat=null;
+async function renderMore(){
+  $("#notifySeg").hidden=!pushOK; $("#notifyOff").hidden=pushOK;
+  $("#logout").hidden=!live;
+  if(live&&sb){
+    try{const {data}=await sb.auth.getSession(); const u=data&&data.session&&data.session.user; $("#who").textContent=u&&u.email?`Logget ind som ${u.email}`:"Logget ind"}catch(e){}
+    if(!kvitStat)try{const {data,error}=await sb.from("kvit_status").select("kilde,seneste,antal"); if(!error&&data)kvitStat=data}catch(e){}
+  }
+  const n=(kvitStat||[]).reduce((a,r)=>a+(+r.antal||0),0), last=(kvitStat||[]).map(r=>r.seneste).sort().pop();
+  $("#kvitN").replaceChildren(); if(n){const b=el("b",null,String(n)); $("#kvitN").append(b,document.createTextNode("gemt"))}
+  $("#kvitTxt").textContent="Lidl Plus-kvitteringerne hentes automatisk søndag og torsdag aften. De bruges til Forslag, og varer I har købt, bliver krydset af."+(last?` Seneste køb: ${dshort(String(last).slice(0,10))}.`:"");
+}
 function onListKeys(){return new Set(items.filter(i=>!i.checked&&i.key).map(i=>i.key))}
 function counts(){
   $("#b-list").hidden=true; $("#b-sugg").hidden=true;
@@ -1106,7 +1140,7 @@ $("#newDish").onclick=()=>{editingDish={name_da:"",name_sq:"",items:[]}; openDis
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
   tab=b.dataset.tab; document.body.dataset.tab=tab;
   document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
-  ["list","offers","dishes","sugg"].forEach(n=>$("#pane-"+n).hidden=n!==tab);
+  ["list","offers","dishes","sugg","more"].forEach(n=>$("#pane-"+n).hidden=n!==tab);
   renderPane(tab); setHead(); scrollTo(0,0);
 });
 const setTop=()=>document.documentElement.style.setProperty("--toph",$(".top").offsetHeight+"px");
@@ -1118,7 +1152,7 @@ let scl=false; addEventListener("scroll",()=>{const c=scrollY>8; if(c!==scl){scl
 const pushOK=live&&!!cfg.vapid&&"serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;
 const b64u=s=>{const b=atob(s.replace(/-/g,"+").replace(/_/g,"/")+"=".repeat((4-s.length%4)%4)); return Uint8Array.from(b,c=>c.charCodeAt(0))};
 let pushLang=local.load("indkob-push")||"off";
-function showPushLang(){$("#notifySeg").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.l===pushLang)); $("#notifyBtn").textContent=pushLang==="off"?"Notifikationer":"Notifikationer til"}
+function showPushLang(){$("#notifySeg").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.l===pushLang))}
 async function pushSub(create){
   const reg=await navigator.serviceWorker.ready;
   return (await reg.pushManager.getSubscription())||(create?reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(cfg.vapid)}):null);
@@ -1142,7 +1176,6 @@ async function setPush(lang){
 }
 if(pushOK){
   showPushLang();
-  $("#notifyBtn").onclick=()=>{$("#notify").hidden=!$("#notify").hidden; if(!$("#notify").hidden)$("#notify").scrollIntoView({block:"nearest",behavior:"smooth"})};
   $("#notifySeg").querySelectorAll("button").forEach(b=>b.onclick=()=>setPush(b.dataset.l));
   // holder abonnementet frisk, hvis telefonen har fornyet det
   addEventListener("load",()=>setTimeout(async()=>{if(pushLang!=="off"&&Notification.permission==="granted"&&sb){try{const s=await pushSub(true); if(s)savePushSub(s)}catch(e){}}},4000));
