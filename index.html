@@ -112,6 +112,10 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .ver{font-size:var(--fs-xs);color:var(--ink3);padding:0 6px}
 .more{padding-bottom:14px}.more .mtxt{margin:0 20px 10px;font-size:var(--fs-s);line-height:1.45;color:var(--ink2)}.more .mtxt.dim{color:var(--ink3)}
 .more .seg{margin:0 20px}.more .ver{padding:0}.sohint{margin:-2px 20px 6px;font-size:var(--fs-xs);color:var(--ink3)}
+.alarmadd{margin:0 20px 10px;display:flex;flex-direction:column;gap:8px}.alarmadd .ac{padding:0}
+.alarmset{display:flex;flex-direction:column;gap:6px}.alarmset .row{display:flex;gap:8px;align-items:center}.alarmset .field.price{flex:0 0 110px}
+.alarmset .lbl{font-size:var(--fs-s);font-weight:600;color:var(--ink2)}.alarmset .mq{font-size:var(--fs-xs);color:var(--ink3)}
+#alarmList{margin:0 8px 8px}#alarmList:empty{display:none}
 .olist{list-style:none;margin:0 20px 10px;padding:0;display:flex;flex-direction:column;gap:4px}
 .olist li{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 10px;border-radius:var(--r-ctl);background:var(--surface2);font-size:var(--fs-s);font-weight:600}
 .olist li .on{flex:1;min-width:0}.olist li button{width:36px;height:32px;border-radius:8px;display:grid;place-items:center;color:var(--ink2);font-size:16px}
@@ -329,6 +333,19 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
       <div class="seg" id="notifySeg"><button data-l="off" aria-pressed="true">Fra</button><button data-l="da" aria-pressed="false">Dansk</button><button data-l="sq" aria-pressed="false">Shqip</button></div>
       <p class="mtxt dim" id="notifyOff" hidden>Læg appen på hjemmeskærmen og log ind for at få notifikationer.</p>
     </section>
+    <section class="card more" id="alarmCard">
+      <div class="head"><div class="hb"><h2>Prisalarm</h2><div class="hs">Alarm çmimi</div></div><div class="hr" id="alarmN"></div></div>
+      <p class="mtxt">Få besked på telefonen om morgenen, når en vare er på tilbud under jeres grænse. Prisen gælder jeres sædvanlige pakkestørrelse.</p>
+      <ul class="tiles" id="alarmList"></ul>
+      <div class="alarmadd">
+        <label class="field"><span data-ic="search"></span><input id="alarmSearch" placeholder="Tilføj vare, fx kaffe" autocomplete="off" autocapitalize="off" autocorrect="off"></label>
+        <ul class="tiles ac" id="alarmAc" hidden></ul>
+        <div class="alarmset" id="alarmSet" hidden><span class="lbl" id="alarmFor"></span>
+          <div class="row"><label class="field price"><input id="alarmMax" inputmode="decimal" placeholder="Maks. pris"></label><span class="unit">kr.</span><button class="btn pri" id="alarmSave">Gem alarm</button></div>
+          <span class="mq" id="alarmHint"></span></div>
+      </div>
+      <p class="mtxt dim" id="alarmPush"></p>
+    </section>
     <section class="card more" id="kvitInfo">
       <div class="head"><div class="hb"><h2>Kvitteringer</h2><div class="hs">Kuponat</div></div><div class="hr" id="kvitN"></div></div>
       <p class="mtxt" id="kvitTxt">Lidl Plus-kvitteringerne hentes automatisk søndag og torsdag aften. De bruges til Forslag, og varer I har købt, bliver krydset af.</p>
@@ -363,7 +380,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v55";
+const VERSION="v56";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -862,7 +879,45 @@ function render(){
 }
 function renderPane(n){if(n==="list"||!dirty.has(n))return; dirty.delete(n); ({offers:renderOffers,dishes:renderDishes,sugg:renderSugg,more:renderMore})[n]()}
 /* ---------- Mere: notifikationer, kvitteringer, konto ---------- */
-let kvitStat=null, orderStore="Lidl";
+let kvitStat=null, orderStore="Lidl", alarms=[], alarmHits=[], alarmPick=null, alarmLoaded=false;
+async function loadAlarms(){
+  if(!(live&&sb))return;
+  const [a,h]=await Promise.all([sb.from("prisalarm").select("*").order("created_at"),sb.from("prisalarm_hit").select("alarm_id,store,price,eq_price,valid_to").gte("valid_to",today())]);
+  if(a.error)return; alarms=a.data||[]; alarmHits=(h&&h.data)||[]; alarmLoaded=true;
+}
+function renderAlarms(){
+  const ul=$("#alarmList"); ul.replaceChildren();
+  $("#alarmN").replaceChildren(); if(alarms.length){$("#alarmN").append(el("b",null,String(alarms.length)),document.createTextNode(alarms.length===1?"alarm":"alarmer"))}
+  alarms.forEach(a=>{
+    const hs=alarmHits.filter(h=>h.alarm_id===a.id).sort((x,y)=>x.eq_price-y.eq_price), b=hs[0], e=BYKEY[a.key];
+    const del=el("button","btn ghost icon"); del.setAttribute("aria-label",`Slet alarm for ${a.name_da||a.key}`); del.append(svgEl("trash"));
+    del.onclick=async()=>{alarms=alarms.filter(x=>x.id!==a.id); renderAlarms(); const r=await sb.from("prisalarm").delete().eq("id",a.id); if(r.error){toast("Kunne ikke slette alarmen"); await loadAlarms(); renderAlarms()} else toast(`Alarm for ${a.name_da||a.key} slettet`)};
+    ul.append(tile({cat:catOf(e&&e.cat),name:a.name_da||(e&&e.da)||a.key,alt:a.name_sq||(e&&e.sq),meta:[strong(`under ${kr(a.max_price)}`),b?strong(`nu: ${b.store} ${kr(b.eq_price)} til ${dshort(String(b.valid_to))}`,"ok"):"intet tilbud under grænsen lige nu"],act:del}));
+  });
+  $("#alarmPush").textContent=!live?"Prisalarm virker, når I er logget ind.":pushLang==="off"?"Slå notifikationer til ovenfor for at få besked på telefonen.":"";
+}
+function renderAlarmAc(){
+  const v=$("#alarmSearch").value, ac=$("#alarmAc"); ac.replaceChildren();
+  const list=v.trim().length>=2?suggestFor(v).filter(e=>!e.own||e.price!=null).slice(0,5):[];
+  list.forEach(e=>{const t=tile({cat:catOf(e.cat),name:e.da,alt:e.sq,meta:[e.price!=null?`normalt ${kr(e.price)}`:""],act:addBtn(`Vælg ${e.da}`,()=>pick())});
+    const pick=()=>{alarmPick=e; $("#alarmSearch").value=""; ac.replaceChildren(); ac.hidden=true; $("#alarmSet").hidden=false; $("#alarmFor").textContent=`Alarm for ${e.da}`;
+      $("#alarmMax").value=e.price!=null?String(Math.floor(e.price*0.8)).replace(".",","):""; $("#alarmHint").textContent=e.price!=null?`I betaler normalt ${kr(e.price)} Forslaget er 20 % under.`:""; $("#alarmMax").focus()};
+    t.querySelector(".body").onclick=pick; ac.append(t)});
+  ac.hidden=!list.length;
+}
+$("#alarmSearch").addEventListener("input",renderAlarmAc);
+$("#alarmSave").onclick=async()=>{
+  const e=alarmPick, v=parseFloat(($("#alarmMax").value||"").replace(",","."));
+  if(!e){toast("Vælg en vare først");return} if(!(v>0&&v<10000)){toast("Skriv en pris i kroner");return}
+  if(!(live&&sb)){toast("Prisalarm virker, når I er logget ind");return}
+  const {data:sess}=await sb.auth.getSession(), email=sess&&sess.session&&sess.session.user?sess.session.user.email:null;
+  const r=await sb.from("prisalarm").upsert({key:e.key,name_da:e.da,name_sq:e.sq||null,max_price:v,active:true,...(email?{email}:{})},{onConflict:"key,email"});
+  if(r.error){toast("Kunne ikke gemme alarmen");return}
+  alarmPick=null; $("#alarmSet").hidden=true; $("#alarmMax").value="";
+  let msg=`Alarm gemt: ${e.da} under ${kr(v)}`;
+  try{const s2=await sb.rpc("prisalarm_scan"); if(s2.data&&(s2.data.uden_overvaagning||[]).includes(e.key))msg+=". Tilbudsautomatikken holder ikke øje med varen endnu – den kommer med ved næste ugentlige gennemgang"}catch(x){}
+  toast(msg); await loadAlarms(); renderAlarms();
+};
 async function saveOrder(store,cats){
   if(cats)orderManual[store]=cats; else delete orderManual[store];
   renderOrder(); renderList(); cacheSoon();
@@ -885,7 +940,7 @@ function renderOrder(){
 }
 $("#orderReset").onclick=()=>saveOrder(orderStore,null);
 async function renderMore(){
-  renderOrder();
+  renderOrder(); renderAlarms(); if(!alarmLoaded){loadAlarms().then(renderAlarms)}
   $("#notifySeg").hidden=!pushOK; $("#notifyOff").hidden=pushOK;
   $("#logout").hidden=!live;
   if(live&&sb){
