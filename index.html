@@ -98,7 +98,8 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .prog i{display:block;height:100%;background:var(--accent);transition:width .3s}
 .cat{position:sticky;top:var(--toph);z-index:5;display:flex;align-items:center;gap:12px;padding:6px 20px;
   background:color-mix(in srgb,var(--cc) 5%,var(--surface));border-block:1px solid color-mix(in srgb,var(--cc) 10%,transparent)}
-.cat .ci{width:24px;height:24px;flex:0 0 24px;border-radius:7px;display:grid;place-items:center;font-size:var(--fs-s);background:color-mix(in srgb,var(--cc) 12%,var(--surface))}
+.cat .ci{width:28px;height:28px;flex:0 0 28px;border-radius:50%;display:grid;place-items:center;font-size:var(--fs-s);color:var(--cc);background:color-mix(in srgb,var(--cc) 14%,var(--surface))}
+.cat .ci svg{width:16px;height:16px}
 .cat .cn{flex:1;min-width:0;font-size:var(--fs-s);font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cat .cn small{margin-left:6px;font-size:var(--fs-s);font-weight:400;color:var(--ink3)}
 .cat .cc{font-size:var(--fs-s);font-weight:400;color:var(--ink3)}
@@ -174,7 +175,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .deal .dt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* tryk på en afkortet linje 3 viser hele teksten */
 .deal{cursor:pointer}.deal.open{align-items:flex-start}.deal.open .dt{white-space:normal;overflow:visible}.deal.open svg{margin-top:2px}
-.deal.warn{color:var(--warn)}
+.deal.warn{color:var(--warn)}.deal.ends .dt{font-weight:600}
 .deal.tip{color:var(--accent)}
 .sumcard .sumbody{padding:0 20px 12px}
 .kvit .kl{display:flex;flex-direction:column;gap:2px;margin:8px 0 2px;font-size:var(--fs-s);color:var(--ink2)}
@@ -259,6 +260,16 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
   .toast{bottom:24px;left:248px}
   .name,.meta,.meta .mq{white-space:normal}
 }
+/* telefon: feltet til at tilføje varer sidder i bunden over menuen, hvor tommelfingeren er */
+@media (max-width:859px){
+  #addCard{position:fixed;left:12px;right:12px;bottom:var(--addb,calc(env(safe-area-inset-bottom) + 64px));z-index:19;margin:0;
+    display:flex;flex-direction:column;box-shadow:0 -4px 20px rgba(20,20,10,.10)}
+  #addCard #ac{order:-2;max-height:min(50vh,420px);overflow:auto}
+  #addCard .hint{order:-1}
+  #addCard .hint:empty{display:none}
+  body[data-tab=list]{padding-bottom:calc(var(--addb,64px) + 84px)}
+  body[data-tab=list] .toast{bottom:calc(var(--addb,64px) + 72px)}
+}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -288,7 +299,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
     <div class="panehead">Indkøbsliste</div>
     <div id="demo" class="demo" hidden>Demo: listen gemmes kun på denne enhed.</div>
     <section class="card notify kvit" id="kvitImport" hidden aria-live="polite"></section>
-    <section class="card">
+    <section class="card" id="addCard">
       <form class="fieldrow" id="addForm" autocomplete="off">
         <label class="field"><span data-ic="search"></span><input id="addInput" placeholder="Skriv en vare" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
         <button class="btn pri icon" aria-label="Tilføj" data-ic="plus"></button>
@@ -387,7 +398,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v60";
+const VERSION="v61";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -399,6 +410,16 @@ const IC={
   tag:SV('<path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="8" cy="8" r="1.5"/>',1.9),
   bulb:SV('<path d="M9 18h6M10 21.5h4"/><path d="M12 2.5a6.5 6.5 0 0 0-3.8 11.8c.5.4.8 1 .8 1.7V16h6v-.1c0-.6.3-1.2.8-1.6A6.5 6.5 0 0 0 12 2.5Z"/>',1.9),
   menu:SV('<path d="M4 6.5h16M4 12h16M4 17.5h16"/>',2),
+  c_fg:SV('<path d="M12 7.5c-1.6-1.3-5.2-1.5-6.6 1.1S4.6 15 6.8 18c1.4 1.9 3.2 2.6 5.2 1.6 2 1 3.8.3 5.2-1.6 2.2-3 2-7-.4-9.4S13.6 6.2 12 7.5Z"/><path d="M12 7.5c0-2.1 1-3.6 3.2-4.2"/>',1.8),
+  c_br:SV('<path d="M5.5 10.5A4 4 0 0 1 7 3h10a4 4 0 0 1 1.5 7.5V19a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 19Z"/><path d="M9.5 8.5v8M14.5 8.5v8"/>',1.8),
+  c_km:SV('<path d="M15.5 4c3.2 1 5.3 4.3 4.2 8-1.3 4.3-6.3 8-11 8-3 0-5.2-2-5.2-4.6 0-2.7 2.1-3.7 3.7-5.8C9.3 6.7 11.8 2.9 15.5 4Z"/><circle cx="14" cy="10" r="2"/>',1.8),
+  c_mk:SV('<path d="M9.5 2.5h5M10 2.5V6L7.5 9.5V20a1.5 1.5 0 0 0 1.5 1.5h6a1.5 1.5 0 0 0 1.5-1.5V9.5L14 6V2.5"/><path d="M7.5 13.5h9"/>',1.8),
+  c_ko:SV('<path d="M12 21V9.5"/><path d="M12 9.5C9.6 9.5 8 7.6 8 5.5c2.4 0 4 1.9 4 4Zm0 0c2.4 0 4-1.9 4-4-2.4 0-4 1.9-4 4Zm0 5c-2.4 0-4-1.9-4-4 2.4 0 4 1.9 4 4Zm0 0c2.4 0 4-1.9 4-4-2.4 0-4 1.9-4 4Z"/>',1.8),
+  c_rh:SV('<path d="M9 2.5h4v4H9z"/><path d="M8 6.5h6l1.2 4V20a1.5 1.5 0 0 1-1.5 1.5H8.3A1.5 1.5 0 0 1 6.8 20v-9.5Z"/><path d="M13 3.5h3l2.5-1"/>',1.8),
+  c_fr:SV('<path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/><path d="m9.6 4.6 2.4 2 2.4-2M9.6 19.4l2.4-2 2.4 2"/>',1.8),
+  c_dr:SV('<path d="M10 2.5h4M10.5 2.5v4C8.6 8 8 9.2 8 11.2V20a1.5 1.5 0 0 0 1.5 1.5h5A1.5 1.5 0 0 0 16 20v-8.8c0-2-.6-3.2-2.5-4.7v-4"/><path d="M8 14h8"/>',1.8),
+  c_sn:SV('<circle cx="12" cy="12" r="3.8"/><path d="M8.6 10.3 4.3 7.5l-.6 5L8.3 14M15.4 13.7l4.3 2.8.6-5-4.6-1.5"/>',1.8),
+  c_nf:SV('<path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5Z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/>',1.8),
   pot:SV('<path d="M4 10h16v4a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6v-4Z"/><path d="M2 10h20M9 6.5c0-1 .8-1.5.8-2.5M13 6.5c0-1 .8-1.5.8-2.5"/>',1.9),
   plus:SV('<path d="M12 5v14M5 12h14"/>',2.4),
   minus:SV('<path d="M5 12h14"/>',2.4),
@@ -690,9 +711,18 @@ const WD=["søn.","man.","tirs.","ons.","tors.","fre.","lør."];
 const dayDiff=d=>Math.round((Date.parse(d)-Date.parse(today()))/864e5);
 const wd=d=>WD[new Date(d+"T12:00:00").getDay()];
 const started=o=>!o.valid_from||o.valid_from<=today();
+/* hvor længe et tilbud gælder, talt i dage som i butikkernes aviser (i dag tæller med) */
 function when(o){
-  if(!started(o)){const n=dayDiff(o.valid_from); return n===1?"starter i morgen":`starter ${wd(o.valid_from)} ${dshort(o.valid_from)}`}
-  const n=dayDiff(o.valid_to); return n<=0?"udløber i dag":n===1?"udløber i morgen":`udløber ${wd(o.valid_to)} ${dshort(o.valid_to)}`;
+  if(!started(o)){const n=dayDiff(o.valid_from); return n<=1?"starter i morgen":n<=6?`starter ${wd(o.valid_from)}`:`starter ${dshort(o.valid_from)}`}
+  const n=dayDiff(o.valid_to); return n<=0?"sidste dag i dag":n===1?"slutter i morgen":`${n+1} dage tilbage`;
+}
+const endsSoon=o=>started(o)&&dayDiff(o.valid_to)<=1;
+/* pris pr. stk., kg eller liter ud fra pakningens størrelse */
+function perUnit(o){
+  const t=`${o.size||""} ${o.title||""}`.toLowerCase().replace(/,/g,".");
+  let m=/(\d+(?:\.\d+)?)\s*stk/.exec(t); if(m&&+m[1]>1)return `${kr(round2(o.price/+m[1]))}/stk.`;
+  m=/(\d+(?:\.\d+)?)\s*(kg|g|l|cl|ml)\b/.exec(t); if(m){const v=+m[1]*({kg:1,g:.001,l:1,cl:.01,ml:.001})[m[2]]; if(v>0&&Math.abs(v-1)>1e-6)return `${kr(round2(o.price/v))}/${/g/.test(m[2])?"kg":"l"}`}
+  return "";
 }
 /* Lidls standardpriser (lidl_alt): jeres produkts aktuelle Lidl-pris og evt. Lidls eget, billigere alternativ */
 let lalt=[], LALT=new Map();
@@ -816,8 +846,9 @@ function lookFor(key,store){
   const o=sameStore(key,store); if(o&&o.title)return o.title;
   const e=BYKEY[key]; return e&&e.prod&&e.prod.length&&store===(e.store||"Lidl")?e.prod[0]:"";
 }
-const short=o=>!started(o)?`fra ${wd(o.valid_from)} ${dshort(o.valid_from)}`:(dayDiff(o.valid_to)<=0?"kun i dag":`til ${wd(o.valid_to)} ${dshort(o.valid_to)}`);
-const dealText=(b,key,q=1,brief)=>{const sp=`spar ${kr(round2((refOf(b,key)-b.price)*q))}`; return brief?[b.store,sp].concat(started(b)?[]:[`fra ${dshort(b.valid_from)}`]).join(" · "):`${b.store} · ${kr(b.price)} · ${sp} · ${short(b)}`};
+const short=o=>when(o);
+const dealText=(b,key,q=1,brief)=>{const sp=`spar ${kr(round2((refOf(b,key)-b.price)*q))}`, pu=perUnit(b), mx=maxOf(b);
+  return [`${b.store} ${kr(b.price)}${pu?` (${pu})`:""}`,when(b),sp].concat(mx?[`maks ${mx}`]:[]).join(" · ")};
 
 /* rytme: sandsynlighed for køb inden for H dage ud fra egne mellemrum (testet på kvitteringerne) */
 const probCache=new Map();
@@ -866,7 +897,7 @@ function addBtn(label,onClick,deal){const b=el("button","add"+(deal?" deal":""))
 function onListMark(){const s=el("span","onlist"); s.append(svgEl("check"),document.createTextNode("På listen")); return s}
 /* tilbudslinje: knap i listen (flyt), info i forslag/søgning */
 function dealLine(b,key,q,onMove,brief=!!onMove,btn="Flyt"){
-  const d=el("div","deal"+(started(b)?"":" soon")); d.append(svgEl("tag"),el("span","dt",dealText(b,key,q,brief)));
+  const d=el("div","deal"+(started(b)?"":" soon")+(endsSoon(b)?" ends":"")); d.append(svgEl("tag"),el("span","dt",dealText(b,key,q,brief)));
   if(onMove){const m=el("button","mv",btn); m.setAttribute("aria-label",`${btn==="Flyt"?"Flyt til":"Køb i"} ${b.store}`); m.onclick=ev=>{ev.stopPropagation(); onMove()}; d.append(m)}
   return expandable(d);
 }
@@ -880,7 +911,8 @@ function stepper(n,unit,step,onSet,onDelete){
 }
 function catHead(id,count){
   const c=CAT[catOf(id)], h=el("div","cat");
-  h.append(el("span","ci",c.icon)); const n=el("span","cn",c.da); n.append(el("small",null,c.sq)); h.append(n);
+  const ci=el("span","ci"); if(IC["c_"+c.id])ci.append(svgEl("c_"+c.id)); else if(c.id==="an")ci.append(svgEl("cart")); else ci.textContent=c.icon;
+  h.append(ci); const n=el("span","cn",c.da); n.append(el("small",null,c.sq)); h.append(n);
   if(count!=null)h.append(el("span","cc",String(count)));
   return h;
 }
@@ -1004,8 +1036,13 @@ function listTile(it){
       below=el("div","deal warn"); below.append(el("span","dt",`Tilbuddet i ${st} er udløbet`)); const m=el("button","mv","Flyt til "+home); m.onclick=()=>patch(it.id,{store:home}); below.append(m)}
   }
   if(!below&&it.key&&!it.checked&&st==="Lidl")below=lidlTip(it.key,it);
+  const q=qn(it.qty), ox=st==="Lidl"&&it.key&&LALT.get(it.key), ownX=ox&&ox.own_heading&&it.note===ownNote(ox)?ox:null;
+  const so=it.key&&sameStore(it.key,st), up=it.key?(ownX?+ownX.own_price:unitPrice(it.key,st)):null;
+  const price=it.key&&up&&Math.abs(q-1)>1e-6&&!it.checked
+    ?el("span",so?"dl":null,`${fmtQ(q,unitOf(it.key))} × ${kr(up)} = ${kr(round2(up*q))}${so?` · tilbud, ${when(so)}`:""}`)
+    :(it.key?pricePart(it.key,st,false,!!d):null);
   const t=tile({cat:catOf(it.category),cls:it.checked?"done":"",lead:chk,name:a,alt:b,
-    meta:[strong(it.note), it.key?pricePart(it.key,st,false,!!d):null, it.key?lookPart(lookFor(it.key,st),a):null],
+    meta:[strong(it.note), price, it.key?lookPart(lookFor(it.key,st),a):null],
     sheet:editingItem===it.id?itemSheet(it):null,
     act:stepper(qn(it.qty),unitOf(it.key),stepOf(it.key),v=>patch(it.id,{qty:String(v)}),()=>remove([it.id])),
     below,onTap:()=>{editingItem=editingItem===it.id?null:it.id; renderList()}});
@@ -1090,11 +1127,15 @@ function renderList(){
     [...new Set(list.map(i=>catOf(i.category)))].sort((a,b)=>rank(so.cats,a)-rank(so.cats,b)).forEach(c=>{
       const arr=list.filter(i=>catOf(i.category)===c).sort((a,b)=>a.checked-b.checked||((so.kp[a.key]??.5)-(so.kp[b.key]??.5)));
       const lis=arr.map(listTile);
-      card.append(group(c,arr.filter(i=>!i.checked).length||"✓",lis));
+      const sub=arr.filter(i=>!i.checked).reduce((a,i)=>{const x=own(i); return a+(x?+x.own_price:(unitPrice(i.key,s)||0))*qn(i.qty)},0);
+      const nOpen=arr.filter(i=>!i.checked).length;
+      card.append(group(c,nOpen?(sub>0?`${nOpen} · ${kr(round2(sub))}`:nOpen):"✓",lis));
     });
     wrap.append(card);
   });
-  if(grand>0){
+  const expired=items.filter(i=>{if(i.checked||!i.key)return false; const e=BYKEY[i.key]||{}, st=i.store||"Lidl", home=e.store||"Lidl";
+    return st!==home&&!e.own&&!offersFor(i.key).some(o=>o.store===st)});
+  if(grand>0||expired.length){
     const h=el("div","head"); h.append(el("span","av","Σ")); const hb=el("div","hb"); hb.append(el("h2",null,"Hele listen"),el("div","hs","Gjithsej")); h.append(hb);
     const r=el("div","hr"); r.append(el("b",null,kr(Math.round(grand))),document.createTextNode("anslået")); h.append(r); sum.append(h);
     const extra=[...plan.values()].filter(x=>!WORTH.has(x.store)).reduce((a,x)=>a+x.save,0);
@@ -1103,6 +1144,10 @@ function renderList(){
     if(saved+swapped>=1)lines.push(strong(`Du sparer ${kr(Math.round(saved+swapped))} på ${why}`,"ok"));
     if(extra>=1)lines.push(`spar ${kr(Math.round(extra))} mere ved at trykke Flyt`);
     if(lines.length){const b=el("div","sumbody"); b.append(metaLine(lines,true)); sum.append(b)}
+    if(expired.length){const b=el("div","sumbody"), m=el("button","btn",`Flyt ${expired.length} ${expired.length===1?"vare":"varer"} med udløbet tilbud tilbage`);
+      m.onclick=()=>{const old=expired.map(i=>[i.id,i.store]); expired.forEach(i=>patch(i.id,{store:(BYKEY[i.key]||{}).store||"Lidl"}));
+        toast(`${old.length} ${old.length===1?"vare":"varer"} flyttet tilbage`,()=>old.forEach(([id,st])=>patch(id,{store:st})))};
+      b.append(m); sum.append(b)}
   } else sum.remove();
   const open=items.filter(i=>!i.checked).length;
   info.list=[`${open} ${open===1?"vare":"varer"}`];
@@ -1315,6 +1360,14 @@ document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
   renderPane(tab); setHead(); scrollTo(0,0);
 });
 const setTop=()=>document.documentElement.style.setProperty("--toph",$(".top").offsetHeight+"px");
+/* tilføj-feltet: lige over menuen, eller lige over tastaturet når det er åbent */
+function setAddBottom(){
+  const vv=window.visualViewport, kb=vv?Math.max(0,innerHeight-vv.height-vv.offsetTop):0, tabs=$(".tabs").offsetHeight||64;
+  document.documentElement.style.setProperty("--addb",(kb>80?kb+8:tabs+8)+"px");
+}
+if(window.visualViewport){visualViewport.addEventListener("resize",setAddBottom); visualViewport.addEventListener("scroll",setAddBottom)}
+addEventListener("resize",setAddBottom); setTimeout(setAddBottom,0);
+if("ResizeObserver" in window)new ResizeObserver(setAddBottom).observe($(".tabs"),{box:"border-box"});
 if("ResizeObserver" in window)new ResizeObserver(()=>{const h=$("#segbar").offsetHeight; if(h)document.documentElement.style.setProperty("--segh",h+"px")}).observe($("#segbar"));
 if("ResizeObserver" in window)new ResizeObserver(()=>{const h=$("#dishSegbar").offsetHeight; if(h)document.documentElement.style.setProperty("--dsegh",h+"px")}).observe($("#dishSegbar"));
 addEventListener("resize",setTop);
