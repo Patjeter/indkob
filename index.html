@@ -167,6 +167,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .deal{cursor:pointer}.deal.open{align-items:flex-start}.deal.open .dt{white-space:normal;overflow:visible}.deal.open svg{margin-top:2px}
 .deal.warn{color:var(--warn)}
 .deal.tip{color:var(--accent)}
+.sumcard .sumbody{padding:0 20px 12px}
 .kvit .kl{display:flex;flex-direction:column;gap:2px;margin:8px 0 2px;font-size:var(--fs-s);color:var(--ink2)}
 .kvit .kl .known{color:var(--ink3)}.kvit .btns{display:flex;gap:8px;margin-top:10px}.kvit .res{margin-top:6px;font-size:var(--fs-s);color:var(--ink2)}
 .tiles.ac .lhead{list-style:none}.tiles.ac .lhead .cat{position:static;padding:10px 4px 4px}
@@ -326,7 +327,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v51";
+const VERSION="v52";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -710,7 +711,7 @@ function bestElsewhere(key,store){
     .sort((a,b)=>(refOf(b,key)-b.price)-(refOf(a,key)-a.price)||(started(b)-started(a)))[0]||null;
 }
 function sameStore(key,store){return offersFor(key).find(o=>o.store===store&&started(o))||offersFor(key).find(o=>o.store===store)||null}
-function unitPrice(key,store){const o=sameStore(key,store); if(o&&started(o))return +o.price;
+function unitPrice(key,store){const o=sameStore(key,store); if(o)return +o.price;
   if(store==="Lidl"){const now=offersFor(key).map(x=>x.ref_price).find(x=>x!=null); if(now!=null)return +now}
   const e=BYKEY[key]; return e&&e.price!=null?e.price:null}
 /* prisdel til linje 2: "15,00 kr." / "tilbud 15,00 kr. · udløber …" / "@MENY ca. 19,95 kr." */
@@ -775,9 +776,9 @@ function tile({cat,cls,lead,name,alt,tag,meta,wrap,extra,act,below,sheet,onTap})
 function addBtn(label,onClick,deal){const b=el("button","add"+(deal?" deal":"")); b.append(svgEl("plus")); b.setAttribute("aria-label",label); b.onclick=ev=>{ev.stopPropagation(); onClick()}; return b}
 function onListMark(){const s=el("span","onlist"); s.append(svgEl("check"),document.createTextNode("På listen")); return s}
 /* tilbudslinje: knap i listen (flyt), info i forslag/søgning */
-function dealLine(b,key,q,onMove,brief=!!onMove){
+function dealLine(b,key,q,onMove,brief=!!onMove,btn="Flyt"){
   const d=el("div","deal"+(started(b)?"":" soon")); d.append(svgEl("tag"),el("span","dt",dealText(b,key,q,brief)));
-  if(onMove){const m=el("button","mv","Flyt"); m.setAttribute("aria-label",`Flyt til ${b.store}`); m.onclick=onMove; d.append(m)}
+  if(onMove){const m=el("button","mv",btn); m.setAttribute("aria-label",`${btn==="Flyt"?"Flyt til":"Køb i"} ${b.store}`); m.onclick=ev=>{ev.stopPropagation(); onMove()}; d.append(m)}
   return expandable(d);
 }
 function stepper(n,unit,step,onSet,onDelete){
@@ -837,7 +838,7 @@ function listTile(it){
   let below=null, d=null;
   if(it.key&&!it.checked){
     d=bestElsewhere(it.key,st);
-    if(d)below=dealLine(d,it.key,qn(it.qty),WORTH.has(d.store)?()=>{patch(it.id,{store:d.store}); toast(`${a} flyttet til ${d.store}`,()=>patch(it.id,{store:st}))}:null,true);
+    if(d)below=dealLine(d,it.key,qn(it.qty),()=>{patch(it.id,{store:d.store}); toast(`${a} flyttet til ${d.store}`,()=>patch(it.id,{store:st}))},true);
     else if(st!==home&&!offersFor(it.key).some(o=>o.store===st)&&!e.own){
       below=el("div","deal warn"); below.append(el("span","dt",`Tilbuddet i ${st} er udløbet`)); const m=el("button","mv","Flyt til "+home); m.onclick=()=>patch(it.id,{store:home}); below.append(m)}
   }
@@ -887,10 +888,11 @@ function renderList(){
   [...plan.values()].filter(x=>WORTH.has(x.store)).sort((a,b)=>b.save-a.save).forEach(x=>wrap.append(tripCard(x)));
   const rank=(arr,x)=>(arr.indexOf(x)+1)||99, catIds=CATS.map(c=>c.id);
   if(!items.length)wrap.append(el("div","card empty","Listen er tom. Skriv en vare ovenfor, eller tilføj fra Forslag eller Retter."));
-  let grand=0;
+  let grand=0, saved=0; const sum=el("section","card sumcard"); wrap.append(sum);
   [...new Set(items.map(i=>i.store||"Lidl"))].sort((a,b)=>rank(STORE_ORDER,a)-rank(STORE_ORDER,b)).forEach(s=>{
     const list=items.filter(i=>(i.store||"Lidl")===s), open=list.filter(i=>!i.checked);
     const tot=open.reduce((a,i)=>a+(unitPrice(i.key,s)||0)*qn(i.qty),0); grand+=tot;
+    open.forEach(i=>{const o=i.key&&sameStore(i.key,s); if(o){const r=refOf(o,i.key); if(r!=null&&r>o.price)saved+=(r-o.price)*Math.min(qn(i.qty)||1,maxOf(o)||99)}});
     const card=el("section","card"), h=el("div","head");
     h.append(el("span","av"+(s==="Lidl"?"":" alt"),s.replace(/[^A-Za-zÆØÅæøå0-9]/g,"").slice(0,1).toUpperCase()));
     const hb=el("div","hb"); hb.append(el("h2",null,s),el("div","hs",open.length?`${open.length} af ${list.length} tilbage`:"Alt er købt ✓")); h.append(hb);
@@ -904,6 +906,15 @@ function renderList(){
     });
     wrap.append(card);
   });
+  if(grand>0){
+    const h=el("div","head"); h.append(el("span","av","Σ")); const hb=el("div","hb"); hb.append(el("h2",null,"Hele listen"),el("div","hs","Gjithsej")); h.append(hb);
+    const r=el("div","hr"); r.append(el("b",null,kr(Math.round(grand))),document.createTextNode("anslået")); h.append(r); sum.append(h);
+    const extra=[...plan.values()].filter(x=>!WORTH.has(x.store)).reduce((a,x)=>a+x.save,0);
+    const lines=[];
+    if(saved>=1)lines.push(strong(`Du sparer ${kr(Math.round(saved))} på tilbud`,"ok"));
+    if(extra>=1)lines.push(`spar ${kr(Math.round(extra))} mere ved at trykke Flyt`);
+    if(lines.length){const b=el("div","sumbody"); b.append(metaLine(lines,true)); sum.append(b)}
+  } else sum.remove();
   const open=items.filter(i=>!i.checked).length;
   info.list=[`${open} ${open===1?"vare":"varer"}`];
   if(tab==="list")setHead();
@@ -919,7 +930,7 @@ function renderAc(){
       addItem(e.da,e.qty||1,e,live_?live_.store:undefined); toast(`${e.da} lagt på listen · ${live_?live_.store:(e.store||"Lidl")}`);
       $("#addInput").value=""; renderAc(); $("#addInput").focus()});
     const t=tile({cat:catOf(e.cat),name:e.da,alt:e.sq,meta:[pricePart(e.key,e.store,(e.store||"Lidl")!=="Lidl"),e.n?`plejer ${e.qty||1} stk.`:(e.own?"egen vare":"")],
-      act,below:d?dealLine(d,e.key,e.qty||1):lidlTip(e.key),onTap:()=>act.click&&act.click()});
+      act,below:d?dealLine(d,e.key,e.qty||1,()=>{addItem(e.da,e.qty||1,e,d.store); toast(`${e.da} lagt på listen · ${d.store}`); $("#addInput").value=""; renderAc(); $("#addInput").focus()},false,"Køb her"):lidlTip(e.key),onTap:()=>act.click&&act.click()});
     box.append(t);
   });
   const lh=lidlSearch(v,list);
@@ -987,7 +998,7 @@ function renderSugg(){
     const freq=top?(e.n?`${e.n} gange i år`:""):(e.every?`hver ${e.every}. dag`:"");
     const last=ds==null?"":ds>365?"sidst for over et år siden":ds===0?"købt i dag":`sidst for ${ds} d. siden`;
     return tile({cat:catOf(e.cat),name:e.da,alt:e.sq,tag:isDue(e)&&(q||(suggFilter!=="due"&&suggFilter!=="d30"))?"inden 14 dage":null,
-      meta:[freq||pricePart(e.key,e.store,false),last],act,below:d?dealLine(d,e.key,e.qty||1):lidlTip(e.key)});
+      meta:[freq||pricePart(e.key,e.store,false),last],act,below:d?dealLine(d,e.key,e.qty||1,()=>{addItem(e.da,e.qty||1,e,d.store); toast(`${e.da} lagt på listen · ${d.store}`)},false,"Køb her"):lidlTip(e.key)});
   };
   CATS.forEach(c=>{
     const arr=list.filter(e=>catOf(e.cat)===c.id).sort(top?((a,b)=>(b.n||0)-(a.n||0)):((a,b)=>(dueProb(b,H)-dueProb(a,H))||((b.n||0)-(a.n||0))||((b.nall||0)-(a.nall||0))));
