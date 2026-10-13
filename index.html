@@ -940,7 +940,7 @@ $("#alarmSave").onclick=async()=>{
   if(r.error){toast("Kunne ikke gemme alarmen");return}
   alarmPick=null; $("#alarmSet").hidden=true; $("#alarmMax").value="";
   let msg=`Alarm gemt: ${e.da} under ${kr(v)}`;
-  try{const s2=await sb.rpc("prisalarm_scan"); if(s2.data&&(s2.data.uden_overvaagning||[]).includes(e.key))msg+=". Tilbudsautomatikken holder ikke øje med varen endnu – den kommer med ved næste ugentlige gennemgang"}catch(x){}
+  try{const s2=await sb.rpc("prisalarm_scan"); if(s2.data&&(s2.data.uden_overvaagning||[]).includes(e.key))msg+=". Tilbudsautomatikken holder ikke øje med varen endnu – den ugentlige analyse foreslår at tage den med"}catch(x){}
   toast(msg); await loadAlarms(); renderAlarms();
 };
 async function saveOrder(store,cats){
