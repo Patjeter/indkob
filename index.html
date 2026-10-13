@@ -401,7 +401,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v62";
+const VERSION="v63";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -1060,6 +1060,7 @@ async function fillCompare(box,it){
   if(!rows&&live&&sb){try{const r=await sb.rpc("tilbud_for",{k:key}); if(!r.error&&r.data){rows=r.data; cmpCache.set(key,rows)}}catch(x){}}
   if(!rows)rows=offersFor(key).map(o=>({store:o.store,heading:o.title,price:+o.price,size:o.size,eq_price:+o.price,maks:maxOf(o),valid_from:o.valid_from,valid_to:o.valid_to}));
   box.replaceChildren();
+  const seen=new Set(); rows=rows.filter(r=>{const k=[r.store,r.price,r.valid_from,r.valid_to].join("|"); if(seen.has(k))return false; seen.add(k); return true});
   const ul=el("ul","tiles");
   if(e.price!=null){ul.append(tile({cat:catOf(e.cat),name:`${e.store||"Lidl"} · normalpris`,meta:[strong(kr(e.price)),"det I plejer at betale"],act:st===(e.store||"Lidl")?el("span","onlist","valgt"):null}))}
   rows.forEach(r=>{
