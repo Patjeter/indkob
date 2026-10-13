@@ -244,10 +244,19 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 
 /* ---------- store skærme: kolonner ---------- */
 .panehead{display:none}
+/* computer: én fane ad gangen i en læsevenlig bredde, menuen lodret i højre side */
 @media (min-width:860px){
-  body{padding-bottom:24px}.tabs{display:none}
-  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start}.pane{display:block!important}
-  .panehead{display:block;margin:6px 4px;font-size:var(--fs-l);font-weight:700}
+  body{max-width:none;padding:0 248px 32px 24px}
+  .top,.cols{max-width:720px;margin-left:auto;margin-right:auto}
+  .top{border-radius:0 0 var(--r-card) var(--r-card)}
+  .tabs{top:0;bottom:0;left:auto;right:0;width:224px;flex-direction:column;justify-content:flex-start;gap:2px;
+    padding:calc(env(safe-area-inset-top) + 72px) 12px 24px;border-top:0;border-left:1px solid var(--line)}
+  .tabs button{flex:0 0 auto;max-width:none;flex-direction:row;justify-content:flex-start;gap:10px;padding:8px 10px;border-radius:10px;font-size:var(--fs-s)}
+  .tabs .ic{width:26px;height:26px}
+  .tabs button:hover{background:var(--surface2)}
+  .tabs button[aria-selected=true]{background:var(--accent-soft)}
+  .badge{position:static;margin-left:auto;border:0}
+  .toast{bottom:24px;right:248px}
   .name,.meta,.meta .mq{white-space:normal}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
@@ -315,7 +324,6 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 
   <div class="pane" id="pane-sugg" hidden>
     <div class="panehead">Forslag</div>
-    <section class="card" id="swapCard" hidden></section>
     <section class="card">
       <div class="fieldrow"><label class="field"><span data-ic="search"></span><input id="suggSearch" placeholder="Søg i jeres varer og hos Lidl" autocapitalize="off" autocorrect="off"></label></div>
       <div class="segbar" id="segbar"><div class="seg" id="seg"><button data-f="due" aria-pressed="true">14 dage</button><button data-f="d30" aria-pressed="false">30 dage</button><button data-f="top" aria-pressed="false">Oftest</button><button data-f="all" aria-pressed="false">Alle</button></div></div>
@@ -331,6 +339,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
       <div class="seg" id="notifySeg"><button data-l="off" aria-pressed="true">Fra</button><button data-l="da" aria-pressed="false">Dansk</button><button data-l="sq" aria-pressed="false">Shqip</button></div>
       <p class="mtxt dim" id="notifyOff" hidden>Læg appen på hjemmeskærmen og log ind for at få notifikationer.</p>
     </section>
+    <section class="card more" id="swapCard" hidden></section>
     <section class="card more" id="alarmCard">
       <div class="head"><div class="hb"><h2>Prisalarm</h2><div class="hs">Alarm çmimi</div></div><div class="hr" id="alarmN"></div></div>
       <p class="mtxt">Få besked på telefonen om morgenen, når en vare er på tilbud under jeres grænse. Prisen gælder jeres sædvanlige pakkestørrelse.</p>
@@ -378,7 +387,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v58";
+const VERSION="v59";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -895,8 +904,7 @@ const desktop=()=>matchMedia("(min-width:860px)").matches;
 function render(){
   renderList(); counts();
   ["offers","dishes","sugg","more"].forEach(n=>dirty.add(n));
-  if(tab!=="list"||desktop())renderPane(tab);
-  if(desktop())["offers","dishes","sugg","more"].forEach(renderPane);
+  if(tab!=="list")renderPane(tab);
   setHead();
 }
 function renderPane(n){if(n==="list"||!dirty.has(n))return; dirty.delete(n); ({offers:renderOffers,dishes:renderDishes,sugg:renderSugg,more:renderMore})[n]()}
@@ -962,7 +970,7 @@ function renderOrder(){
 }
 $("#orderReset").onclick=()=>saveOrder(orderStore,null);
 async function renderMore(){
-  renderOrder(); renderAlarms(); if(!alarmLoaded){loadAlarms().then(renderAlarms)}
+  renderSwaps(); renderOrder(); renderAlarms(); if(!alarmLoaded){loadAlarms().then(renderAlarms)}
   $("#notifySeg").hidden=!pushOK; $("#notifyOff").hidden=pushOK;
   $("#logout").hidden=!live;
   if(live&&sb){
@@ -1162,7 +1170,7 @@ function renderOffers(){
 /* ---------- Forslag ---------- */
 let suggFilter="due";
 function renderSugg(){
-  const box=$("#sugg"); box.replaceChildren(); renderSwaps();
+  const box=$("#sugg"); box.replaceChildren();
   const q=fold($("#suggSearch").value), on=onListKeys(), H=suggFilter==="d30"?30:14;
   let list=CATALOG.filter(e=>!q||fold(e.da).includes(q)||fold(e.sq).includes(q)||(e.alias||[]).some(a=>fold(a).includes(q)));
   if(!q&&suggFilter==="due")list=list.filter(e=>isDue(e,14)&&!on.has(e.key));
