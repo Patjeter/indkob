@@ -111,7 +111,11 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .notify{display:flex;flex-direction:column;padding:12px 20px 14px;margin-bottom:10px}.notify .seg{margin:10px 0 0}
 .ver{font-size:var(--fs-xs);color:var(--ink3);padding:0 6px}
 .more{padding-bottom:14px}.more .mtxt{margin:0 20px 10px;font-size:var(--fs-s);line-height:1.45;color:var(--ink2)}.more .mtxt.dim{color:var(--ink3)}
-.more .seg{margin:0 20px}.more .ver{padding:0}.more .mrow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 20px}
+.more .seg{margin:0 20px}.more .ver{padding:0}.sohint{margin:-2px 20px 6px;font-size:var(--fs-xs);color:var(--ink3)}
+.olist{list-style:none;margin:0 20px 10px;padding:0;display:flex;flex-direction:column;gap:4px}
+.olist li{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 10px;border-radius:var(--r-ctl);background:var(--surface2);font-size:var(--fs-s);font-weight:600}
+.olist li .on{flex:1;min-width:0}.olist li button{width:36px;height:32px;border-radius:8px;display:grid;place-items:center;color:var(--ink2);font-size:16px}
+.olist li button:disabled{opacity:.3}.more .mrow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 20px}
 
 /* ---------- FLISE: én række-komponent til alle faner ---------- */
 .tiles{display:flex;flex-direction:column;gap:8px;padding:8px}
@@ -329,6 +333,14 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
       <div class="head"><div class="hb"><h2>Kvitteringer</h2><div class="hs">Kuponat</div></div><div class="hr" id="kvitN"></div></div>
       <p class="mtxt" id="kvitTxt">Lidl Plus-kvitteringerne hentes automatisk søndag og torsdag aften. De bruges til Forslag, og varer I har købt, bliver krydset af.</p>
     </section>
+    <section class="card more" id="orderCard">
+      <div class="head"><div class="hb"><h2>Butikkens rækkefølge</h2><div class="hs">Radha në dyqan</div></div></div>
+      <p class="mtxt">Appen lærer rækkefølgen, når I krydser varerne af i butikken. Her kan I selv flytte kategorierne, så listen følger jeres vej.</p>
+      <div class="seg" id="orderSeg"></div>
+      <p class="mtxt dim" id="orderHow"></p>
+      <ul class="olist" id="orderList"></ul>
+      <div class="mrow"><button class="btn ghost" id="orderReset" hidden>Brug den lærte rækkefølge</button></div>
+    </section>
     <section class="card more">
       <div class="head"><div class="hb"><h2>Konto</h2><div class="hs">Llogaria</div></div></div>
       <p class="mtxt" id="who">Demo – intet gemmes</p>
@@ -351,7 +363,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v54";
+const VERSION="v55";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -390,7 +402,7 @@ const catOf=id=>CAT[id]?id:"an";
 
 const cfg=window.INDKOB_CONFIG||{};
 const live=!!(cfg.url&&cfg.anonKey&&window.supabase);
-let items=[], bought={}, offers=[], dishes=[], sb=null;
+let items=[], bought={}, offers=[], dishes=[], sb=null, trips=[], orderManual={};
 
 /* ---------- katalog og genkendelse ---------- */
 const CATALOG=[]; let BYKEY={}, INDEX=[];
@@ -459,7 +471,7 @@ async function flush(){
 }
 addEventListener("online",()=>{online=true; flush().then(()=>loaded&&refresh())});
 addEventListener("offline",()=>{online=false; netState()});
-function cacheSoon(){if(live&&loadedOrCached)local.save("indkob-cache",{items,offers,dishes,bought,lalt,lsoeg})}
+function cacheSoon(){if(live&&loadedOrCached)local.save("indkob-cache",{items,offers,dishes,bought,lalt,lsoeg,trips,orderManual})}
 let loadedOrCached=false;
 const saveDemo=()=>{if(!live){local.save("indkob-items",items);local.save("indkob-bought",bought);local.save("indkob-dishes",dishes)}};
 function changed(){render(); cacheSoon(); saveDemo()}
@@ -475,25 +487,27 @@ async function loadAll(){
   if(recovering){showAuth("recover");return}
   if(!session){showAuth("login");return}
   hideAuth();
-  const c=local.load("indkob-cache"); if(c){items=c.items||[];offers=c.offers||[];dishes=c.dishes||[];bought=c.bought||{};lalt=c.lalt||[];lsoeg=c.lsoeg||[];applyLidl();loadedOrCached=true;render()}
+  const c=local.load("indkob-cache"); if(c){items=c.items||[];offers=c.offers||[];dishes=c.dishes||[];bought=c.bought||{};trips=c.trips||[];orderManual=c.orderManual||{};lalt=c.lalt||[];lsoeg=c.lsoeg||[];applyLidl();loadedOrCached=true;render()}
   else showLoading();
   loadData();
 }
 let loaded=false;
 function showLoading(){$("#stores").replaceChildren(el("div","card empty","Henter listen …"))}
 async function fetchAll(){
-  return Promise.all([sb.from("items").select("*").order("created_at"),sb.from("bought").select("key,at").order("at"),sb.from("offers").select("*").gte("valid_to",today()),
+  return Promise.all([sb.from("items").select("*").order("created_at"),sb.from("bought").select("key,at,store,item_id").order("at"),sb.from("offers").select("*").gte("valid_to",today()),
     sb.from("products").select("*"),sb.from("catalog").select("data").limit(5000),sb.from("dishes").select("*").order("name_da"),sb.from("lidl_alt").select("*"),
-    sb.from("lidl_soeg").select("pkey,heading,own_brand,size_from,unit,qty_si,si_unit,normal_price,offer_price,offer_from,offer_to,price,unit_price")]);
+    sb.from("lidl_soeg").select("pkey,heading,own_brand,size_from,unit,qty_si,si_unit,normal_price,offer_price,offer_from,offer_to,price,unit_price"),
+    sb.from("butik_orden").select("store,cats")]);
 }
 async function refresh(){
   let r; try{r=await fetchAll()}catch(e){online=false; netState(); return false}
-  const [a,b,o,pr,cg,ds,la,ls]=r;
+  const [a,b,o,pr,cg,ds,la,ls,bo]=r;
   if(a.error){if(isNetErr(a.error)){online=false;netState();return false} toast("Kunne ikke hente listen"); return false}
   online=true; loadedOrCached=true;
   if(cg.data&&cg.data.length){setCatalog(cg.data.map(x=>x.data)); local.save("indkob-catalog",CATALOG.filter(e=>!e.own))}
   (pr.data||[]).forEach(addProduct);
-  items=a.data; offers=o.data||[]; dishes=ds.data||[]; bought={}; (b.data||[]).forEach(x=>{if(x.at)bought[x.key]=String(x.at).slice(0,10)});
+  items=a.data; offers=o.data||[]; dishes=ds.data||[]; bought={}; (b.data||[]).forEach(x=>{if(x.at)bought[x.key]=String(x.at).slice(0,10)}); learnTrips(b.data||[]);
+  if(bo&&!bo.error&&bo.data){orderManual={}; bo.data.forEach(x=>orderManual[x.store]=x.cats)}
   if(la&&!la.error&&la.data)lalt=la.data; if(ls&&!ls.error&&ls.data)lsoeg=ls.data; applyLidl();
   changed(); netState(); return true;
 }
@@ -848,8 +862,30 @@ function render(){
 }
 function renderPane(n){if(n==="list"||!dirty.has(n))return; dirty.delete(n); ({offers:renderOffers,dishes:renderDishes,sugg:renderSugg,more:renderMore})[n]()}
 /* ---------- Mere: notifikationer, kvitteringer, konto ---------- */
-let kvitStat=null;
+let kvitStat=null, orderStore="Lidl";
+async function saveOrder(store,cats){
+  if(cats)orderManual[store]=cats; else delete orderManual[store];
+  renderOrder(); renderList(); cacheSoon();
+  if(live&&sb){const r=cats?await sb.from("butik_orden").upsert({store,cats,updated_at:new Date().toISOString()}):await sb.from("butik_orden").delete().eq("store",store);
+    if(r&&r.error)toast("Kunne ikke gemme rækkefølgen")}
+}
+function renderOrder(){
+  const stores=[...new Set(["Lidl",...items.map(i=>i.store||"Lidl"),...trips.map(t=>t.store),...Object.keys(orderManual)])].sort((a,b)=>(STORE_ORDER.indexOf(a)+1||99)-(STORE_ORDER.indexOf(b)+1||99)).slice(0,4);
+  if(!stores.includes(orderStore))orderStore=stores[0];
+  const sg=$("#orderSeg"); sg.replaceChildren(); sg.hidden=stores.length<2;
+  stores.forEach(st=>{const b=el("button",null,st); b.setAttribute("aria-pressed",st===orderStore); b.onclick=()=>{orderStore=st; renderOrder()}; sg.append(b)});
+  const so=storeOrder(orderStore), ul=$("#orderList"); ul.replaceChildren();
+  $("#orderHow").textContent=so.how==="egen"?"Jeres egen rækkefølge.":so.how==="lært"?`Lært fra ${so.n} ture i butikken.`:"Standardrækkefølge – appen har ikke lært butikken endnu.";
+  $("#orderReset").hidden=so.how!=="egen";
+  so.cats.forEach((c,i)=>{const li=el("li","c-"+c), C=CAT[c]; li.append(el("span",null,C.icon),el("span","on",C.da));
+    const up=el("button",null,"↑"), dn=el("button",null,"↓"); up.setAttribute("aria-label",`Flyt ${C.da} op`); dn.setAttribute("aria-label",`Flyt ${C.da} ned`);
+    up.disabled=i===0; dn.disabled=i===so.cats.length-1;
+    const mv=d=>{const a=[...so.cats]; [a[i],a[i+d]]=[a[i+d],a[i]]; saveOrder(orderStore,a)};
+    up.onclick=()=>mv(-1); dn.onclick=()=>mv(1); li.append(up,dn); ul.append(li)});
+}
+$("#orderReset").onclick=()=>saveOrder(orderStore,null);
 async function renderMore(){
+  renderOrder();
   $("#notifySeg").hidden=!pushOK; $("#notifyOff").hidden=pushOK;
   $("#logout").hidden=!live;
   if(live&&sb){
@@ -922,6 +958,29 @@ function tripCard(x){
     toast(`${x.list.length} ${x.list.length===1?"vare":"varer"} flyttet til ${x.store}`,()=>prev.forEach(([id,st])=>patch(id,{store:st})))};
   body.append(b); card.append(h,body); return card;
 }
+/* ---------- butikkens rækkefølge ----------
+   Når I krydser af i butikken, gemmes tidspunktet (tabellen bought). En tur = afkrydsninger i samme butik samme dag (mindst 4).
+   For hver tur får hver vare en plads fra 0 (først) til 1 (sidst); gennemsnittet over turene bestemmer rækkefølgen.
+   Har I selv sat rækkefølgen af kategorier under Mere, bruges den. */
+function learnTrips(rows){
+  const by=new Map();
+  rows.forEach(x=>{if(!x.item_id||!x.at)return; const d=new Date(x.at), k=(x.store||"Lidl")+"|"+d.toLocaleDateString("sv-SE",{timeZone:"Europe/Copenhagen"});
+    if(!by.has(k))by.set(k,[]); by.get(k).push({key:x.key,t:d.getTime()})});
+  trips=[...by.entries()].filter(([,a])=>a.length>=4).map(([k,a])=>{a.sort((x,y)=>x.t-y.t); const n=a.length;
+    return {store:k.split("|")[0],day:k.split("|")[1],pos:Object.fromEntries(a.map((x,i)=>[x.key,i/(n-1)]))}}).slice(-60);
+}
+function storeOrder(store){
+  const ts=trips.filter(t=>t.store===store), key={}, cat={};
+  ts.forEach(t=>{const cs={}; Object.entries(t.pos).forEach(([k,p])=>{(key[k]=key[k]||[]).push(p); const c=catOf(BYKEY[k]&&BYKEY[k].cat); (cs[c]=cs[c]||[]).push(p)});
+    Object.entries(cs).forEach(([c,a])=>(cat[c]=cat[c]||[]).push(a.reduce((x,y)=>x+y,0)/a.length))});
+  const avg=a=>a.reduce((x,y)=>x+y,0)/a.length, def=CATS.map(c=>c.id);
+  const kp=Object.fromEntries(Object.entries(key).map(([k,a])=>[k,avg(a)]));
+  let cats=def, how="std";
+  if(orderManual[store]&&orderManual[store].length){cats=[...orderManual[store].filter(c=>def.includes(c)),...def.filter(c=>!orderManual[store].includes(c))]; how="egen"}
+  else if(ts.length>=2){const cp=Object.fromEntries(Object.entries(cat).map(([c,a])=>[c,avg(a)]));
+    cats=[...def].sort((a,b)=>(cp[a]??(def.indexOf(a)+.5)/def.length)-(cp[b]??(def.indexOf(b)+.5)/def.length)); how="lært"}
+  return {cats,kp,how,n:ts.length};
+}
 function renderList(){
   const wrap=$("#stores"); wrap.replaceChildren();
   const plan=tripPlan(); WORTH=new Set([...plan.values()].filter(x=>x.save>=MIN_TRIP).map(x=>x.store));
@@ -939,8 +998,10 @@ function renderList(){
     if(tot>0){const r=el("div","hr"); r.append(el("b",null,kr(Math.round(tot))),document.createTextNode("anslået")); h.append(r)}
     const pg=el("div","prog"), pi=el("i"); pi.style.width=(100*(list.length-open.length)/list.length)+"%"; pg.append(pi);
     card.append(h,pg);
-    [...new Set(list.map(i=>catOf(i.category)))].sort((a,b)=>rank(catIds,a)-rank(catIds,b)).forEach(c=>{
-      const arr=list.filter(i=>catOf(i.category)===c).sort((a,b)=>a.checked-b.checked);
+    const so=storeOrder(s);
+    if(so.how!=="std")card.append(el("div","sohint",so.how==="egen"?"I jeres rækkefølge for butikken":`Sorteret efter jeres vej gennem butikken (${so.n} ture)`));
+    [...new Set(list.map(i=>catOf(i.category)))].sort((a,b)=>rank(so.cats,a)-rank(so.cats,b)).forEach(c=>{
+      const arr=list.filter(i=>catOf(i.category)===c).sort((a,b)=>a.checked-b.checked||((so.kp[a.key]??.5)-(so.kp[b.key]??.5)));
       const lis=arr.map(listTile);
       card.append(group(c,arr.filter(i=>!i.checked).length||"✓",lis));
     });
