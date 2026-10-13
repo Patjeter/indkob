@@ -108,7 +108,12 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .trip .tripbody{display:flex;flex-direction:column;gap:10px;padding:0 20px 14px}.trip .tripbody .btn{align-self:flex-start}
 .notify{display:flex;flex-direction:column;padding:12px 20px 14px;margin-bottom:10px}.notify .seg{margin:10px 0 0}
 .ver{font-size:var(--fs-xs);color:var(--ink3);padding:0 6px}
-.more{padding-bottom:14px}.more .mtxt{margin:0 20px 10px;font-size:var(--fs-s);line-height:1.45;color:var(--ink2)}.more .mtxt.dim{color:var(--ink3)}
+.more{padding-bottom:14px}
+.moreback{display:inline-flex;align-items:center;gap:4px;margin:0 4px 8px;padding:6px 4px;font-size:var(--fs-s);font-weight:600;color:var(--accent)}
+.moreback[hidden]{display:none}
+.morelist{padding:6px 8px}.morerow{cursor:pointer}
+.morerow .mi{width:36px;height:36px;flex:0 0 36px;border-radius:50%;display:grid;place-items:center;color:var(--accent);background:var(--accent-soft);margin-right:2px}
+.morerow .mi svg{width:18px;height:18px}.morerow .chev{color:var(--ink3);display:grid;place-items:center;padding:0 4px}.morerow .chev svg{width:16px;height:16px}.more .mtxt{margin:0 20px 10px;font-size:var(--fs-s);line-height:1.45;color:var(--ink2)}.more .mtxt.dim{color:var(--ink3)}
 .more .seg{margin:0 20px}.more .ver{padding:0}.sohint{margin:-2px 20px 6px;font-size:var(--fs-xs);color:var(--ink3)}
 .alarmadd{margin:0 20px 10px;display:flex;flex-direction:column;gap:8px}.alarmadd .ac{padding:0}
 .alarmset{display:flex;flex-direction:column;gap:6px}.alarmset .row{display:flex;gap:8px;align-items:center}.alarmset .field.price{flex:0 0 110px}
@@ -328,6 +333,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 
   <div class="pane" id="pane-dishes" hidden>
     <div class="panehead">Retter</div>
+    <button class="moreback" data-back>‹ Mere</button>
     <section class="card">
       <div class="segbar" id="dishSegbar"><div class="seg" id="dishSeg"><button data-k="ret" aria-pressed="true">Retter<small>Gatime</small></button><button data-k="madpakke" aria-pressed="false">Madpakker<small>Ushqim për shkollë</small></button></div></div>
       <div id="dishes"></div>
@@ -347,14 +353,16 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 
   <div class="pane" id="pane-more" hidden>
     <div class="panehead">Mere</div>
-    <section class="card more" id="notify">
+    <button class="moreback" id="moreBack" hidden>‹ Mere</button>
+    <section class="card"><ul class="tiles morelist" id="moreMenu"></ul></section>
+    <section class="card more mpage" data-page="notify" id="notify">
       <div class="head"><div class="hb"><h2>Notifikationer</h2><div class="hs">Njoftime</div></div></div>
       <p class="mtxt" id="notifyTxt">Besked på telefonen, når den anden tilføjer varer til listen.</p>
       <div class="seg" id="notifySeg"><button data-l="off" aria-pressed="true">Fra</button><button data-l="da" aria-pressed="false">Dansk</button><button data-l="sq" aria-pressed="false">Shqip</button></div>
       <p class="mtxt dim" id="notifyOff" hidden>Læg appen på hjemmeskærmen og log ind for at få notifikationer.</p>
     </section>
-    <section class="card more" id="swapCard" hidden></section>
-    <section class="card more" id="alarmCard">
+    <section class="card more mpage" data-page="swap" id="swapCard"></section>
+    <section class="card more mpage" data-page="alarm" id="alarmCard">
       <div class="head"><div class="hb"><h2>Prisalarm</h2><div class="hs">Alarm çmimi</div></div><div class="hr" id="alarmN"></div></div>
       <p class="mtxt">Få besked på telefonen om morgenen, når en vare er på tilbud under jeres grænse. Prisen gælder jeres sædvanlige pakkestørrelse.</p>
       <ul class="tiles" id="alarmList"></ul>
@@ -367,11 +375,11 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
       </div>
       <p class="mtxt dim" id="alarmPush"></p>
     </section>
-    <section class="card more" id="kvitInfo">
+    <section class="card more mpage" data-page="kvit" id="kvitInfo">
       <div class="head"><div class="hb"><h2>Kvitteringer</h2><div class="hs">Kuponat</div></div><div class="hr" id="kvitN"></div></div>
       <p class="mtxt" id="kvitTxt">Lidl Plus-kvitteringerne hentes automatisk søndag og torsdag aften. De bruges til Forslag, og varer I har købt, bliver krydset af.</p>
     </section>
-    <section class="card more" id="orderCard">
+    <section class="card more mpage" data-page="order" id="orderCard">
       <div class="head"><div class="hb"><h2>Butikkens rækkefølge</h2><div class="hs">Radha në dyqan</div></div></div>
       <p class="mtxt">Appen lærer rækkefølgen, når I krydser varerne af i butikken. Her kan I selv flytte kategorierne, så listen følger jeres vej.</p>
       <div class="seg" id="orderSeg"></div>
@@ -379,7 +387,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
       <ul class="olist" id="orderList"></ul>
       <div class="mrow"><button class="btn ghost" id="orderReset" hidden>Brug den lærte rækkefølge</button></div>
     </section>
-    <section class="card more">
+    <section class="card more mpage" data-page="konto">
       <div class="head"><div class="hb"><h2>Konto</h2><div class="hs">Llogaria</div></div></div>
       <p class="mtxt" id="who">Demo – intet gemmes</p>
       <div class="mrow"><button class="btn" id="logout" hidden>Log ud</button><span class="ver">Version <span id="ver"></span></span></div>
@@ -391,7 +399,6 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <nav class="tabs" role="tablist">
   <button role="tab" aria-selected="true" data-tab="list"><span class="ic" data-ic="cart"></span>Indkøbsliste<span class="badge" id="b-list" hidden></span></button>
   <button role="tab" aria-selected="false" data-tab="offers"><span class="ic" data-ic="tag"></span>Tilbud<span class="badge" id="b-offers" hidden></span></button>
-  <button role="tab" aria-selected="false" data-tab="dishes"><span class="ic" data-ic="pot"></span>Retter</button>
   <button role="tab" aria-selected="false" data-tab="sugg"><span class="ic" data-ic="bulb"></span>Forslag<span class="badge" id="b-sugg" hidden></span></button>
   <button role="tab" aria-selected="false" data-tab="more"><span class="ic" data-ic="menu"></span>Mere</button>
 </nav>
@@ -401,7 +408,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v63";
+const VERSION="v64";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -423,6 +430,12 @@ const IC={
   c_dr:SV('<path d="M10 2.5h4M10.5 2.5v4C8.6 8 8 9.2 8 11.2V20a1.5 1.5 0 0 0 1.5 1.5h5A1.5 1.5 0 0 0 16 20v-8.8c0-2-.6-3.2-2.5-4.7v-4"/><path d="M8 14h8"/>',1.8),
   c_sn:SV('<circle cx="12" cy="12" r="3.8"/><path d="M8.6 10.3 4.3 7.5l-.6 5L8.3 14M15.4 13.7l4.3 2.8.6-5-4.6-1.5"/>',1.8),
   c_nf:SV('<path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5Z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/>',1.8),
+  bell:SV('<path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15Z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',1.9),
+  user:SV('<circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/>',1.9),
+  receipt:SV('<path d="M6 2.5h12v19l-3-2-3 2-3-2-3 2Z"/><path d="M9 8h6M9 12h6"/>',1.9),
+  swap:SV('<path d="M7 4 3.5 7.5 7 11M3.5 7.5h13M17 13l3.5 3.5L17 20M20.5 16.5h-13"/>',1.9),
+  phone:SV('<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',1.9),
+  chev:SV('<path d="m9 5 7 7-7 7"/>',2.2),
   pot:SV('<path d="M4 10h16v4a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6v-4Z"/><path d="M2 10h20M9 6.5c0-1 .8-1.5.8-2.5M13 6.5c0-1 .8-1.5.8-2.5"/>',1.9),
   plus:SV('<path d="M12 5v14M5 12h14"/>',2.4),
   minus:SV('<path d="M5 12h14"/>',2.4),
@@ -760,7 +773,8 @@ function swapRows(){
 }
 function renderSwaps(){
   const c=$("#swapCard"), rows=swapRows(), on=new Map(items.filter(i=>!i.checked&&i.key).map(i=>[i.key,i]));
-  c.replaceChildren(); c.hidden=!rows.length; if(!rows.length)return;
+  c.replaceChildren();
+  if(!rows.length){const h=el("div","head"), hb=el("div","hb"); hb.append(el("h2",null,"Skift mærke og spar"),el("div","hs","Ndrro markën dhe kurse")); h.append(hb); c.append(h,el("p","mtxt","Ingen mærkeskift at foreslå lige nu.")); return}
   const tot=rows.reduce((a,r)=>a+r.year,0), h=el("div","head"); const hb=el("div","hb"); hb.append(el("h2",null,"Skift mærke og spar"),el("div","hs","Ndrro markën dhe kurse")); h.append(hb);
   const hr=el("div","hr"); hr.append(el("b",null,kr(Math.round(tot/100)*100)),document.createTextNode("om året")); h.append(hr); c.append(h);
   const lis=rows.slice(0,5).map(({x,e,year})=>{
@@ -1004,8 +1018,31 @@ function renderOrder(){
     up.onclick=()=>mv(-1); dn.onclick=()=>mv(1); li.append(up,dn); ul.append(li)});
 }
 $("#orderReset").onclick=()=>saveOrder(orderStore,null);
+/* Mere: en liste af overskrifter; et tryk åbner indholdet, "‹ Mere" går tilbage */
+let morePage=null;
+function moreSummary(p){
+  if(p==="dishes"){const r=dishes.filter(d=>(d.kind||"ret")==="ret").length, m=dishes.length-r; return `${r} retter · ${m} madpakker`}
+  if(p==="swap"){const rows=swapRows(), t=rows.reduce((a,r)=>a+r.year,0); return rows.length?`spar ca. ${kr(Math.round(t/100)*100)} om året`:"ingen forslag lige nu"}
+  if(p==="alarm")return alarms.length?`${alarms.length} ${alarms.length===1?"alarm":"alarmer"}`:"ingen alarmer endnu";
+  if(p==="notify")return !pushOK?"kræver appen på hjemmeskærmen":({off:"slået fra",da:"dansk",sq:"shqip"})[pushLang]||"";
+  if(p==="order"){const so=storeOrder("Lidl"); return so.how==="egen"?"jeres egen rækkefølge":so.how==="lært"?`lært fra ${so.n} ture`:"lærer, når I krydser af"}
+  if(p==="kvit"){const n=(kvitStat||[]).reduce((a,r)=>a+(+r.antal||0),0); return n?`${n} gemt`:"Lidl Plus hentes automatisk"}
+  if(p==="konto")return $("#who").textContent;
+  return "";
+}
+const MORE=[["dishes","Retter og madpakker","Gatime dhe ushqim për shkollë","pot"],["swap","Skift mærke og spar","Ndrro markën dhe kurse","swap"],
+  ["alarm","Prisalarm","Alarm çmimi","bell"],["notify","Notifikationer","Njoftime","phone"],["order","Butikkens rækkefølge","Radha në dyqan","menu"],
+  ["kvit","Kvitteringer","Kuponat","receipt"],["konto","Konto","Llogaria","user"]];
+function showMorePage(){
+  $("#moreMenu").closest(".card").hidden=!!morePage; $("#moreBack").hidden=!morePage;
+  document.querySelectorAll("#pane-more .mpage").forEach(x=>x.hidden=x.dataset.page!==morePage);
+  if(!morePage){const ul=$("#moreMenu"); ul.replaceChildren();
+    MORE.forEach(([p,t,sq,ic])=>{const lead=el("span","mi"); lead.append(svgEl(ic)); const ch=el("span","chev"); ch.append(svgEl("chev"));
+      const li=tile({cat:"an",lead,name:t,alt:sq,meta:[moreSummary(p)],act:ch,onTap:()=>{if(p==="dishes")goTab("dishes"); else{morePage=p; showMorePage(); scrollTo(0,0)}}});
+      li.classList.add("morerow"); ul.append(li)})}
+}
 async function renderMore(){
-  renderSwaps(); renderOrder(); renderAlarms(); if(!alarmLoaded){loadAlarms().then(renderAlarms)}
+  showMorePage(); renderSwaps(); renderOrder(); renderAlarms(); if(!alarmLoaded){loadAlarms().then(()=>{renderAlarms(); if(!morePage)showMorePage()})}
   $("#notifySeg").hidden=!pushOK; $("#notifyOff").hidden=pushOK;
   $("#logout").hidden=!live;
   if(live&&sb){
@@ -1014,6 +1051,7 @@ async function renderMore(){
   }
   const n=(kvitStat||[]).reduce((a,r)=>a+(+r.antal||0),0), last=(kvitStat||[]).map(r=>r.seneste).sort().pop();
   $("#kvitN").replaceChildren(); if(n){const b=el("b",null,String(n)); $("#kvitN").append(b,document.createTextNode("gemt"))}
+  if(!morePage)showMorePage();
   $("#kvitTxt").textContent="Lidl Plus-kvitteringerne hentes automatisk søndag og torsdag aften. De bruges til Forslag, og varer I har købt, bliver krydset af."+(last?` Seneste køb: ${dshort(String(last).slice(0,10))}.`:"");
 }
 function onListKeys(){return new Set(items.filter(i=>!i.checked&&i.key).map(i=>i.key))}
@@ -1382,12 +1420,17 @@ $("#suggSearch").addEventListener("input",()=>{lidlAllSugg=false; renderSugg()})
 $("#seg").querySelectorAll("button").forEach(b=>b.onclick=()=>{suggFilter=b.dataset.f; $("#seg").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b)); renderSugg(); {const st=getComputedStyle(document.documentElement), y=$("#sugg").getBoundingClientRect().top+scrollY-parseFloat(st.getPropertyValue("--toph"))-(parseFloat(st.getPropertyValue("--segh"))||0); if(scrollY>y+1)scrollTo({top:Math.max(0,y)})}});
 $("#newDish").onclick=()=>{editingDish={name_da:"",name_sq:"",items:[],kind:dishKind,tags:[],link:""}; openDish=null; renderDishes()};
 $("#dishSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{dishKind=b.dataset.k; openDish=null; editingDish=null; renderDishes(); setHead()});
-document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
-  tab=b.dataset.tab; document.body.dataset.tab=tab;
-  document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
+function goTab(t){
+  tab=t; document.body.dataset.tab=tab; if(t==="more")morePage=null;
+  const nav=t==="dishes"?"more":t;
+  document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===nav));
   ["list","offers","dishes","sugg","more"].forEach(n=>$("#pane-"+n).hidden=n!==tab);
+  if(t==="more")dirty.add("more");
   renderPane(tab); setHead(); scrollTo(0,0);
-});
+}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>goTab(b.dataset.tab));
+$("#moreBack").onclick=()=>{morePage=null; showMorePage()};
+document.querySelectorAll("[data-back]").forEach(b=>b.onclick=()=>goTab("more"));
 const setTop=()=>document.documentElement.style.setProperty("--toph",$(".top").offsetHeight+"px");
 /* tilføj-feltet: lige over menuen, eller lige over tastaturet når det er åbent */
 function setAddBottom(){
