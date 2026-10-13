@@ -131,7 +131,8 @@ end $$;
 -- Indlæsning: [{tid, dato, butik, kaede?, total, parsed_total?, ejer?, kilde?, linjer:[[navn, antal, stk_pris, beloeb, rabat], …]}, …]
 -- Kendte kvitteringer springes over. Bagefter: købsrytme for de berørte varer, og varer på listen,
 -- som står på en ny kvittering (og blev skrevet på før købet), krydses af.
-create or replace function public.kvit_ingest(rows jsonb) returns jsonb
+drop function if exists public.kvit_ingest(jsonb);
+create or replace function public.kvit_ingest(rows jsonb, afkryds boolean default true) returns jsonb
 language plpgsql security invoker set search_path = public as $$
 declare r jsonb; ln jsonb; i int; n_new int := 0; n_lines int := 0; n_known int := 0; ks text[] := '{}'; n_checked int := 0; ukendt jsonb;
 begin
@@ -153,6 +154,7 @@ begin
       update items it set checked = true
        where not it.checked and it.key in (select key from kvit_linjer where tid = r->>'tid' and key is not null and key <> '-')
          and it.created_at < (r->>'dato')::timestamptz
+         and afkryds and (r->>'dato')::timestamptz > now() - interval '7 days'   -- kun nye køb, ikke gamle kvitteringer
       returning 1)
     select n_checked + count(*) into n_checked from upd;
     ks := ks || array(select distinct key from kvit_linjer where tid = r->>'tid' and key is not null and key <> '-');
@@ -163,10 +165,10 @@ begin
   return jsonb_build_object('nye', n_new, 'kendte', n_known, 'linjer', n_lines, 'krydset_af', n_checked,
                             'varer', coalesce(array_length(array(select distinct unnest(ks)), 1), 0), 'ukendte', ukendt);
 end $$;
-grant execute on function public.kvit_ingest(jsonb) to authenticated;
+grant execute on function public.kvit_ingest(jsonb, boolean) to authenticated;
 grant execute on function public.kvit_rytme(text[]) to authenticated;
-revoke all on function public.kvit_ingest(jsonb) from anon;
-revoke all on function public.kvit_rytme(text[]) from anon;
+revoke all on function public.kvit_ingest(jsonb, boolean) from anon, public;
+revoke all on function public.kvit_rytme(text[]) from anon, public;
 
 -- seneste kvittering pr. konto (appen viser, hvornår der sidst er hentet)
 create or replace view public.kvit_status with (security_invoker = true) as
