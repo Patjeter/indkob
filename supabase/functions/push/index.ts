@@ -80,6 +80,55 @@ export function plan(claimed: Item[], subs: Sub[], family: { email: string; name
   return out;
 }
 
+/** Selve kørslen (testes lokalt med en falsk database og falsk afsendelse) */
+// deno-lint-ignore no-explicit-any
+export async function handle(req: Request, sb: any, deliver: (sub: Sub, payload: unknown) => Promise<unknown>) {
+  // kun databasens egne planlagte kørsler må starte afsendelse (se cron_secret.sql)
+  const { data: cs } = await sb.from("cron_secret").select("secret").eq("id", 1).maybeSingle();
+  if (!cs?.secret || req.headers.get("x-cron-secret") !== cs.secret) return Response.json({ error: "ikke tilladt" }, { status: 401 });
+  let alarm = false;
+  try { alarm = !!(await req.json())?.alarm; } catch { /* tom krop: almindelig liste-besked */ }
+  const isGone = (e: unknown) => [404, 410].includes((e as { statusCode?: number }).statusCode || 0);
+  // 1) genforsøg, der er klar: kun til den telefon, der fejlede
+  let retried = 0;
+  const { data: due } = await sb.from("push_retry").select("id,endpoint,payload,tries").lte("next_at", new Date().toISOString()).limit(50);
+  type Due = { id: number; endpoint: string; payload: unknown; tries: number };
+  if (due?.length) {
+    const { data: rs } = await sb.from("push_subs").select("endpoint,p256dh,auth,dev,lang,email").in("endpoint", due.map((d: { endpoint: string }) => d.endpoint));
+    for (const d of due as Due[]) {
+      const sub = ((rs || []) as Sub[]).find((x) => x.endpoint === d.endpoint);
+      if (!sub) { await sb.from("push_retry").delete().eq("id", d.id); continue; }
+      try { await deliver(sub, d.payload); await sb.from("push_retry").delete().eq("id", d.id); retried++; }
+      catch (e) {
+        if (isGone(e)) { await sb.from("push_subs").delete().eq("endpoint", sub.endpoint); }
+        else if (d.tries < 5) { await sb.from("push_retry").update({ tries: d.tries + 1, next_at: new Date(Date.now() + 60000 * 2 ** d.tries).toISOString() }).eq("id", d.id); continue; }
+        await sb.from("push_retry").delete().eq("id", d.id);
+      }
+    }
+  }
+  const { data: claimed, error } = alarm ? await sb.rpc("prisalarm_claim") : await sb.rpc("push_claim");
+  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (!claimed?.length) return Response.json({ claimed: 0, sent: 0, retried });
+  const [{ data: subs }, { data: family }] = await Promise.all([
+    sb.from("push_subs").select("endpoint,p256dh,auth,dev,lang,email"),
+    sb.from("family").select("email,name"),
+  ]);
+  let sent = 0, gone = 0, failed = 0;
+  const msgs = alarm ? planAlarms(claimed as Hit[], (subs || []) as Sub[]) : plan(claimed as Item[], (subs || []) as Sub[], family || []);
+  for (const m of msgs) {
+    const payload = { title: m.title, body: m.body, n: m.n };
+    try { await deliver(m.sub, payload); sent++; }
+    catch (e) {
+      if (isGone(e)) { await sb.from("push_subs").delete().eq("endpoint", m.sub.endpoint); gone++; }
+      else {   // midlertidig fejl: gem beskeden til netop denne telefon og prøv igen om lidt
+        failed++; console.error("push fejlede", (e as { statusCode?: number }).statusCode, (e as { body?: string }).body);
+        await sb.from("push_retry").insert({ endpoint: m.sub.endpoint, payload });
+      }
+    }
+  }
+  return Response.json({ claimed: claimed.length, sent, gone, failed, retried });
+}
+
 if (!Deno.env.get("PUSH_TEST")) {   // PUSH_TEST sættes kun i den lokale test
   const KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, KEY || "x", { auth: { persistSession: false } });
@@ -87,44 +136,8 @@ if (!Deno.env.get("PUSH_TEST")) {   // PUSH_TEST sættes kun i den lokale test
   Deno.serve(async (req) => {
     if (!KEY) return Response.json({ error: "SUPABASE_SERVICE_ROLE_KEY mangler" }, { status: 500 });
     if (!Deno.env.get("VAPID_PRIVATE_KEY")) return Response.json({ error: "VAPID_PRIVATE_KEY mangler" }, { status: 500 });
-    // kun databasens egne planlagte kørsler må starte afsendelse (se cron_secret.sql)
-    const { data: cs } = await sb.from("cron_secret").select("secret").eq("id", 1).maybeSingle();
-    if (!cs?.secret || req.headers.get("x-cron-secret") !== cs.secret) return Response.json({ error: "ikke tilladt" }, { status: 401 });
     webpush.setVapidDetails(APP, VAPID_PUBLIC, Deno.env.get("VAPID_PRIVATE_KEY")!);
-    let alarm = false;
-    try { alarm = !!(await req.json())?.alarm; } catch { /* tom krop: almindelig liste-besked */ }
-    const { data: claimed, error } = alarm ? await sb.rpc("prisalarm_claim") : await sb.rpc("push_claim");
-    if (error) return Response.json({ error: error.message }, { status: 500 });
-    if (!claimed?.length) return Response.json({ claimed: 0, sent: 0 });
-    const [{ data: subs }, { data: family }] = await Promise.all([
-      sb.from("push_subs").select("endpoint,p256dh,auth,dev,lang,email"),
-      sb.from("family").select("email,name"),
-    ]);
-    let sent = 0, gone = 0, failed = 0;
-    const msgs = alarm ? planAlarms(claimed as Hit[], (subs || []) as Sub[]) : plan(claimed as Item[], (subs || []) as Sub[], family || []);
-    for (const m of msgs) {
-      try {
-        await webpush.sendNotification(
-          { endpoint: m.sub.endpoint, keys: { p256dh: m.sub.p256dh, auth: m.sub.auth } },
-          JSON.stringify({ title: m.title, body: m.body, n: m.n }),
-          { TTL: 12 * 3600, urgency: "normal" },
-        );
-        sent++;
-      } catch (e) {
-        const code = (e as { statusCode?: number }).statusCode;
-        if (code === 404 || code === 410) { await sb.from("push_subs").delete().eq("endpoint", m.sub.endpoint); gone++; }
-        else { failed++; console.error("push fejlede", code, (e as { body?: string }).body); }
-      }
-    }
-    // kom intet frem på grund af midlertidige fejl, frigives beskederne til næste kørsel
-    if (msgs.length && sent === 0 && failed > 0) {
-      if (alarm) {
-        for (const h of claimed as Hit[]) if (h.alarm_id && h.offer_id)
-          await sb.from("prisalarm_hit").update({ notified: false }).eq("alarm_id", h.alarm_id).eq("offer_id", h.offer_id);
-      } else {
-        await sb.from("items").update({ notified: false }).in("id", (claimed as Item[]).map((i) => i.id));
-      }
-    }
-    return Response.json({ claimed: claimed.length, sent, gone, failed });
+    return handle(req, sb, (sub, payload) => webpush.sendNotification(
+      { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, JSON.stringify(payload), { TTL: 12 * 3600, urgency: "normal" }));
   });
 }

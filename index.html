@@ -106,7 +106,8 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .empty{padding:16px;text-align:center;font-size:var(--fs-s);color:var(--ink3)}
 .foot{display:flex;justify-content:center;align-items:center;gap:4px;margin:4px 0 10px}
 .trip .tripbody{display:flex;flex-direction:column;gap:10px;padding:0 20px 14px}.trip .tripbody .btn{align-self:flex-start}
-.notify{display:flex;flex-direction:column;padding:12px 20px 14px;margin-bottom:10px}.notify .seg{margin:10px 0 0}
+.notify{display:flex;flex-direction:column;padding:12px 20px 14px;margin-bottom:10px}
+.failed{gap:10px;color:var(--warn);background:var(--warn-soft)}.failed .dt{font-size:var(--fs-s);font-weight:600}.notify .seg{margin:10px 0 0}
 .ver{font-size:var(--fs-xs);color:var(--ink3);padding:0 6px}
 .more{padding-bottom:14px}
 .moreback{display:inline-flex;align-items:center;gap:4px;margin:0 4px 8px;padding:6px 4px;font-size:var(--fs-s);font-weight:600;color:var(--accent)}
@@ -309,6 +310,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
     <div class="panehead">Indkøbsliste</div>
     <div id="demo" class="demo" hidden>Demo: listen gemmes kun på denne enhed. Data er opfundne.</div>
     <section class="card notify kvit" id="kvitImport" hidden aria-live="polite"></section>
+    <section class="card notify failed" id="failedBox" hidden role="alert"></section>
     <section class="card" id="addCard">
       <form class="fieldrow" id="addForm" autocomplete="off">
         <label class="field"><span data-ic="search"></span><input id="addInput" placeholder="Skriv en vare" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
@@ -410,7 +412,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v66";
+const VERSION="v67";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -517,24 +519,40 @@ async function runOp(op){
   if(op.kind==="delete")return t.delete().in(op.col||"id",op.vals);
 }
 /* alle ændringer går gennem én kø og sendes én ad gangen i rækkefølge (fx tilføj før afkryds).
-   En ændring fjernes først, når serveren har svaret; afvises den, vises fejlen. */
+   En ændring fjernes først, når serveren har svaret. Afviser serveren den, flyttes den til "failed",
+   gemmes og vises med "Prøv igen" – intet slettes i stilhed. Netfejl prøves igen af sig selv. */
+let failed=local.load("indkob-failed")||[], retryT=null, retryMs=5000;
 function send(op){
   if(!live)return;
   queue.push(op); local.save("indkob-queue",queue); netState(); flush();
+}
+function scheduleRetry(){
+  clearTimeout(retryT);
+  retryT=setTimeout(()=>{online=true; flush()},retryMs); retryMs=Math.min(retryMs*2,60000);
 }
 async function flush(){
   if(!live||flushing||!queue.length||!online)return; flushing=true; netState();
   while(queue.length){
     let res; try{res=await runOp(queue[0])}catch(e){res={error:e}}
     if(res&&res.error){
-      if(isNetErr(res.error)){online=false; break}
+      if(isNetErr(res.error)){online=false; scheduleRetry(); break}
       console.error("afvist ændring",queue[0],res.error);
-      toast(`Kunne ikke gemme en ændring: ${String(res.error.message||res.error).slice(0,80)}`);
-    }
+      failed.push({op:queue[0],msg:String(res.error.message||res.error).slice(0,120),at:new Date().toISOString()});
+      local.save("indkob-failed",failed); showFailed();
+    } else retryMs=5000;
     queue.shift(); local.save("indkob-queue",queue);
   }
   flushing=false; netState();
 }
+function showFailed(){
+  const box=$("#failedBox"); if(!box)return; box.hidden=!failed.length; box.replaceChildren(); if(!failed.length)return;
+  const t=el("div","dt",`${failed.length} ${failed.length===1?"ændring":"ændringer"} kunne ikke gemmes: ${failed[failed.length-1].msg}`);
+  const again=el("button","btn","Prøv igen"), drop=el("button","btn ghost","Kassér");
+  again.onclick=()=>{const ops=failed.map(f=>f.op); failed=[]; local.save("indkob-failed",failed); showFailed(); ops.forEach(send)};
+  drop.onclick=()=>{failed=[]; local.save("indkob-failed",failed); showFailed(); refresh()};
+  const r=el("div","btns"); r.append(drop,again); box.append(t,r);
+}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&queue.length){online=true; flush()}});
 addEventListener("online",()=>{online=true; flush().then(()=>loaded&&refresh())});
 addEventListener("offline",()=>{online=false; netState()});
 function cacheSoon(){if(live&&loadedOrCached)local.save("indkob-cache",{items,offers,dishes,bought,lalt,lsoeg,trips,orderManual})}
@@ -841,7 +859,7 @@ const refOf=(o,key)=>o.ref_price!=null?+o.ref_price:(BYKEY[key]&&BYKEY[key].pric
 // automatikken gemmer ALLE godkendte tilbud (ét pr. vare) og markerer Tilbud-fanens udvalg (featured).
 // Findes de, bruges kun de; tilbudsopgavens rækker bruges så kun til sammenligning.
 const autoOffers=()=>offers.some(o=>o.source==="auto");
-const shownOffers=()=>autoOffers()?offers.filter(o=>o.source==="auto"):offers;
+const shownOffers=()=>autoOffers()?offers.filter(o=>o.source==="auto"||o.source==="valg"):offers;
 const featuredOffers=()=>autoOffers()?offers.filter(o=>o.source==="auto"&&o.featured):offers;
 /* 50 kr.-reglen på det, I faktisk skal købe: varer på listen lagt sammen pr. kæde, hvor de er billigere end der, hvor de står nu */
 const MIN_TRIP=50;
@@ -1504,7 +1522,7 @@ if(pushOK){
 const clearBadge=()=>{try{navigator.clearAppBadge&&navigator.clearAppBadge()}catch(e){}};
 clearBadge(); document.addEventListener("visibilitychange",()=>{if(!document.hidden)clearBadge()});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
-$("#ver").textContent=VERSION; setHead(); setTop(); netState(); loadAll();
+$("#ver").textContent=VERSION; showFailed(); setHead(); setTop(); netState(); loadAll();
 </script>
 </body>
 </html>
