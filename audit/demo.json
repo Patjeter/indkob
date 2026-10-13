@@ -1,0 +1,1563 @@
+{
+ "note": "Opfundne demodata til gennemgang. Ikke familiens rigtige varer, priser eller kvitteringer.",
+ "catalog": [
+  {
+   "key": "banan",
+   "da": "Bananer",
+   "sq": "Banane",
+   "cat": "fg",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-06",
+   "gaps": [
+    5,
+    6,
+    5,
+    5,
+    4,
+    5,
+    7,
+    6,
+    7,
+    6,
+    6,
+    6
+   ],
+   "every": 6,
+   "qty": 6,
+   "tot": 195,
+   "prod": [
+    "Bananer"
+   ],
+   "price": 2.5
+  },
+  {
+   "key": "aebler",
+   "da": "Æbler",
+   "sq": "Mollë",
+   "cat": "fg",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-04",
+   "gaps": [
+    13,
+    11,
+    13,
+    8,
+    9,
+    9,
+    9,
+    9,
+    10,
+    13,
+    11,
+    11
+   ],
+   "every": 10,
+   "qty": 1,
+   "tot": 195,
+   "prod": [
+    "Æbler"
+   ],
+   "price": 15
+  },
+  {
+   "key": "agurk",
+   "da": "Agurk",
+   "sq": "Kastravec",
+   "cat": "fg",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-06",
+   "gaps": [
+    5,
+    5,
+    5,
+    4,
+    3,
+    4,
+    3,
+    6,
+    5,
+    5,
+    5,
+    6
+   ],
+   "every": 5,
+   "qty": 1,
+   "tot": 91,
+   "prod": [
+    "Agurk"
+   ],
+   "price": 7
+  },
+  {
+   "key": "tomater",
+   "da": "Tomater",
+   "sq": "Domate",
+   "cat": "fg",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-03",
+   "gaps": [
+    7,
+    5,
+    8,
+    6,
+    7,
+    8,
+    7,
+    6,
+    6,
+    8,
+    5,
+    8
+   ],
+   "every": 7,
+   "qty": 1,
+   "tot": 156,
+   "prod": [
+    "Tomater"
+   ],
+   "price": 12
+  },
+  {
+   "key": "kartofler",
+   "da": "Kartofler",
+   "sq": "Patate",
+   "cat": "fg",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-01",
+   "gaps": [
+    11,
+    9,
+    6,
+    12,
+    11,
+    12,
+    13,
+    10,
+    10,
+    6,
+    11,
+    8
+   ],
+   "every": 10,
+   "qty": 1,
+   "tot": 221,
+   "prod": [
+    "Kartofler"
+   ],
+   "price": 17
+  },
+  {
+   "key": "loeg",
+   "da": "Løg",
+   "sq": "Qepë",
+   "cat": "fg",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-09-28",
+   "gaps": [
+    11,
+    17,
+    14,
+    12,
+    16,
+    15,
+    13,
+    12,
+    13,
+    11,
+    9,
+    11
+   ],
+   "every": 14,
+   "qty": 1,
+   "tot": 130,
+   "prod": [
+    "Løg"
+   ],
+   "price": 10
+  },
+  {
+   "key": "gulerod",
+   "da": "Gulerødder",
+   "sq": "Karota",
+   "cat": "fg",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-05",
+   "gaps": [
+    8,
+    11,
+    8,
+    8,
+    7,
+    9,
+    9,
+    9,
+    9,
+    7,
+    9,
+    11
+   ],
+   "every": 9,
+   "qty": 1,
+   "tot": 130,
+   "prod": [
+    "Gulerødder"
+   ],
+   "price": 10
+  },
+  {
+   "key": "peberfrugt",
+   "da": "Peberfrugt",
+   "sq": "Speca",
+   "cat": "fg",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-10",
+   "gaps": [
+    8,
+    7,
+    3,
+    5,
+    8,
+    3,
+    6,
+    8,
+    4,
+    9,
+    7,
+    6
+   ],
+   "every": 7,
+   "qty": 2,
+   "tot": 182,
+   "prod": [
+    "Peberfrugt"
+   ],
+   "price": 7
+  },
+  {
+   "key": "citron",
+   "da": "Citroner",
+   "sq": "Limona",
+   "cat": "fg",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-09-23",
+   "gaps": [
+    24,
+    25,
+    29,
+    20,
+    21,
+    23,
+    23,
+    24,
+    16,
+    17,
+    26,
+    27
+   ],
+   "every": 20,
+   "qty": 1,
+   "tot": 156,
+   "prod": [
+    "Citroner"
+   ],
+   "price": 12
+  },
+  {
+   "key": "salat",
+   "da": "Salat",
+   "sq": "Sallatë",
+   "cat": "fg",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-09",
+   "gaps": [
+    9,
+    7,
+    6,
+    13,
+    16,
+    10,
+    9,
+    10,
+    9,
+    14,
+    10,
+    13
+   ],
+   "every": 12,
+   "qty": 1,
+   "tot": 130,
+   "prod": [
+    "Salat"
+   ],
+   "price": 10
+  },
+  {
+   "key": "rugbroed",
+   "da": "Rugbrød",
+   "sq": "Bukë thekre",
+   "cat": "br",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-07",
+   "gaps": [
+    5,
+    6,
+    5,
+    5,
+    4,
+    5,
+    7,
+    5,
+    6,
+    6,
+    4,
+    7
+   ],
+   "every": 6,
+   "qty": 1,
+   "tot": 208,
+   "prod": [
+    "Rugbrød"
+   ],
+   "price": 16
+  },
+  {
+   "key": "sandwich",
+   "da": "Sandwichbrød",
+   "sq": "Bukë sandwich",
+   "cat": "br",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-04",
+   "gaps": [
+    6,
+    6,
+    9,
+    9,
+    10,
+    7,
+    7,
+    9,
+    7,
+    4,
+    4,
+    8
+   ],
+   "every": 8,
+   "qty": 1,
+   "tot": 286,
+   "prod": [
+    "Sandwichbrød"
+   ],
+   "price": 22
+  },
+  {
+   "key": "kyllingebryst",
+   "da": "Kyllingebryst",
+   "sq": "Gjoks pule",
+   "cat": "km",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-10",
+   "gaps": [
+    11,
+    7,
+    6,
+    6,
+    6,
+    6,
+    2,
+    6,
+    8,
+    4,
+    6,
+    8
+   ],
+   "every": 7,
+   "qty": 1,
+   "tot": 455,
+   "prod": [
+    "Kyllingebryst"
+   ],
+   "price": 35
+  },
+  {
+   "key": "hakket okse",
+   "da": "Hakket oksekød",
+   "sq": "Mish viçi i grirë",
+   "cat": "km",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-06",
+   "gaps": [
+    12,
+    15,
+    10,
+    12,
+    10,
+    10,
+    15,
+    8,
+    14,
+    16,
+    8,
+    17
+   ],
+   "every": 14,
+   "qty": 1,
+   "tot": 845,
+   "prod": [
+    "Hakket oksekød"
+   ],
+   "price": 65
+  },
+  {
+   "key": "laks",
+   "da": "Laksefilet",
+   "sq": "Salmon",
+   "cat": "km",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-01",
+   "gaps": [
+    16,
+    20,
+    22,
+    21,
+    20,
+    24,
+    16,
+    8,
+    9,
+    25,
+    34,
+    20
+   ],
+   "every": 21,
+   "qty": 1,
+   "tot": 780,
+   "prod": [
+    "Laksefilet"
+   ],
+   "price": 60
+  },
+  {
+   "key": "kyllingepaalaeg",
+   "da": "Kyllingepålæg",
+   "sq": "Meze pule",
+   "cat": "km",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-11",
+   "gaps": [
+    7,
+    7,
+    5,
+    7,
+    2,
+    7,
+    6,
+    6,
+    8,
+    6,
+    4,
+    4
+   ],
+   "every": 7,
+   "qty": 2,
+   "tot": 390,
+   "prod": [
+    "Kyllingepålæg"
+   ],
+   "price": 15
+  },
+  {
+   "key": "laktosefri maelk",
+   "da": "Laktosefri mælk",
+   "sq": "Qumësht pa laktozë",
+   "cat": "mk",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-07",
+   "gaps": [
+    5,
+    3,
+    4,
+    2,
+    4,
+    5,
+    3,
+    5,
+    4,
+    3,
+    2,
+    5
+   ],
+   "every": 4,
+   "qty": 2,
+   "tot": 442,
+   "prod": [
+    "Laktosefri mælk"
+   ],
+   "price": 17
+  },
+  {
+   "key": "yoghurt",
+   "da": "Yoghurt",
+   "sq": "Kos",
+   "cat": "mk",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-12",
+   "gaps": [
+    7,
+    8,
+    6,
+    5,
+    3,
+    5,
+    3,
+    3,
+    2,
+    5,
+    5,
+    6
+   ],
+   "every": 5,
+   "qty": 2,
+   "tot": 208,
+   "prod": [
+    "Yoghurt"
+   ],
+   "price": 8
+  },
+  {
+   "key": "aeg",
+   "da": "Æg",
+   "sq": "Vezë",
+   "cat": "mk",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-03",
+   "gaps": [
+    13,
+    8,
+    6,
+    6,
+    9,
+    7,
+    10,
+    5,
+    8,
+    9,
+    7,
+    9
+   ],
+   "every": 8,
+   "qty": 1,
+   "tot": 208,
+   "prod": [
+    "Æg"
+   ],
+   "price": 16
+  },
+  {
+   "key": "smoer",
+   "da": "Smør",
+   "sq": "Gjalpë",
+   "cat": "mk",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-08",
+   "gaps": [
+    11,
+    17,
+    14,
+    12,
+    13,
+    6,
+    10,
+    8,
+    7,
+    13,
+    15,
+    12
+   ],
+   "every": 14,
+   "qty": 1,
+   "tot": 156,
+   "prod": [
+    "Smør"
+   ],
+   "price": 12
+  },
+  {
+   "key": "pizzaost",
+   "da": "Revet ost (pizza)",
+   "sq": "Djathë pica",
+   "cat": "mk",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-04",
+   "gaps": [
+    9,
+    9,
+    8,
+    10,
+    14,
+    10,
+    11,
+    12,
+    9,
+    6,
+    8,
+    12
+   ],
+   "every": 10,
+   "qty": 1,
+   "tot": 260,
+   "prod": [
+    "Revet ost (pizza)"
+   ],
+   "price": 20
+  },
+  {
+   "key": "fraiche",
+   "da": "Laktosefri creme fraiche",
+   "sq": "Krem fraiche",
+   "cat": "mk",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-04",
+   "gaps": [
+    6,
+    12,
+    12,
+    11,
+    12,
+    12,
+    14,
+    13,
+    18,
+    13,
+    14,
+    13
+   ],
+   "every": 12,
+   "qty": 1,
+   "tot": 156,
+   "prod": [
+    "Laktosefri creme fraiche"
+   ],
+   "price": 12
+  },
+  {
+   "key": "x:hvid ost feta type",
+   "da": "Hvid ost (feta-type)",
+   "sq": "Djathë i bardhë",
+   "cat": "mk",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-06",
+   "gaps": [
+    17,
+    17,
+    18,
+    25,
+    22,
+    14,
+    20,
+    26,
+    28,
+    11,
+    29,
+    15
+   ],
+   "every": 20,
+   "qty": 1,
+   "tot": 325,
+   "prod": [
+    "Hvid ost (feta-type)"
+   ],
+   "price": 25
+  },
+  {
+   "key": "pasta",
+   "da": "Pasta",
+   "sq": "Makarona",
+   "cat": "ko",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-02",
+   "gaps": [
+    10,
+    8,
+    11,
+    11,
+    11,
+    10,
+    13,
+    11,
+    11,
+    4,
+    12,
+    13
+   ],
+   "every": 10,
+   "qty": 2,
+   "tot": 286,
+   "prod": [
+    "Pasta"
+   ],
+   "price": 11
+  },
+  {
+   "key": "ris",
+   "da": "Ris",
+   "sq": "Oriz",
+   "cat": "ko",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-09-30",
+   "gaps": [
+    12,
+    15,
+    16,
+    16,
+    13,
+    12,
+    15,
+    12,
+    12,
+    11,
+    10,
+    3
+   ],
+   "every": 14,
+   "qty": 1,
+   "tot": 156,
+   "prod": [
+    "Ris"
+   ],
+   "price": 12
+  },
+  {
+   "key": "hvedemel",
+   "da": "Hvedemel",
+   "sq": "Miell",
+   "cat": "ko",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-09-17",
+   "gaps": [
+    22,
+    28,
+    20,
+    34,
+    32,
+    25,
+    23,
+    25,
+    20,
+    32,
+    22,
+    24
+   ],
+   "every": 25,
+   "qty": 1,
+   "tot": 117,
+   "prod": [
+    "Hvedemel"
+   ],
+   "price": 9
+  },
+  {
+   "key": "passata",
+   "da": "Tomatpassata",
+   "sq": "Salcë domate",
+   "cat": "ko",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-04",
+   "gaps": [
+    10,
+    15,
+    11,
+    11,
+    11,
+    9,
+    10,
+    5,
+    12,
+    6,
+    12,
+    9
+   ],
+   "every": 10,
+   "qty": 1,
+   "tot": 195,
+   "prod": [
+    "Tomatpassata"
+   ],
+   "price": 15
+  },
+  {
+   "key": "kaffe",
+   "da": "Kaffe (Merrild Rød)",
+   "sq": "Kafe (Merrild)",
+   "cat": "ko",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-09-29",
+   "gaps": [
+    14,
+    9,
+    10,
+    9,
+    14,
+    12,
+    10,
+    11,
+    14,
+    9,
+    11,
+    9
+   ],
+   "every": 11,
+   "qty": 2,
+   "tot": 1014,
+   "prod": [
+    "Kaffe (Merrild Rød)"
+   ],
+   "price": 39
+  },
+  {
+   "key": "havregryn",
+   "da": "Havregryn",
+   "sq": "Tërshërë",
+   "cat": "ko",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-04",
+   "gaps": [
+    20,
+    23,
+    20,
+    20,
+    25,
+    19,
+    26,
+    16,
+    27,
+    22,
+    32,
+    14
+   ],
+   "every": 20,
+   "qty": 1,
+   "tot": 221,
+   "prod": [
+    "Havregryn"
+   ],
+   "price": 17
+  },
+  {
+   "key": "x:filodej",
+   "da": "Filodej",
+   "sq": "Petë",
+   "cat": "fr",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-09-10",
+   "gaps": [
+    34,
+    31,
+    27,
+    35,
+    30,
+    23,
+    25,
+    29,
+    29,
+    31,
+    29,
+    31
+   ],
+   "every": 30,
+   "qty": 1,
+   "tot": 234,
+   "prod": [
+    "Filodej"
+   ],
+   "price": 18
+  },
+  {
+   "key": "frostgroent",
+   "da": "Frosne grøntsager",
+   "sq": "Perime të ngrira",
+   "cat": "fr",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-05",
+   "gaps": [
+    12,
+    14,
+    6,
+    16,
+    20,
+    19,
+    11,
+    16,
+    16,
+    11,
+    9,
+    14
+   ],
+   "every": 15,
+   "qty": 1,
+   "tot": 195,
+   "prod": [
+    "Frosne grøntsager"
+   ],
+   "price": 15
+  },
+  {
+   "key": "juice",
+   "da": "Juice",
+   "sq": "Lëng",
+   "cat": "dr",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-11",
+   "gaps": [
+    6,
+    12,
+    8,
+    5,
+    7,
+    10,
+    10,
+    9,
+    12,
+    10,
+    8,
+    10
+   ],
+   "every": 9,
+   "qty": 1,
+   "tot": 273,
+   "prod": [
+    "Juice"
+   ],
+   "price": 21
+  },
+  {
+   "key": "sodavand",
+   "da": "Sodavand 1,5 l",
+   "sq": "Pije e gazuar",
+   "cat": "dr",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-02",
+   "gaps": [
+    12,
+    11,
+    4,
+    13,
+    9,
+    10,
+    16,
+    14,
+    13,
+    14,
+    11,
+    16
+   ],
+   "every": 14,
+   "qty": 2,
+   "tot": 468,
+   "prod": [
+    "Sodavand 1,5 l"
+   ],
+   "price": 18
+  },
+  {
+   "key": "chips",
+   "da": "Chips",
+   "sq": "Patatina",
+   "cat": "sn",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-10",
+   "gaps": [
+    14,
+    23,
+    12,
+    17,
+    17,
+    14,
+    9,
+    14,
+    15,
+    17,
+    16,
+    14
+   ],
+   "every": 14,
+   "qty": 1,
+   "tot": 156,
+   "prod": [
+    "Chips"
+   ],
+   "price": 12
+  },
+  {
+   "key": "toiletpapir",
+   "da": "Toiletpapir",
+   "sq": "Letër higjienike",
+   "cat": "rh",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-02",
+   "gaps": [
+    24,
+    25,
+    16,
+    22,
+    18,
+    18,
+    29,
+    17,
+    25,
+    28,
+    21,
+    13
+   ],
+   "every": 20,
+   "qty": 1,
+   "tot": 507,
+   "prod": [
+    "Toiletpapir"
+   ],
+   "price": 39
+  },
+  {
+   "key": "opvask",
+   "da": "Maskinopvask",
+   "sq": "Detergjent enësh",
+   "cat": "rh",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-09-10",
+   "gaps": [
+    33,
+    24,
+    32,
+    46,
+    45,
+    47,
+    32,
+    24,
+    22,
+    40,
+    15,
+    34
+   ],
+   "every": 35,
+   "qty": 1,
+   "tot": 780,
+   "prod": [
+    "Maskinopvask"
+   ],
+   "price": 60
+  },
+  {
+   "key": "x:wraps",
+   "da": "Wraps",
+   "sq": "Tortilja",
+   "cat": "br",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-09-30",
+   "gaps": [
+    8,
+    11,
+    19,
+    14,
+    15,
+    8,
+    18,
+    12,
+    14,
+    14,
+    8,
+    7
+   ],
+   "every": 14,
+   "qty": 1,
+   "tot": 156,
+   "prod": [
+    "Wraps"
+   ],
+   "price": 12
+  },
+  {
+   "key": "hummus",
+   "da": "Hummus",
+   "sq": "Humus",
+   "cat": "mk",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-11",
+   "gaps": [
+    11,
+    7,
+    7,
+    7,
+    8,
+    7,
+    14,
+    10,
+    9,
+    7,
+    6,
+    9
+   ],
+   "every": 10,
+   "qty": 1,
+   "tot": 156,
+   "prod": [
+    "Hummus"
+   ],
+   "price": 12
+  },
+  {
+   "key": "snackgulerod",
+   "da": "Snackgulerødder",
+   "sq": "Karota të vogla",
+   "cat": "fg",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-10-08",
+   "gaps": [
+    7,
+    5,
+    9,
+    4,
+    8,
+    11,
+    8,
+    10,
+    4,
+    8,
+    11,
+    10
+   ],
+   "every": 8,
+   "qty": 1,
+   "tot": 156,
+   "prod": [
+    "Snackgulerødder"
+   ],
+   "price": 12
+  },
+  {
+   "key": "x:pitabroed",
+   "da": "Pitabrød",
+   "sq": "Bukë pita",
+   "cat": "br",
+   "store": "Lidl",
+   "alias": [],
+   "n": 13,
+   "nall": 13,
+   "last": "2026-09-21",
+   "gaps": [
+    21,
+    13,
+    19,
+    19,
+    23,
+    24,
+    20,
+    16,
+    20,
+    20,
+    24,
+    22
+   ],
+   "every": 21,
+   "qty": 1,
+   "tot": 195,
+   "prod": [
+    "Pitabrød"
+   ],
+   "price": 15
+  }
+ ],
+ "offers": [
+  {
+   "key": "banan",
+   "store": "REMA 1000",
+   "title": "Bananer",
+   "size": "1 stk",
+   "price": 1.25,
+   "ref_price": 2.5,
+   "from": -1,
+   "to": 4,
+   "note": "maks 20"
+  },
+  {
+   "key": "aeg",
+   "store": "Netto",
+   "title": "Skrabeæg",
+   "size": "10 stk",
+   "price": 18,
+   "ref_price": 20,
+   "from": -2,
+   "to": 1,
+   "note": "maks 3"
+  },
+  {
+   "key": "kaffe",
+   "store": "365discount",
+   "title": "Merrild Rød",
+   "size": "400 g",
+   "price": 32,
+   "ref_price": 39,
+   "from": -3,
+   "to": 2
+  },
+  {
+   "key": "smoer",
+   "store": "MENY",
+   "title": "Lurpak smørbar",
+   "size": "200 g",
+   "price": 9,
+   "ref_price": 12,
+   "from": 2,
+   "to": 8
+  },
+  {
+   "key": "laks",
+   "store": "føtex",
+   "title": "Laksefilet",
+   "size": "500 g",
+   "price": 45,
+   "ref_price": 60,
+   "from": 0,
+   "to": 5
+  }
+ ],
+ "dishes": [
+  {
+   "id": "d1",
+   "name_da": "Kylling bagt i yoghurt",
+   "name_sq": "Tavë kosi me pulë",
+   "kind": "ret",
+   "tags": [
+    "kosova"
+   ],
+   "link": "https://shqiptarja.com/lajm/tave-kosi-me-mish-pule-ja-si-te-pergatisni-vaktin-e-shijshem",
+   "items": [
+    {
+     "key": "kyllingebryst",
+     "qty": 1
+    },
+    {
+     "key": "yoghurt",
+     "qty": 1
+    },
+    {
+     "key": "aeg",
+     "qty": 1
+    },
+    {
+     "key": "hvedemel",
+     "qty": 1
+    },
+    {
+     "key": "smoer",
+     "qty": 1
+    },
+    {
+     "key": "ris",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "d2",
+   "name_da": "Byrek med spinat",
+   "name_sq": "Pite me spinaq",
+   "kind": "ret",
+   "tags": [
+    "kosova"
+   ],
+   "link": "https://www.mycookingjourney.com/?p=47459",
+   "items": [
+    {
+     "key": "x:filodej",
+     "qty": 1
+    },
+    {
+     "key": "x:hvid ost feta type",
+     "qty": 1
+    },
+    {
+     "key": "yoghurt",
+     "qty": 1
+    },
+    {
+     "key": "aeg",
+     "qty": 1
+    },
+    {
+     "key": "u:spinat",
+     "da": "Spinat",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "d3",
+   "name_da": "Pasta med kødsovs",
+   "name_sq": "Makarona me salcë mishi",
+   "kind": "ret",
+   "tags": [],
+   "link": null,
+   "items": [
+    {
+     "key": "pasta",
+     "qty": 1
+    },
+    {
+     "key": "hakket okse",
+     "qty": 1
+    },
+    {
+     "key": "passata",
+     "qty": 1
+    },
+    {
+     "key": "loeg",
+     "qty": 1
+    },
+    {
+     "key": "gulerod",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "d4",
+   "name_da": "Linsesuppe",
+   "name_sq": "Supë me thjerrëza",
+   "kind": "ret",
+   "tags": [
+    "sund"
+   ],
+   "link": "https://madensverden.dk/linsesuppe-med-roede-linser/",
+   "items": [
+    {
+     "key": "u:røde linser",
+     "da": "Røde linser",
+     "qty": 1
+    },
+    {
+     "key": "loeg",
+     "qty": 1
+    },
+    {
+     "key": "gulerod",
+     "qty": 1
+    },
+    {
+     "key": "citron",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "d5",
+   "name_da": "Rugbrød med kyllingepålæg",
+   "name_sq": "Bukë thekre me pulë",
+   "kind": "madpakke",
+   "tags": [],
+   "link": null,
+   "items": [
+    {
+     "key": "rugbroed",
+     "qty": 1
+    },
+    {
+     "key": "kyllingepaalaeg",
+     "qty": 1
+    },
+    {
+     "key": "agurk",
+     "qty": 1
+    },
+    {
+     "key": "snackgulerod",
+     "qty": 1
+    }
+   ]
+  },
+  {
+   "id": "d6",
+   "name_da": "Pitabrød med hummus og grønt",
+   "name_sq": "Pita me humus",
+   "kind": "madpakke",
+   "tags": [],
+   "link": null,
+   "items": [
+    {
+     "key": "x:pitabroed",
+     "qty": 1
+    },
+    {
+     "key": "hummus",
+     "qty": 1
+    },
+    {
+     "key": "snackgulerod",
+     "qty": 1
+    },
+    {
+     "key": "agurk",
+     "qty": 1
+    }
+   ]
+  }
+ ],
+ "lalt": [
+  {
+   "key": "smoer",
+   "normal_heading": "LURPAK Smør eller smørbar",
+   "normal_price": 12,
+   "normal_fam": 12,
+   "own_heading": "MILBONA Smørbar",
+   "own_price": 7.5,
+   "own_save": 4.5
+  },
+  {
+   "key": "pizzaost",
+   "normal_heading": null,
+   "normal_price": 20,
+   "normal_fam": 20,
+   "own_heading": "MILBONA Revet pizzatopping",
+   "own_price": 10,
+   "own_save": 10
+  }
+ ],
+ "items": [
+  [
+   "banan",
+   6
+  ],
+  [
+   "agurk",
+   1
+  ],
+  [
+   "laktosefri maelk",
+   2
+  ],
+  [
+   "kaffe",
+   1
+  ],
+  [
+   "rugbroed",
+   1
+  ]
+ ]
+}

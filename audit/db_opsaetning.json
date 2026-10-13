@@ -1,0 +1,657 @@
+{
+ "auth": {
+  "brugere": 3,
+  "alle_paa_familielisten": true
+ },
+ "cron": [
+  {
+   "navn": "indkob-prisalarm",
+   "tid_utc": "45 4 * * *",
+   "kommando": "\n select public.prisalarm_scan();\n select net.http_post(\n url := 'https://onhsmcapojdfzuvcyqsm.supabase.co/functions/v1/push',\n headers := jsonb_bui"
+  },
+  {
+   "navn": "indkob-push",
+   "tid_utc": "* * * * *",
+   "kommando": "\n select net.http_post(\n url := 'https://onhsmcapojdfzuvcyqsm.supabase.co/functions/v1/push',\n headers := jsonb_build_object('Content-Type','applicat"
+  },
+  {
+   "navn": "lidl-alt",
+   "tid_utc": "28 4 * * *",
+   "kommando": " select public.lidl_alt_refresh(); "
+  },
+  {
+   "navn": "lidl-gem",
+   "tid_utc": "25 4 * * *",
+   "kommando": " select public.lidl_process(); "
+  },
+  {
+   "navn": "lidl-hent",
+   "tid_utc": "20 4 * * *",
+   "kommando": " select public.lidl_fetch(); "
+  },
+  {
+   "navn": "tilbud-gem",
+   "tid_utc": "38 4 * * *",
+   "kommando": " select public.tjek_process(); "
+  },
+  {
+   "navn": "tilbud-hent",
+   "tid_utc": "30 4 * * *",
+   "kommando": " select public.tjek_fetch_catalogs(); "
+  },
+  {
+   "navn": "tilbud-sider",
+   "tid_utc": "33 4 * * *",
+   "kommando": " select public.tjek_fetch_offers(); "
+  },
+  {
+   "navn": "tilbud-vis",
+   "tid_utc": "40 4 * * *",
+   "kommando": " select public.publish_offers(); "
+  }
+ ],
+ "omfang": {
+  "retter": 30,
+  "prisalarmer": 0,
+  "katalogvarer": 595,
+  "overvaagede_varer": 206,
+  "push_abonnementer": 2,
+  "lidl_varer_i_soegning": 322
+ },
+ "tabeller": [
+  {
+   "rls": true,
+   "navn": "bought"
+  },
+  {
+   "rls": true,
+   "navn": "butik_orden"
+  },
+  {
+   "rls": true,
+   "navn": "catalog"
+  },
+  {
+   "rls": true,
+   "navn": "dishes"
+  },
+  {
+   "rls": true,
+   "navn": "family"
+  },
+  {
+   "rls": true,
+   "navn": "items"
+  },
+  {
+   "rls": true,
+   "navn": "kvit"
+  },
+  {
+   "rls": true,
+   "navn": "kvit_linjer"
+  },
+  {
+   "rls": true,
+   "navn": "kvit_navne"
+  },
+  {
+   "rls": true,
+   "navn": "kvit_regler"
+  },
+  {
+   "rls": true,
+   "navn": "lidl_alt"
+  },
+  {
+   "rls": true,
+   "navn": "lidl_fetch_jobs"
+  },
+  {
+   "rls": true,
+   "navn": "lidl_price_obs"
+  },
+  {
+   "rls": true,
+   "navn": "lidl_products"
+  },
+  {
+   "rls": true,
+   "navn": "offer_test"
+  },
+  {
+   "rls": true,
+   "navn": "offers"
+  },
+  {
+   "rls": true,
+   "navn": "prisalarm"
+  },
+  {
+   "rls": true,
+   "navn": "prisalarm_hit"
+  },
+  {
+   "rls": true,
+   "navn": "products"
+  },
+  {
+   "rls": true,
+   "navn": "push_subs"
+  },
+  {
+   "rls": true,
+   "navn": "tjek_jobs"
+  },
+  {
+   "rls": true,
+   "navn": "tjek_offers"
+  },
+  {
+   "rls": true,
+   "navn": "watch"
+  }
+ ],
+ "udtrukket": "2026-10-13",
+ "visninger": [
+  {
+   "navn": "kvit_status",
+   "security_invoker": true
+  },
+  {
+   "navn": "lidl_soeg",
+   "security_invoker": true
+  }
+ ],
+ "funktioner": [
+  {
+   "anon": false,
+   "navn": "add_offers(p jsonb)",
+   "search_path": "search_path=public",
+   "authenticated": false,
+   "security_definer": false
+  },
+  {
+   "anon": false,
+   "navn": "due_prob(k text, h integer)",
+   "search_path": "search_path=public",
+   "authenticated": true,
+   "security_definer": false
+  },
+  {
+   "anon": false,
+   "navn": "is_family()",
+   "search_path": "search_path=public",
+   "authenticated": true,
+   "security_definer": false
+  },
+  {
+   "anon": false,
+   "navn": "kvit_clean(n text)",
+   "search_path": null,
+   "authenticated": true,
+   "security_definer": false
+  },
+  {
+   "anon": false,
+   "navn": "kvit_ingest(rows jsonb, afkryds boolean)",
+   "search_path": "search_path=public",
+   "authenticated": true,
+   "security_definer": false
+  },
+  {
+   "anon": false,
+   "navn": "kvit_key(n text, beloeb numeric)",
+   "search_path": "search_path=public",
+   "authenticated": true,
+   "security_definer": false
+  },
+  {
+   "anon": false,
+   "navn": "kvit_rytme(keys text[])",
+   "search_path": "search_path=public",
+   "authenticated": true,
+   "security_definer": false
+  },
+  {
+   "anon": false,
+   "navn": "lidl_alt_refresh()",
+   "search_path": "search_path=public",
+   "authenticated": false,
+   "security_definer": false
+  },
+  {
+   "anon": false,
+   "navn": "lidl_fetch()",
+   "search_path": "search_path=public, extensions",
+   "authenticated": false,
+   "security_definer": false
+  },
+  {
+   "anon": false,
+   "navn": "lidl_ingest(rows jsonb)",
+   "search_path": "search_path=public",
+   "authenticated": false,
+   "security_definer": false
+  },
+  {
+   "anon": false,
+   "navn": "lidl_process()",
+   "search_path": "search_path=public, extensions",
+   "authenticated": false,
+   "security_definer": false
+  },
+  {
+   "anon": false,
+   "navn": "match_offers_test()",
+   "search_path": "search_path=public",
+   "authenticated": false,
+   "security_definer": false
+  },
+  {
+   "anon": false,
+   "navn": "prisalarm_claim()",
+   "search_path": "search_path=public",
+   "authenticated": false,
+   "security_definer": false
+  },
+  {
+   "anon": false,
+   "navn": "prisalarm_scan()",
+   "search_path": "search_path=public",
+   "authenticated": true,
+   "security_definer": true
+  },
+  {
+   "anon": false,
+   "navn": "publish_offers()",
+   "search_path": "search_path=public",
+   "authenticated": true,
+   "security_definer": false
+  },
+  {
+   "anon": false,
+   "navn": "push_claim()",
+   "search_path": "search_path=public",
+   "authenticated": false,
+   "security_definer": false
+  },
+  {
+   "anon": false,
+   "navn": "tilbud_for(k text)",
+   "search_path": "search_path=public",
+   "authenticated": true,
+   "security_definer": true
+  },
+  {
+   "anon": false,
+   "navn": "tjek_fetch_catalogs()",
+   "search_path": "search_path=public, extensions",
+   "authenticated": false,
+   "security_definer": false
+  },
+  {
+   "anon": false,
+   "navn": "tjek_fetch_offers()",
+   "search_path": "search_path=public, extensions",
+   "authenticated": false,
+   "security_definer": false
+  },
+  {
+   "anon": false,
+   "navn": "tjek_process()",
+   "search_path": "search_path=public, extensions",
+   "authenticated": false,
+   "security_definer": false
+  },
+  {
+   "anon": false,
+   "navn": "ugeanalyse(dage integer)",
+   "search_path": "search_path=public",
+   "authenticated": false,
+   "security_definer": false
+  }
+ ],
+ "politikker": [
+  {
+   "navn": "kun familien",
+   "tabel": "bought",
+   "using": "is_family()",
+   "roller": [
+    "authenticated"
+   ],
+   "kommando": "ALL",
+   "with_check": "is_family()"
+  },
+  {
+   "navn": "kun familien",
+   "tabel": "butik_orden",
+   "using": "is_family()",
+   "roller": [
+    "authenticated"
+   ],
+   "kommando": "ALL",
+   "with_check": "is_family()"
+  },
+  {
+   "navn": "kun familien",
+   "tabel": "catalog",
+   "using": "is_family()",
+   "roller": [
+    "authenticated"
+   ],
+   "kommando": "ALL",
+   "with_check": "is_family()"
+  },
+  {
+   "navn": "kun familien",
+   "tabel": "dishes",
+   "using": "is_family()",
+   "roller": [
+    "authenticated"
+   ],
+   "kommando": "ALL",
+   "with_check": "is_family()"
+  },
+  {
+   "navn": "egen række",
+   "tabel": "family",
+   "using": "(lower(email) = lower(COALESCE((auth.jwt() ->> 'email'::text), ''::text)))",
+   "roller": [
+    "authenticated"
+   ],
+   "kommando": "SELECT",
+   "with_check": null
+  },
+  {
+   "navn": "kun familien",
+   "tabel": "items",
+   "using": "is_family()",
+   "roller": [
+    "authenticated"
+   ],
+   "kommando": "ALL",
+   "with_check": "is_family()"
+  },
+  {
+   "navn": "kun familien",
+   "tabel": "kvit",
+   "using": "is_family()",
+   "roller": [
+    "authenticated"
+   ],
+   "kommando": "ALL",
+   "with_check": "is_family()"
+  },
+  {
+   "navn": "kun familien",
+   "tabel": "kvit_linjer",
+   "using": "is_family()",
+   "roller": [
+    "authenticated"
+   ],
+   "kommando": "ALL",
+   "with_check": "is_family()"
+  },
+  {
+   "navn": "kun familien",
+   "tabel": "kvit_navne",
+   "using": "is_family()",
+   "roller": [
+    "authenticated"
+   ],
+   "kommando": "ALL",
+   "with_check": "is_family()"
+  },
+  {
+   "navn": "kun familien",
+   "tabel": "kvit_regler",
+   "using": "is_family()",
+   "roller": [
+    "authenticated"
+   ],
+   "kommando": "ALL",
+   "with_check": "is_family()"
+  },
+  {
+   "navn": "kun familien",
+   "tabel": "lidl_alt",
+   "using": "is_family()",
+   "roller": [
+    "authenticated"
+   ],
+   "kommando": "SELECT",
+   "with_check": null
+  },
+  {
+   "navn": "kun familien",
+   "tabel": "lidl_price_obs",
+   "using": "is_family()",
+   "roller": [
+    "authenticated"
+   ],
+   "kommando": "SELECT",
+   "with_check": null
+  },
+  {
+   "navn": "kun familien",
+   "tabel": "lidl_products",
+   "using": "is_family()",
+   "roller": [
+    "authenticated"
+   ],
+   "kommando": "SELECT",
+   "with_check": null
+  },
+  {
+   "navn": "kun familien",
+   "tabel": "offers",
+   "using": "is_family()",
+   "roller": [
+    "authenticated"
+   ],
+   "kommando": "ALL",
+   "with_check": "is_family()"
+  },
+  {
+   "navn": "kun familien",
+   "tabel": "prisalarm",
+   "using": "is_family()",
+   "roller": [
+    "authenticated"
+   ],
+   "kommando": "ALL",
+   "with_check": "is_family()"
+  },
+  {
+   "navn": "kun familien",
+   "tabel": "prisalarm_hit",
+   "using": "is_family()",
+   "roller": [
+    "authenticated"
+   ],
+   "kommando": "SELECT",
+   "with_check": null
+  },
+  {
+   "navn": "kun familien",
+   "tabel": "products",
+   "using": "is_family()",
+   "roller": [
+    "authenticated"
+   ],
+   "kommando": "ALL",
+   "with_check": "is_family()"
+  },
+  {
+   "navn": "kun familien",
+   "tabel": "push_subs",
+   "using": "is_family()",
+   "roller": [
+    "authenticated"
+   ],
+   "kommando": "ALL",
+   "with_check": "is_family()"
+  }
+ ],
+ "brug_pr_uge": [
+  {
+   "uge": "2026-W35",
+   "kvitteringer": 2,
+   "tilbud_aktive": 0,
+   "afkrydset_i_app": 0,
+   "varer_tilfoejet": 0
+  },
+  {
+   "uge": "2026-W36",
+   "kvitteringer": 3,
+   "tilbud_aktive": 0,
+   "afkrydset_i_app": 0,
+   "varer_tilfoejet": 0
+  },
+  {
+   "uge": "2026-W37",
+   "kvitteringer": 4,
+   "tilbud_aktive": 2,
+   "afkrydset_i_app": 0,
+   "varer_tilfoejet": 0
+  },
+  {
+   "uge": "2026-W38",
+   "kvitteringer": 2,
+   "tilbud_aktive": 2,
+   "afkrydset_i_app": 0,
+   "varer_tilfoejet": 0
+  },
+  {
+   "uge": "2026-W39",
+   "kvitteringer": 2,
+   "tilbud_aktive": 2,
+   "afkrydset_i_app": 0,
+   "varer_tilfoejet": 0
+  },
+  {
+   "uge": "2026-W40",
+   "kvitteringer": 4,
+   "tilbud_aktive": 6,
+   "afkrydset_i_app": 0,
+   "varer_tilfoejet": 0
+  },
+  {
+   "uge": "2026-W41",
+   "kvitteringer": 4,
+   "tilbud_aktive": 74,
+   "afkrydset_i_app": 0,
+   "varer_tilfoejet": 0
+  },
+  {
+   "uge": "2026-W42",
+   "kvitteringer": 0,
+   "tilbud_aktive": 90,
+   "afkrydset_i_app": 0,
+   "varer_tilfoejet": 9
+  }
+ ],
+ "rettigheder": [
+  {
+   "ret": "DELETE,INSERT,SELECT,UPDATE",
+   "rolle": "authenticated",
+   "tabel": "bought"
+  },
+  {
+   "ret": "DELETE,INSERT,SELECT,UPDATE",
+   "rolle": "authenticated",
+   "tabel": "butik_orden"
+  },
+  {
+   "ret": "DELETE,INSERT,SELECT,UPDATE",
+   "rolle": "authenticated",
+   "tabel": "catalog"
+  },
+  {
+   "ret": "DELETE,INSERT,SELECT,UPDATE",
+   "rolle": "authenticated",
+   "tabel": "dishes"
+  },
+  {
+   "ret": "SELECT",
+   "rolle": "authenticated",
+   "tabel": "family"
+  },
+  {
+   "ret": "DELETE,INSERT,SELECT,UPDATE",
+   "rolle": "authenticated",
+   "tabel": "items"
+  },
+  {
+   "ret": "DELETE,INSERT,SELECT,UPDATE",
+   "rolle": "authenticated",
+   "tabel": "kvit"
+  },
+  {
+   "ret": "DELETE,INSERT,SELECT,UPDATE",
+   "rolle": "authenticated",
+   "tabel": "kvit_linjer"
+  },
+  {
+   "ret": "DELETE,INSERT,SELECT,UPDATE",
+   "rolle": "authenticated",
+   "tabel": "kvit_navne"
+  },
+  {
+   "ret": "DELETE,INSERT,SELECT,UPDATE",
+   "rolle": "authenticated",
+   "tabel": "kvit_regler"
+  },
+  {
+   "ret": "SELECT",
+   "rolle": "authenticated",
+   "tabel": "kvit_status"
+  },
+  {
+   "ret": "SELECT",
+   "rolle": "authenticated",
+   "tabel": "lidl_alt"
+  },
+  {
+   "ret": "SELECT",
+   "rolle": "authenticated",
+   "tabel": "lidl_price_obs"
+  },
+  {
+   "ret": "SELECT",
+   "rolle": "authenticated",
+   "tabel": "lidl_products"
+  },
+  {
+   "ret": "SELECT",
+   "rolle": "authenticated",
+   "tabel": "lidl_soeg"
+  },
+  {
+   "ret": "DELETE,INSERT,SELECT,UPDATE",
+   "rolle": "authenticated",
+   "tabel": "offers"
+  },
+  {
+   "ret": "DELETE,INSERT,SELECT,UPDATE",
+   "rolle": "authenticated",
+   "tabel": "prisalarm"
+  },
+  {
+   "ret": "SELECT",
+   "rolle": "authenticated",
+   "tabel": "prisalarm_hit"
+  },
+  {
+   "ret": "DELETE,INSERT,SELECT,UPDATE",
+   "rolle": "authenticated",
+   "tabel": "products"
+  },
+  {
+   "ret": "DELETE,INSERT,SELECT,UPDATE",
+   "rolle": "authenticated",
+   "tabel": "push_subs"
+  }
+ ]
+}

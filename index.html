@@ -305,7 +305,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <main class="cols">
   <div class="pane" id="pane-list">
     <div class="panehead">Indkøbsliste</div>
-    <div id="demo" class="demo" hidden>Demo: listen gemmes kun på denne enhed.</div>
+    <div id="demo" class="demo" hidden>Demo: listen gemmes kun på denne enhed. Data er opfundne.</div>
     <section class="card notify kvit" id="kvitImport" hidden aria-live="polite"></section>
     <section class="card" id="addCard">
       <form class="fieldrow" id="addForm" autocomplete="off">
@@ -408,7 +408,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v64";
+const VERSION="v65";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -447,7 +447,9 @@ const svgEl=n=>{const t=document.createElement("template"); t.innerHTML=IC[n]; r
 document.querySelectorAll("[data-ic]").forEach(e=>e.append(svgEl(e.dataset.ic)));
 const uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random());
 const fold=s=>(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9æøå ]/g," ").replace(/\s+/g," ").trim();
-const local={load(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+/* ?demo: opfundne data til gennemgang; gemmes under egne nøgler og rører aldrig databasen */
+const DEMO=/[?&]demo\b/.test(location.search), LK=k=>DEMO?"demo:"+k:k;
+const local={load(k){try{return JSON.parse(localStorage.getItem(LK(k)))}catch(e){return null}},save(k,v){try{localStorage.setItem(LK(k),JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(LK(k))}catch(e){}}};
 const DEV=(()=>{let d=local.load("indkob-dev"); if(!d){d=uid(); local.save("indkob-dev",d)} return d})();
 const qn=v=>{const n=parseFloat(String(v==null?"":v).replace(",","."));return isFinite(n)&&n>0?n:1};
 const round2=n=>Math.round(n*100)/100;
@@ -462,7 +464,7 @@ Object.assign(CAT,{kosova:{id:"kosova",icon:"🇽🇰",da:"Fra Kosova",sq:"Nga K
 const catOf=id=>CAT[id]?id:"an";
 
 const cfg=window.INDKOB_CONFIG||{};
-const live=!!(cfg.url&&cfg.anonKey&&window.supabase);
+const live=!DEMO&&!!(cfg.url&&cfg.anonKey&&window.supabase);
 let items=[], bought={}, offers=[], dishes=[], sb=null, trips=[], orderManual={};
 
 /* ---------- katalog og genkendelse ---------- */
@@ -537,9 +539,18 @@ let loadedOrCached=false;
 const saveDemo=()=>{if(!live){local.save("indkob-items",items);local.save("indkob-bought",bought);local.save("indkob-dishes",dishes)}};
 function changed(){render(); cacheSoon(); saveDemo()}
 
+async function seedDemo(){
+  if(local.load("indkob-demo-seeded")&&!/[?&]reset\b/.test(location.search))return;
+  const d=await fetch("audit/demo.json").then(r=>r.json()), day=n=>new Date(Date.now()+n*864e5).toISOString().slice(0,10);
+  local.save("indkob-catalog",d.catalog); local.save("indkob-dishes",d.dishes); local.save("indkob-lalt",d.lalt);
+  local.save("indkob-offers",d.offers.map(o=>({key:o.key,store:o.store,title:o.title,size:o.size,price:o.price,ref_price:o.ref_price,valid_from:day(o.from),valid_to:day(o.to),note:o.note||null})));
+  local.save("indkob-items",d.items.map(([k,q])=>{const e=d.catalog.find(x=>x.key===k); return {id:uid(),text:e.da,name_da:e.da,name_sq:e.sq,key:k,qty:String(q),store:"Lidl",category:e.cat,note:null,suggested:false,checked:false,created_at:new Date().toISOString()}}));
+  local.save("indkob-bought",{}); local.save("indkob-demo-seeded",true);
+}
 async function loadAll(){
+  if(DEMO){try{await seedDemo()}catch(e){} lalt=local.load("indkob-lalt")||[]}
   {const c=local.load("indkob-catalog"); if(Array.isArray(c))setCatalog(c)}
-  if(!live){dishes=local.load("indkob-dishes")||[];items=local.load("indkob-items")||[];bought=local.load("indkob-bought")||{};offers=local.load("indkob-offers")||[];(local.load("indkob-products")||[]).forEach(addProduct);$("#demo").hidden=false;render();return}
+  if(!live){dishes=local.load("indkob-dishes")||[];items=local.load("indkob-items")||[];bought=local.load("indkob-bought")||{};offers=local.load("indkob-offers")||[];(local.load("indkob-products")||[]).forEach(addProduct);if(DEMO)applyLidl();$("#demo").hidden=false;render();return}
   kvitCapture();
   const recovering=/type=recovery/.test(location.hash);
   sb=window.supabase.createClient(cfg.url,cfg.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});

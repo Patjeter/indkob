@@ -1,0 +1,13 @@
+const { chromium } = require('playwright');
+(async()=>{const b=await chromium.launch({});
+const ctx=await b.newContext({viewport:{width:402,height:874},serviceWorkers:'block'});const p=await ctx.newPage();const errs=[],reqs=[];p.on('pageerror',e=>errs.push(e.message));p.on('request',r=>{if(/supabase\.co/.test(r.url()))reqs.push(r.url())});
+await p.goto((process.env.APP||'http://localhost:8766/')+'?demo');await p.waitForTimeout(800);
+const R=[];const ok=(c,n)=>R.push((c?'OK  ':'FEJL')+' '+n);
+ok(await p.isVisible('#demo'),'demo-banner');
+ok((await p.evaluate(()=>items.length))===5,'5 demovarer');
+ok(/REMA 1000 1,25/.test(await p.$eval('#stores',e=>e.innerText)),'demotilbud vises');
+ok(reqs.length===0,'ingen kald til databasen: '+reqs.length);
+ok(await p.evaluate(()=>localStorage.getItem('indkob-catalog')===null&&!!localStorage.getItem('demo:indkob-catalog')),'egne nøgler i demo');
+await p.click('[data-tab=more]');await p.waitForTimeout(200);
+ok(/spar ca\./.test(await p.$eval('#moreMenu',e=>e.innerText)),'mærkeskift i demo');
+R.forEach(x=>console.log(x));console.log('errors',errs);await b.close()})();
