@@ -46,6 +46,8 @@
 /* kategorifarver (bruges af overskrift og fliser) */
 .c-fg{--cc:#2e9d5b}.c-br{--cc:#c98a1b}.c-km{--cc:#d0463b}.c-mk{--cc:#3b82c4}.c-ko{--cc:#9a6b3f}
 .c-rh{--cc:#159aa0}.c-fr{--cc:#3fa0e0}.c-dr{--cc:#7c5cc4}.c-sn{--cc:#d64f8a}.c-nf{--cc:#8a7f6b}.c-an{--cc:#7a7f87}.c-dish{--cc:#a0447a}
+.c-kosova{--cc:#2c5fb3}.c-sund{--cc:#2e9d5b}.c-hverdag{--cc:#a0447a}.c-madpakke{--cc:#c98a1b}
+.reclink{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;font-size:var(--fs-s);font-weight:700;color:var(--accent);text-decoration:none;padding:6px 0}
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:var(--fs-l)/1.3 var(--f);-webkit-font-smoothing:antialiased}
@@ -192,6 +194,8 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 /* Forslag: valget står fast øverst, mens man ruller; kategorierne lægger sig under det */
 .segbar{position:sticky;top:var(--toph);z-index:6;background:var(--surface);padding:4px 0 6px}
 #pane-sugg .cat{top:calc(var(--toph) + var(--segh,0px))}
+#pane-dishes .cat{top:calc(var(--toph) + var(--dsegh,0px))}
+#dishSegbar{padding-top:10px;border-radius:var(--r-card) var(--r-card) 0 0}
 .seg{display:flex;gap:2px;margin:0 6px 4px;padding:3px;border-radius:var(--r-ctl);background:var(--surface2)}
 .seg button{flex:1;padding:7px 2px;border-radius:8px;font-size:var(--fs-s);font-weight:600;line-height:1.2;color:var(--ink2)}
 .seg button small{display:block;font-size:var(--fs-xs);font-weight:400;color:var(--ink3)}
@@ -297,7 +301,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
   <div class="pane" id="pane-dishes" hidden>
     <div class="panehead">Retter</div>
     <section class="card">
-      <div class="head"><div class="hb"><h2>Jeres retter</h2><div class="hs">Gatimet tuaja</div></div><div class="hr" id="dishCount"></div></div>
+      <div class="segbar" id="dishSegbar"><div class="seg" id="dishSeg"><button data-k="ret" aria-pressed="true">Retter<small>Gatime</small></button><button data-k="madpakke" aria-pressed="false">Madpakker<small>Ushqim për shkollë</small></button></div></div>
       <div id="dishes"></div>
       <div id="dishForm"></div>
       <div class="foot" id="newDishRow"><button class="btn" id="newDish">Ny ret</button></div>
@@ -347,7 +351,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v53";
+const VERSION="v54";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -380,6 +384,8 @@ const fmtQ=(n,u)=>round2(n).toLocaleString("da-DK")+(u?" "+u:"");
 const STORE_ORDER=["Lidl","365discount","Netto","REMA 1000","føtex","MENY","SuperBrugsen","Al-Rafiden Slagteri"];
 const CATS=[{id:"fg",icon:"🥦",da:"Frugt & grønt",sq:"Pemë & Perime"},{id:"br",icon:"🥐",da:"Brød",sq:"Furra e Bukës"},{id:"km",icon:"🥩",da:"Kød, fisk & pålæg",sq:"Mish, Peshk & Meze"},{id:"mk",icon:"🧀",da:"Mejeri & køl",sq:"Bulmeti & Frigoriferi"},{id:"ko",icon:"🥫",da:"Kolonial",sq:"Produkte të Thata"},{id:"rh",icon:"🧼",da:"Rengøring & hygiejne",sq:"Pastrimi & Higjiena"},{id:"fr",icon:"🧊",da:"Frost",sq:"Produkte të Ngrira"},{id:"dr",icon:"🥤",da:"Drikkevarer",sq:"Pije"},{id:"sn",icon:"🍪",da:"Slik & snacks",sq:"Çokollata & Çipsa"},{id:"nf",icon:"🧸",da:"Non-food",sq:"Jo-ushqimore"},{id:"an",icon:"🛒",da:"Andet",sq:"Tjera"}];
 const CAT=Object.fromEntries(CATS.map(c=>[c.id,c]));
+Object.assign(CAT,{kosova:{id:"kosova",icon:"🇽🇰",da:"Fra Kosova",sq:"Nga Kosova"},sund:{id:"sund",icon:"🥗",da:"Sunde retter",sq:"Gatime të shëndetshme"},
+  hverdag:{id:"hverdag",icon:"🍲",da:"Hverdagsretter",sq:"Gatime të përditshme"},madpakke:{id:"madpakke",icon:"🥪",da:"Madpakker til børnene",sq:"Ushqim për fëmijët"}});
 const catOf=id=>CAT[id]?id:"an";
 
 const cfg=window.INDKOB_CONFIG||{};
@@ -1048,17 +1054,18 @@ function renderSugg(){
 }
 
 /* ---------- Retter ---------- */
-let openDish=null, editingDish=null;
-const ingName=k=>(BYKEY[k]&&BYKEY[k].da)||k;
+let openDish=null, editingDish=null, dishKind="ret";
+const ingName=(k,x)=>(BYKEY[k]&&BYKEY[k].da)||(x&&x.da)||k.replace(/^[ux]:/,"");
+const dishGroup=d=>d.kind==="madpakke"?"madpakke":(d.tags||[]).includes("kosova")?"kosova":(d.tags||[]).includes("sund")?"sund":"hverdag";
 function addDish(d){
-  const on=onListKeys(), miss=(d.items||[]).filter(x=>!on.has(x.key)&&BYKEY[x.key]);
+  const on=onListKeys(), miss=(d.items||[]).filter(x=>!on.has(x.key)&&(BYKEY[x.key]||x.da));
   if(!miss.length){toast(`Alt til ${d.name_da} er allerede på listen`);return}
-  miss.forEach(x=>addItem(BYKEY[x.key].da,x.qty||1,BYKEY[x.key]));
+  miss.forEach(x=>BYKEY[x.key]?addItem(BYKEY[x.key].da,x.qty||1,BYKEY[x.key]):addItem(x.da,x.qty||1));
   const keys=new Set(miss.map(x=>x.key));
   toast(`${d.name_da}: ${miss.length} ${miss.length===1?"vare":"varer"} lagt på listen`,()=>remove(items.filter(i=>!i.checked&&keys.has(i.key)).map(i=>i.id),true));
 }
 async function saveDish(d){
-  const row={name_da:d.name_da,name_sq:d.name_sq,items:d.items};
+  const row={name_da:d.name_da,name_sq:d.name_sq,items:d.items,kind:d.kind||"ret",link:d.link||null,tags:d.tags||[]};
   if(!d.id){d.id=uid()}
   const i=dishes.findIndex(x=>x.id===d.id); if(i>=0)dishes[i]=d; else dishes.push(d);
   dishes.sort((a,b)=>a.name_da.localeCompare(b.name_da,"da")); editingDish=null; changed();
@@ -1071,26 +1078,35 @@ function deleteDish(d){
 }
 function renderDishes(){
   const box=$("#dishes"), on=onListKeys(); box.replaceChildren();
-  if(!dishes.length)box.append(emptyBox("Ingen retter endnu. Tryk “Ny ret”."));
-  $("#dishCount").replaceChildren(); info.dishes=[`${dishes.length} ${dishes.length===1?"ret":"retter"}`];
-  const lis=[];
-  dishes.forEach(d=>{
-    const ks=(d.items||[]).map(x=>x.key), miss=ks.filter(k=>!on.has(k)).length;
-    const act=miss?addBtn(`Læg det, der mangler til ${d.name_da}, på listen`,()=>addDish(d)):onListMark();
-    lis.push(tile({cat:"dish",name:d.name_da,alt:d.name_sq,wrap:true,meta:[miss?strong(`Mangler ${miss}`):strong("Alt på listen","ok"),ks.map(ingName).join("\u00A0· ")],
-      act,onTap:()=>{openDish=openDish===d.id?null:d.id; editingDish=null; renderDishes()}}));
-    if(openDish===d.id){
-      const s=el("li","sheet"), ch=el("div","chips");
-      ks.forEach(k=>{const isOn=on.has(k), c=el("button","chip"+(isOn?" added":""),ingName(k)); c.type="button";
-        if(isOn){c.disabled=true; c.prepend(svgEl("check"))} else {c.append(el("b",null,"+")); c.onclick=()=>{const e=BYKEY[k]; if(e){addItem(e.da,1,e); toast(`${e.da} lagt på listen`)}}}
-        ch.append(c)});
-      const btns=el("div","btns"), dl=el("button","btn danger","Slet ret"), ed=el("button","btn","Rediger");
-      dl.onclick=()=>deleteDish(d); ed.onclick=()=>{editingDish={...d,items:[...(d.items||[])]}; renderDishes()};
-      btns.append(dl,ed); s.append(el("span","lbl","Tryk på en ingrediens for at tilføje den"),ch,btns);
-      lis[lis.length-1].append(Object.assign(s,{className:"sheet below"}));
-    }
+  $("#dishSeg").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.k===dishKind));
+  const mine=dishes.filter(d=>(d.kind||"ret")===dishKind), mp=dishKind==="madpakke";
+  $("#newDish").textContent=mp?"Ny madpakke":"Ny ret";
+  if(!mine.length)box.append(emptyBox(mp?"Ingen madpakker endnu. Tryk “Ny madpakke”.":"Ingen retter endnu. Tryk “Ny ret”."));
+  info.dishes=[mp?`${mine.length} ${mine.length===1?"madpakke":"madpakker"}`:`${mine.length} ${mine.length===1?"ret":"retter"}`];
+  const order=["hverdag","kosova","sund","madpakke"];
+  [...new Set(mine.map(dishGroup))].sort((a,b)=>order.indexOf(a)-order.indexOf(b)).forEach(g=>{
+    const lis=[], arr=mine.filter(d=>dishGroup(d)===g);
+    arr.forEach(d=>{
+      const its=d.items||[], miss=its.filter(x=>!on.has(x.key)).length;
+      const act=miss?addBtn(`Læg det, der mangler til ${d.name_da}, på listen`,()=>addDish(d)):onListMark();
+      lis.push(tile({cat:"dish",name:d.name_da,alt:d.name_sq&&d.name_sq!==d.name_da?d.name_sq:null,wrap:true,meta:[miss?strong(`Mangler ${miss}`):strong("Alt på listen","ok"),d.link?"opskrift":"",its.map(x=>ingName(x.key,x)).join("\u00A0· ")],
+        act,onTap:()=>{openDish=openDish===d.id?null:d.id; editingDish=null; renderDishes()}}));
+      if(openDish===d.id){
+        const s=el("li","sheet"), ch=el("div","chips");
+        its.forEach(x=>{const k=x.key, isOn=on.has(k), c=el("button","chip"+(isOn?" added":""),ingName(k,x)); c.type="button";
+          if(isOn){c.disabled=true; c.prepend(svgEl("check"))} else {c.append(el("b",null,"+")); c.onclick=()=>{const e=BYKEY[k]; if(e)addItem(e.da,1,e); else addItem(x.da||ingName(k,x),1); toast(`${ingName(k,x)} lagt på listen`)}}
+          ch.append(c)});
+        const btns=el("div","btns"), dl=el("button","btn danger",mp?"Slet madpakke":"Slet ret"), ed=el("button","btn","Rediger");
+        dl.onclick=()=>deleteDish(d); ed.onclick=()=>{editingDish={...d,items:[...(d.items||[])],tags:[...(d.tags||[])]}; renderDishes()};
+        btns.append(dl,ed); s.append(el("span","lbl","Tryk på en ingrediens for at tilføje den"),ch);
+        if(d.link){let host=""; try{host=new URL(d.link).hostname.replace(/^www\./,"")}catch(e){}
+          const a=el("a","reclink",`Se opskriften på ${host}`); a.href=d.link; a.target="_blank"; a.rel="noopener noreferrer"; a.prepend(svgEl("arrow")); s.append(a)}
+        s.append(btns);
+        lis[lis.length-1].append(Object.assign(s,{className:"sheet below"}));
+      }
+    });
+    box.append(group(g,arr.length,lis));
   });
-  if(lis.length)box.append(tilesList(lis));
   renderDishForm();
 }
 function renderDishForm(){
@@ -1098,9 +1114,12 @@ function renderDishForm(){
   if(!editingDish)return;
   const d=editingDish, s=el("div","sheet");
   const inp=(val,ph,on)=>{const l=el("label","field"), i=el("input"); i.value=val||""; i.placeholder=ph; i.oninput=()=>on(i.value); l.append(i); return l};
-  s.append(el("span","lbl","Navn"),inp(d.name_da,"På dansk, fx Pasta med kødsovs",v=>d.name_da=v),inp(d.name_sq,"Në shqip, p.sh. Makarona me mish",v=>d.name_sq=v));
+  s.append(el("span","lbl","Navn"),inp(d.name_da,d.kind==="madpakke"?"På dansk, fx Rugbrød med kylling":"På dansk, fx Pasta med kødsovs",v=>d.name_da=v),inp(d.name_sq,"Në shqip, p.sh. Makarona me mish",v=>d.name_sq=v));
+  if(d.kind!=="madpakke"){const tg=el("div","chips"); [["kosova","Fra Kosova"],["sund","Sund"]].forEach(([t,lbl])=>{const c=el("button","chip"+((d.tags||[]).includes(t)?" added":""),lbl); c.type="button"; c.setAttribute("aria-pressed",(d.tags||[]).includes(t));
+      c.onclick=()=>{d.tags=(d.tags||[]).includes(t)?d.tags.filter(x=>x!==t):[...(d.tags||[]),t]; const on=d.tags.includes(t); c.classList.toggle("added",on); c.setAttribute("aria-pressed",on)}; tg.append(c)});
+    s.append(el("span","lbl","Mærker"),tg)}
   const ch=el("div","chips");
-  const draw=()=>{ch.replaceChildren(); d.items.forEach((x,ix)=>{const c=el("button","chip",ingName(x.key)); c.type="button"; c.append(el("b",null,"×")); c.setAttribute("aria-label","Fjern "+ingName(x.key)); c.onclick=()=>{d.items.splice(ix,1); draw()}; ch.append(c)})};
+  const draw=()=>{ch.replaceChildren(); d.items.forEach((x,ix)=>{const c=el("button","chip",ingName(x.key,x)); c.type="button"; c.append(el("b",null,"×")); c.setAttribute("aria-label","Fjern "+ingName(x.key,x)); c.onclick=()=>{d.items.splice(ix,1); draw()}; ch.append(c)})};
   draw();
   const sf=el("label","field"); sf.append(svgEl("search")); const si=el("input"); si.placeholder="Tilføj ingrediens"; si.autocomplete="off"; sf.append(si);
   const ac=el("ul","tiles ac");
@@ -1110,9 +1129,11 @@ function renderDishForm(){
     const pick=()=>{if(!d.items.some(x=>x.key===e.key))d.items.push({key:e.key,qty:1}); si.value=""; ac.replaceChildren(); draw(); si.focus()};
     t.querySelector(".body").onclick=pick; ac.append(t)})};
   s.append(el("span","lbl","Ingredienser"),ch,sf,ac);
+  s.append(el("span","lbl","Link til opskrift (valgfrit)"),inp(d.link,"https://…",v=>d.link=v.trim()));
   const btns=el("div","btns"), no=el("button","btn ghost","Annuller"), ok=el("button","btn pri","Gem ret");
   no.onclick=()=>{editingDish=null; renderDishes()};
   ok.onclick=()=>{if(!(d.name_da||"").trim()){toast("Skriv et navn på retten");return} if(!d.items.length){toast("Tilføj mindst én ingrediens");return}
+    if(d.link&&!/^https:\/\/\S+\.\S+/.test(d.link)){toast("Linket skal starte med https://");return}
     d.name_da=d.name_da.trim(); d.name_sq=(d.name_sq||"").trim()||null; saveDish(d)};
   btns.append(no,ok); s.append(btns); f.append(s);
   setTimeout(()=>{const i=f.querySelector("input"); if(i&&!i.value)i.focus()},30);
@@ -1136,7 +1157,8 @@ $("#addForm").addEventListener("submit",ev=>{ev.preventDefault();
 $("#clearDone").onclick=()=>{const ids=items.filter(i=>i.checked).map(i=>i.id); if(ids.length)remove(ids); else toast("Ingen afkrydsede varer")};
 $("#suggSearch").addEventListener("input",()=>{lidlAllSugg=false; renderSugg()});
 $("#seg").querySelectorAll("button").forEach(b=>b.onclick=()=>{suggFilter=b.dataset.f; $("#seg").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b)); renderSugg(); {const st=getComputedStyle(document.documentElement), y=$("#sugg").getBoundingClientRect().top+scrollY-parseFloat(st.getPropertyValue("--toph"))-(parseFloat(st.getPropertyValue("--segh"))||0); if(scrollY>y+1)scrollTo({top:Math.max(0,y)})}});
-$("#newDish").onclick=()=>{editingDish={name_da:"",name_sq:"",items:[]}; openDish=null; renderDishes()};
+$("#newDish").onclick=()=>{editingDish={name_da:"",name_sq:"",items:[],kind:dishKind,tags:[],link:""}; openDish=null; renderDishes()};
+$("#dishSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{dishKind=b.dataset.k; openDish=null; editingDish=null; renderDishes(); setHead()});
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
   tab=b.dataset.tab; document.body.dataset.tab=tab;
   document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
@@ -1145,6 +1167,7 @@ document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
 });
 const setTop=()=>document.documentElement.style.setProperty("--toph",$(".top").offsetHeight+"px");
 if("ResizeObserver" in window)new ResizeObserver(()=>{const h=$("#segbar").offsetHeight; if(h)document.documentElement.style.setProperty("--segh",h+"px")}).observe($("#segbar"));
+if("ResizeObserver" in window)new ResizeObserver(()=>{const h=$("#dishSegbar").offsetHeight; if(h)document.documentElement.style.setProperty("--dsegh",h+"px")}).observe($("#dishSegbar"));
 addEventListener("resize",setTop);
 let scl=false; addEventListener("scroll",()=>{const c=scrollY>8; if(c!==scl){scl=c; document.body.classList.toggle("scrolled",c)}},{passive:true});
 
