@@ -9,3 +9,5 @@ end $$;
 revoke all on public.kvit_status from anon, public;
 revoke insert, update, delete on public.prisalarm_hit, public.lidl_soeg, public.kvit_status from authenticated;
 revoke execute on function public.kvit_clean(text), public.kvit_key(text, numeric) from anon, public;
+-- publish_offers() er kun til den daglige automatik (pg_cron), ikke til appen
+revoke execute on function public.publish_offers() from authenticated;

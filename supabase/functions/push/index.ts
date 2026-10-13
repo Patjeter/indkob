@@ -22,7 +22,7 @@ const TXT = {
         more: (c: number) => `+ ${c} të tjera` },
 };
 
-type Hit = { email: string | null; key: string; name_da: string | null; name_sq: string | null; max_price: number;
+type Hit = { alarm_id?: string; offer_id?: string; email: string | null; key: string; name_da: string | null; name_sq: string | null; max_price: number;
   store: string; heading: string | null; price: number; eq_price: number; valid_to: string };
 
 const kr = (n: number) => (Math.round(Number(n) * 100) / 100).toLocaleString("da-DK", { minimumFractionDigits: Number(n) % 1 ? 2 : 0, maximumFractionDigits: 2 }) + " kr.";
@@ -87,6 +87,9 @@ if (!Deno.env.get("PUSH_TEST")) {   // PUSH_TEST sættes kun i den lokale test
   Deno.serve(async (req) => {
     if (!KEY) return Response.json({ error: "SUPABASE_SERVICE_ROLE_KEY mangler" }, { status: 500 });
     if (!Deno.env.get("VAPID_PRIVATE_KEY")) return Response.json({ error: "VAPID_PRIVATE_KEY mangler" }, { status: 500 });
+    // kun databasens egne planlagte kørsler må starte afsendelse (se cron_secret.sql)
+    const { data: cs } = await sb.from("cron_secret").select("secret").eq("id", 1).maybeSingle();
+    if (!cs?.secret || req.headers.get("x-cron-secret") !== cs.secret) return Response.json({ error: "ikke tilladt" }, { status: 401 });
     webpush.setVapidDetails(APP, VAPID_PUBLIC, Deno.env.get("VAPID_PRIVATE_KEY")!);
     let alarm = false;
     try { alarm = !!(await req.json())?.alarm; } catch { /* tom krop: almindelig liste-besked */ }
@@ -97,7 +100,7 @@ if (!Deno.env.get("PUSH_TEST")) {   // PUSH_TEST sættes kun i den lokale test
       sb.from("push_subs").select("endpoint,p256dh,auth,dev,lang,email"),
       sb.from("family").select("email,name"),
     ]);
-    let sent = 0, gone = 0;
+    let sent = 0, gone = 0, failed = 0;
     const msgs = alarm ? planAlarms(claimed as Hit[], (subs || []) as Sub[]) : plan(claimed as Item[], (subs || []) as Sub[], family || []);
     for (const m of msgs) {
       try {
@@ -110,9 +113,18 @@ if (!Deno.env.get("PUSH_TEST")) {   // PUSH_TEST sættes kun i den lokale test
       } catch (e) {
         const code = (e as { statusCode?: number }).statusCode;
         if (code === 404 || code === 410) { await sb.from("push_subs").delete().eq("endpoint", m.sub.endpoint); gone++; }
-        else console.error("push fejlede", code, (e as { body?: string }).body);
+        else { failed++; console.error("push fejlede", code, (e as { body?: string }).body); }
       }
     }
-    return Response.json({ claimed: claimed.length, sent, gone });
+    // kom intet frem på grund af midlertidige fejl, frigives beskederne til næste kørsel
+    if (msgs.length && sent === 0 && failed > 0) {
+      if (alarm) {
+        for (const h of claimed as Hit[]) if (h.alarm_id && h.offer_id)
+          await sb.from("prisalarm_hit").update({ notified: false }).eq("alarm_id", h.alarm_id).eq("offer_id", h.offer_id);
+      } else {
+        await sb.from("items").update({ notified: false }).in("id", (claimed as Item[]).map((i) => i.id));
+      }
+    }
+    return Response.json({ claimed: claimed.length, sent, gone, failed });
   });
 }

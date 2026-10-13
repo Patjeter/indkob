@@ -89,7 +89,8 @@ select cron.schedule('indkob-prisalarm', '45 4 * * *', $c$
   select net.http_post(
     url     := 'https://onhsmcapojdfzuvcyqsm.supabase.co/functions/v1/push',
     headers := jsonb_build_object('Content-Type','application/json',
-               'Authorization','Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uaHNtY2Fwb2pkZnp1dmN5cXNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3MzM1NjQsImV4cCI6MjEwNzMwOTU2NH0.abpbVEay_4C4EjAFRkX-vDXJ2TRXc9xe6rSPQDXXIWM'),
+               'Authorization','Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uaHNtY2Fwb2pkZnp1dmN5cXNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3MzM1NjQsImV4cCI6MjEwNzMwOTU2NH0.abpbVEay_4C4EjAFRkX-vDXJ2TRXc9xe6rSPQDXXIWM',
+               'x-cron-secret', (select secret from public.cron_secret where id = 1)),
     body    := '{"alarm":true}'::jsonb)
   where exists (select 1 from public.prisalarm_hit where not notified and valid_to >= current_date);
 $c$);

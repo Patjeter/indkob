@@ -181,6 +181,8 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 /* tryk på en afkortet linje 3 viser hele teksten */
 .deal{cursor:pointer}.deal.open{align-items:flex-start}.deal.open .dt{white-space:normal;overflow:visible}.deal.open svg{margin-top:2px}
 .deal.warn{color:var(--warn)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
+.field:focus-within{box-shadow:0 0 0 2px var(--accent)}
 .cmp .tiles{padding:0;margin:0}.cmp .mq{font-size:var(--fs-s);color:var(--ink3)}
 .cmp .onlist{font-size:var(--fs-s);font-weight:600;color:var(--accent);padding:0 6px}
 .add.txt{width:auto;padding:0 14px;font-size:var(--fs-s);font-weight:700}.deal.ends .dt{font-weight:600}
@@ -408,7 +410,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v65";
+const VERSION="v66";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -514,23 +516,24 @@ async function runOp(op){
   if(op.kind==="update")return t.update(op.changes).eq("id",op.id);
   if(op.kind==="delete")return t.delete().in(op.col||"id",op.vals);
 }
-async function send(op){
+/* alle ændringer går gennem én kø og sendes én ad gangen i rækkefølge (fx tilføj før afkryds).
+   En ændring fjernes først, når serveren har svaret; afvises den, vises fejlen. */
+function send(op){
   if(!live)return;
-  if(queue.length||!online){queue.push(op); local.save("indkob-queue",queue); netState(); return}
-  let res; try{res=await runOp(op)}catch(e){res={error:e}}
-  if(res&&res.error){
-    if(isNetErr(res.error)){online=false; queue.push(op); local.save("indkob-queue",queue); netState(); return}
-    toast("Kunne ikke gemme ændringen");
-  }
+  queue.push(op); local.save("indkob-queue",queue); netState(); flush();
 }
 async function flush(){
-  if(!live||flushing||!queue.length)return; flushing=true; netState();
+  if(!live||flushing||!queue.length||!online)return; flushing=true; netState();
   while(queue.length){
     let res; try{res=await runOp(queue[0])}catch(e){res={error:e}}
-    if(res&&res.error&&isNetErr(res.error)){online=false; break}
+    if(res&&res.error){
+      if(isNetErr(res.error)){online=false; break}
+      console.error("afvist ændring",queue[0],res.error);
+      toast(`Kunne ikke gemme en ændring: ${String(res.error.message||res.error).slice(0,80)}`);
+    }
     queue.shift(); local.save("indkob-queue",queue);
   }
-  flushing=false; if(!queue.length)online=true; netState();
+  flushing=false; netState();
 }
 addEventListener("online",()=>{online=true; flush().then(()=>loaded&&refresh())});
 addEventListener("offline",()=>{online=false; netState()});
@@ -859,13 +862,19 @@ function bestElsewhere(key,store){
 }
 function sameStore(key,store){return offersFor(key).find(o=>o.store===store&&started(o))||offersFor(key).find(o=>o.store===store)||null}
 function unitPrice(key,store){const o=sameStore(key,store); if(o)return +o.price;
-  if(store==="Lidl"){const now=offersFor(key).map(x=>x.ref_price).find(x=>x!=null); if(now!=null)return +now}
   const e=BYKEY[key]; return e&&e.price!=null?e.price:null}
+/* pris for en hel linje: tilbudsprisen gælder højst til "maks", resten til normalpris */
+function lineCost(key,store,q,own){
+  if(own)return +own.own_price*q;
+  const o=sameStore(key,store), e=BYKEY[key]||{};
+  if(!o)return (unitPrice(key,store)||0)*q;
+  const m=maxOf(o), n=m?Math.min(q,m):q; return +o.price*n+(q-n)*(e.price!=null?+e.price:+o.price);
+}
 /* prisdel til linje 2: "15,00 kr." / "tilbud 15,00 kr. · udløber …" / "@MENY ca. 19,95 kr." */
 function pricePart(key,store,showStore,noUsual){
   const own=sameStore(key,store), e=BYKEY[key]||{};
   if(own)return el("span","dl",`${showStore?store+" ":""}tilbud ${kr(own.price)} · ${when(own)}`);
-  const now=store==="Lidl"?offersFor(key).map(o=>o.ref_price).find(x=>x!=null):null, usual=e.price;
+  const now=null, usual=e.price;
   const t=now!=null?kr(now)+(usual!=null&&Math.abs(now-usual)>=1&&!noUsual?` · plejer ${kr(usual)}`:""):(usual!=null?kr(usual):"");
   return t?(showStore?`${store} ${t}`:t):null;
 }
@@ -915,7 +924,8 @@ function tile({cat,cls,lead,name,alt,tag,meta,wrap,extra,act,below,sheet,onTap})
   const li=el("li","tile c-"+(cat||"an")+(cls?" "+cls:""));
   if(lead){li.append(lead); li.classList.add("has-lead")}
   const b=el("div","body"); b.append(nameEl(name)); const l=line1(alt,name,tag); if(l)b.append(l); if(meta)b.append(metaLine(meta,wrap||!!sheet)); (extra||[]).forEach(x=>x&&b.append(x));
-  if(onTap)b.onclick=ev=>{if(!ev.target.closest("button"))onTap(ev)};
+  if(onTap){b.onclick=ev=>{if(!ev.target.closest("button"))onTap(ev)}; b.setAttribute("role","button"); b.tabIndex=0;
+    b.onkeydown=ev=>{if((ev.key==="Enter"||ev.key===" ")&&ev.target===b){ev.preventDefault(); onTap(ev)}}}
   li.append(b); if(act)li.append(act);
   if(below){const w=el("div","below"); w.append(below); li.append(w)}
   if(sheet){sheet.classList.add("below"); li.append(sheet); li.querySelectorAll(".deal").forEach(d=>d.classList.add("open"))}
@@ -1091,7 +1101,7 @@ function listTile(it){
   const q=qn(it.qty), ox=st==="Lidl"&&it.key&&LALT.get(it.key), ownX=ox&&ox.own_heading&&it.note===ownNote(ox)?ox:null;
   const so=it.key&&sameStore(it.key,st), up=it.key?(ownX?+ownX.own_price:unitPrice(it.key,st)):null;
   const price=it.key&&up&&Math.abs(q-1)>1e-6&&!it.checked
-    ?el("span",so?"dl":null,`${fmtQ(q,unitOf(it.key))} × ${kr(up)} = ${kr(round2(up*q))}${so?` · tilbud, ${when(so)}`:""}`)
+    ?el("span",so?"dl":null,`${fmtQ(q,unitOf(it.key))} × ${kr(up)} = ${kr(round2(lineCost(it.key,st,q,ownX)))}${so&&maxOf(so)&&q>maxOf(so)?` (maks ${maxOf(so)} til tilbudspris)`:""}${so?` · tilbud, ${when(so)}`:""}`)
     :(it.key?pricePart(it.key,st,false,!!d):null);
   const t=tile({cat:catOf(it.category),cls:it.checked?"done":"",lead:chk,name:a,alt:b,
     meta:[strong(it.note), price, it.key?lookPart(lookFor(it.key,st),a):null],
@@ -1117,7 +1127,10 @@ async function fillCompare(box,it){
     const pu=r.offer_unit!=null&&r.si_unit?`${kr(+r.offer_unit)}/${r.si_unit==="stk"?"stk.":r.si_unit}`:perUnit(o);
     const eq=r.eq_price!=null&&Math.abs(+r.eq_price-+r.price)>=0.5?`svarer til ${kr(+r.eq_price)} for jeres pakke`:"";
     const here=st===r.store&&sameStore(key,r.store);
-    const act=here?el("span","onlist","valgt"):addBtn(`Køb ${e.da||it.text} i ${r.store}`,()=>{patch(it.id,{store:r.store}); toast(`${e.da||it.text} flyttet til ${r.store}`,()=>patch(it.id,{store:st})); editingItem=null; renderList()});
+    const act=here?el("span","onlist","valgt"):addBtn(`Køb ${e.da||it.text} i ${r.store}`,()=>{
+      if(!sameStore(key,r.store)){const row={key,store:r.store,title:r.heading||null,size:r.size||null,price:+r.price,ref_price:null,valid_from:r.valid_from||null,valid_to:r.valid_to,note:r.maks?`maks ${r.maks}`:null,source:"valg"};
+        offers.push(row); send({kind:"insert",table:"offers",row})}
+      patch(it.id,{store:r.store}); toast(`${e.da||it.text} flyttet til ${r.store}`,()=>patch(it.id,{store:st})); editingItem=null; renderList()});
     if(!here){act.replaceChildren(document.createTextNode("Vælg")); act.classList.add("txt")}
     ul.append(tile({cat:catOf(e.cat),name:`${r.store} · ${kr(+r.price)}`,alt:r.heading?prettyHeading(r.heading).trim()+(r.size?` · ${r.size}`:""):null,wrap:true,
       meta:[pu,when(o),r.maks?`maks ${r.maks}`:"",eq],act}));
@@ -1191,7 +1204,7 @@ function renderList(){
   [...new Set(items.map(i=>i.store||"Lidl"))].sort((a,b)=>rank(STORE_ORDER,a)-rank(STORE_ORDER,b)).forEach(s=>{
     const list=items.filter(i=>(i.store||"Lidl")===s), open=list.filter(i=>!i.checked);
     const own=i=>{const x=s==="Lidl"&&i.key&&LALT.get(i.key); return x&&x.own_heading&&i.note===ownNote(x)?x:null};
-    const tot=open.reduce((a,i)=>{const x=own(i); return a+(x?+x.own_price:(unitPrice(i.key,s)||0))*qn(i.qty)},0); grand+=tot;
+    const tot=open.reduce((a,i)=>a+lineCost(i.key,s,qn(i.qty),own(i)),0); grand+=tot;
     open.forEach(i=>{const x=own(i); if(x)swapped+=(+x.own_save)*qn(i.qty)});
     open.forEach(i=>{const o=i.key&&sameStore(i.key,s); if(o){const r=refOf(o,i.key); if(r!=null&&r>o.price)saved+=(r-o.price)*Math.min(qn(i.qty)||1,maxOf(o)||99)}});
     const card=el("section","card"), h=el("div","head");
@@ -1205,7 +1218,7 @@ function renderList(){
     [...new Set(list.map(i=>catOf(i.category)))].sort((a,b)=>rank(so.cats,a)-rank(so.cats,b)).forEach(c=>{
       const arr=list.filter(i=>catOf(i.category)===c).sort((a,b)=>a.checked-b.checked||((so.kp[a.key]??.5)-(so.kp[b.key]??.5)));
       const lis=arr.map(listTile);
-      const sub=arr.filter(i=>!i.checked).reduce((a,i)=>{const x=own(i); return a+(x?+x.own_price:(unitPrice(i.key,s)||0))*qn(i.qty)},0);
+      const sub=arr.filter(i=>!i.checked).reduce((a,i)=>a+lineCost(i.key,s,qn(i.qty),own(i)),0);
       const nOpen=arr.filter(i=>!i.checked).length;
       card.append(group(c,nOpen?(sub>0?`${nOpen} · ${kr(round2(sub))}`:nOpen):"✓",lis));
     });
@@ -1220,7 +1233,7 @@ function renderList(){
     const lines=[];
     const why=[saved>=1?"tilbud":null,swapped>=1?"Lidls egne mærker":null].filter(Boolean).join(" og ");
     if(saved+swapped>=1)lines.push(strong(`Du sparer ${kr(Math.round(saved+swapped))} på ${why}`,"ok"));
-    if(extra>=1)lines.push(`spar ${kr(Math.round(extra))} mere ved at trykke Flyt`);
+
     if(lines.length){const b=el("div","sumbody"); b.append(metaLine(lines,true)); sum.append(b)}
     if(expired.length){const b=el("div","sumbody"), m=el("button","btn",`Flyt ${expired.length} ${expired.length===1?"vare":"varer"} med udløbet tilbud tilbage`);
       m.onclick=()=>{const old=expired.map(i=>[i.id,i.store]); expired.forEach(i=>patch(i.id,{store:(BYKEY[i.key]||{}).store||"Lidl"}));

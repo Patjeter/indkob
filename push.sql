@@ -52,7 +52,8 @@ select cron.schedule('indkob-push', '* * * * *', $c$
   select net.http_post(
     url     := 'https://onhsmcapojdfzuvcyqsm.supabase.co/functions/v1/push',
     headers := jsonb_build_object('Content-Type','application/json',
-               'Authorization','Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uaHNtY2Fwb2pkZnp1dmN5cXNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3MzM1NjQsImV4cCI6MjEwNzMwOTU2NH0.abpbVEay_4C4EjAFRkX-vDXJ2TRXc9xe6rSPQDXXIWM'),
+               'Authorization','Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uaHNtY2Fwb2pkZnp1dmN5cXNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3MzM1NjQsImV4cCI6MjEwNzMwOTU2NH0.abpbVEay_4C4EjAFRkX-vDXJ2TRXc9xe6rSPQDXXIWM',
+               'x-cron-secret', (select secret from public.cron_secret where id = 1)),
     body    := '{}'::jsonb)
   where exists (select 1 from public.items where notified = false and created_at < now() - interval '3 minutes');
 $c$);

@@ -150,13 +150,22 @@ begin
               kvit_key(ln->>0, (ln->>3)::numeric));
       n_lines := n_lines + 1;
     end loop;
-    with upd as (
-      update items it set checked = true
-       where not it.checked and it.key in (select key from kvit_linjer where tid = r->>'tid' and key is not null and key <> '-')
+    -- afkryds kun det, der faktisk er købt: købte man færre end på listen, bliver resten stående
+    with k as (
+      select key, sum(coalesce(antal, 1)) as q from kvit_linjer
+       where tid = r->>'tid' and key is not null and key <> '-' group by key
+    ), upd as (
+      update items it
+         set checked = (case when it.qty ~ '^\s*[0-9]+([.,][0-9]+)?\s*$' then replace(trim(it.qty), ',', '.')::numeric else 1 end) <= k.q,
+             qty = case when (case when it.qty ~ '^\s*[0-9]+([.,][0-9]+)?\s*$' then replace(trim(it.qty), ',', '.')::numeric else 1 end) <= k.q
+                        then it.qty
+                        else trim(to_char(replace(trim(it.qty), ',', '.')::numeric - k.q, 'FM999990.##'), '.') end
+        from k
+       where not it.checked and it.key = k.key
          and it.created_at < (r->>'dato')::timestamptz
          and afkryds and (r->>'dato')::timestamptz > now() - interval '7 days'   -- kun nye køb, ikke gamle kvitteringer
-      returning 1)
-    select n_checked + count(*) into n_checked from upd;
+      returning it.checked)
+    select n_checked + count(*) filter (where checked) into n_checked from upd;
     ks := ks || array(select distinct key from kvit_linjer where tid = r->>'tid' and key is not null and key <> '-');
   end loop;
   if n_new > 0 then perform kvit_rytme(array(select distinct unnest(ks))); end if;
