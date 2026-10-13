@@ -318,6 +318,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 
   <div class="pane" id="pane-sugg" hidden>
     <div class="panehead">Forslag</div>
+    <section class="card" id="swapCard" hidden></section>
     <section class="card">
       <div class="fieldrow"><label class="field"><span data-ic="search"></span><input id="suggSearch" placeholder="Søg i jeres varer og hos Lidl" autocapitalize="off" autocorrect="off"></label></div>
       <div class="segbar" id="segbar"><div class="seg" id="seg"><button data-f="due" aria-pressed="true">14 dage</button><button data-f="d30" aria-pressed="false">30 dage</button><button data-f="top" aria-pressed="false">Oftest</button><button data-f="all" aria-pressed="false">Alle</button></div></div>
@@ -380,7 +381,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v56";
+const VERSION="v57";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -703,10 +704,34 @@ function applyLidl(){
 }
 function expandable(d){d.onclick=ev=>{if(ev.target.closest("button"))return; ev.stopPropagation(); d.classList.toggle("open")}; return d}
 const prettyHeading=h=>h.replace(/^((?:[^a-zæøå\s]+\s+)+)/,m=>m.split(/\s+/).filter(Boolean).map(w=>w.charAt(0)+w.slice(1).toLowerCase()).join(" ")+" ");
-function lidlTip(key){
+const ownNote=x=>"Lidls eget: "+prettyHeading(x.own_heading).trim();
+function lidlTip(key,it){
   const x=LALT.get(key); if(!x||!x.own_heading||!(+x.own_save>0))return null;
+  if(it&&it.note===ownNote(x))return null;
   const d=el("div","deal tip"); d.append(svgEl("bulb"),el("span","dt",`Lidls eget ${kr(+x.own_price)} · spar ${kr(+x.own_save)} · ${prettyHeading(x.own_heading).trim()}`));
+  if(it){const m=el("button","mv","Skift"); m.setAttribute("aria-label",`Køb Lidls eget i stedet: ${prettyHeading(x.own_heading).trim()}`);
+    m.onclick=ev=>{ev.stopPropagation(); const old=it.note||null; patch(it.id,{note:ownNote(x)}); toast(`Skiftet til Lidls eget · spar ${kr(+x.own_save)}`,()=>patch(it.id,{note:old}))}; d.append(m)}
   return expandable(d);
+}
+/* mærkeskift: hvad Lidls egne varer ville spare om året, ud fra hvor ofte I køber varen */
+function swapRows(){
+  return [...LALT.values()].filter(x=>x.own_heading&&+x.own_save>=2&&BYKEY[x.key]&&!BYKEY[x.key].own)
+    .map(x=>{const e=BYKEY[x.key], every=Math.max(e.every||0,3); return {x,e,year:e.n>=4&&e.every?Math.round(+x.own_save*365/every):0}})
+    .filter(r=>r.year>=50).sort((a,b)=>b.year-a.year);
+}
+function renderSwaps(){
+  const c=$("#swapCard"), rows=swapRows(), on=new Map(items.filter(i=>!i.checked&&i.key).map(i=>[i.key,i]));
+  c.replaceChildren(); c.hidden=!rows.length; if(!rows.length)return;
+  const tot=rows.reduce((a,r)=>a+r.year,0), h=el("div","head"); const hb=el("div","hb"); hb.append(el("h2",null,"Skift mærke og spar"),el("div","hs","Ndrro markën dhe kurse")); h.append(hb);
+  const hr=el("div","hr"); hr.append(el("b",null,kr(Math.round(tot/100)*100)),document.createTextNode("om året")); h.append(hr); c.append(h);
+  const lis=rows.slice(0,5).map(({x,e,year})=>{
+    const it=on.get(e.key), done=it&&it.note===ownNote(x);
+    const act=done?onListMark():addBtn(`Køb Lidls eget i stedet for ${e.da}`,()=>{
+      if(it)patch(it.id,{note:ownNote(x)}); else{addItem(e.da,e.qty||1,e,"Lidl",ownNote(x))} toast(`${e.da}: Lidls eget på listen · spar ${kr(+x.own_save)}`)});
+    return tile({cat:catOf(e.cat),name:prettyHeading(x.own_heading).trim(),alt:`i stedet for ${x.normal_heading?prettyHeading(x.normal_heading).trim():e.da}`,wrap:true,
+      meta:[strong(`spar ${kr(+x.own_save)} pr. køb`,"ok"),`ca. ${kr(year)} om året`],act});
+  });
+  c.append(tilesList(lis));
 }
 /* søgning i Lidls sortiment: det I plejer først, så Lidls eget alternativ, så resten efter pris pr. kg/l/stk */
 const lidlHitWord=(p,w)=>p.words.some(x=>x.startsWith(w))||(w.length>=4&&p.f.includes(w));
@@ -973,7 +998,7 @@ function listTile(it){
     else if(st!==home&&!offersFor(it.key).some(o=>o.store===st)&&!e.own){
       below=el("div","deal warn"); below.append(el("span","dt",`Tilbuddet i ${st} er udløbet`)); const m=el("button","mv","Flyt til "+home); m.onclick=()=>patch(it.id,{store:home}); below.append(m)}
   }
-  if(!below&&it.key&&!it.checked&&st==="Lidl")below=lidlTip(it.key);
+  if(!below&&it.key&&!it.checked&&st==="Lidl")below=lidlTip(it.key,it);
   const t=tile({cat:catOf(it.category),cls:it.checked?"done":"",lead:chk,name:a,alt:b,
     meta:[strong(it.note), it.key?pricePart(it.key,st,false,!!d):null, it.key?lookPart(lookFor(it.key,st),a):null],
     sheet:editingItem===it.id?itemSheet(it):null,
@@ -1042,10 +1067,12 @@ function renderList(){
   [...plan.values()].filter(x=>WORTH.has(x.store)).sort((a,b)=>b.save-a.save).forEach(x=>wrap.append(tripCard(x)));
   const rank=(arr,x)=>(arr.indexOf(x)+1)||99, catIds=CATS.map(c=>c.id);
   if(!items.length)wrap.append(el("div","card empty","Listen er tom. Skriv en vare ovenfor, eller tilføj fra Forslag eller Retter."));
-  let grand=0, saved=0; const sum=el("section","card sumcard"); wrap.append(sum);
+  let grand=0, saved=0, swapped=0; const sum=el("section","card sumcard"); wrap.append(sum);
   [...new Set(items.map(i=>i.store||"Lidl"))].sort((a,b)=>rank(STORE_ORDER,a)-rank(STORE_ORDER,b)).forEach(s=>{
     const list=items.filter(i=>(i.store||"Lidl")===s), open=list.filter(i=>!i.checked);
-    const tot=open.reduce((a,i)=>a+(unitPrice(i.key,s)||0)*qn(i.qty),0); grand+=tot;
+    const own=i=>{const x=s==="Lidl"&&i.key&&LALT.get(i.key); return x&&x.own_heading&&i.note===ownNote(x)?x:null};
+    const tot=open.reduce((a,i)=>{const x=own(i); return a+(x?+x.own_price:(unitPrice(i.key,s)||0))*qn(i.qty)},0); grand+=tot;
+    open.forEach(i=>{const x=own(i); if(x)swapped+=(+x.own_save)*qn(i.qty)});
     open.forEach(i=>{const o=i.key&&sameStore(i.key,s); if(o){const r=refOf(o,i.key); if(r!=null&&r>o.price)saved+=(r-o.price)*Math.min(qn(i.qty)||1,maxOf(o)||99)}});
     const card=el("section","card"), h=el("div","head");
     h.append(el("span","av"+(s==="Lidl"?"":" alt"),s.replace(/[^A-Za-zÆØÅæøå0-9]/g,"").slice(0,1).toUpperCase()));
@@ -1067,7 +1094,8 @@ function renderList(){
     const r=el("div","hr"); r.append(el("b",null,kr(Math.round(grand))),document.createTextNode("anslået")); h.append(r); sum.append(h);
     const extra=[...plan.values()].filter(x=>!WORTH.has(x.store)).reduce((a,x)=>a+x.save,0);
     const lines=[];
-    if(saved>=1)lines.push(strong(`Du sparer ${kr(Math.round(saved))} på tilbud`,"ok"));
+    const why=[saved>=1?"tilbud":null,swapped>=1?"Lidls egne mærker":null].filter(Boolean).join(" og ");
+    if(saved+swapped>=1)lines.push(strong(`Du sparer ${kr(Math.round(saved+swapped))} på ${why}`,"ok"));
     if(extra>=1)lines.push(`spar ${kr(Math.round(extra))} mere ved at trykke Flyt`);
     if(lines.length){const b=el("div","sumbody"); b.append(metaLine(lines,true)); sum.append(b)}
   } else sum.remove();
@@ -1137,7 +1165,7 @@ function renderOffers(){
 /* ---------- Forslag ---------- */
 let suggFilter="due";
 function renderSugg(){
-  const box=$("#sugg"); box.replaceChildren();
+  const box=$("#sugg"); box.replaceChildren(); renderSwaps();
   const q=fold($("#suggSearch").value), on=onListKeys(), H=suggFilter==="d30"?30:14;
   let list=CATALOG.filter(e=>!q||fold(e.da).includes(q)||fold(e.sq).includes(q)||(e.alias||[]).some(a=>fold(a).includes(q)));
   if(!q&&suggFilter==="due")list=list.filter(e=>isDue(e,14)&&!on.has(e.key));
