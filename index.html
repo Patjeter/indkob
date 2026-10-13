@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Indkøb</title>
 <meta name="theme-color" content="#f2f2f7">
+<meta name="color-scheme" content="only light">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Indkøb">
@@ -19,7 +20,7 @@
    Afstand: 4 · 8 · 12 · 20     Radius: kort 16 · flise 12 · knap 10 · pille 999
    Én accentfarve (grøn) til handlinger. Orange betyder altid og kun "tilbud".
    ========================================================= */
-:root{
+:root{color-scheme:only light;
   --bg:#f2f2f7;--surface:#fff;--surface2:#f2f2f7;--ink:#18191b;--ink2:#54585d;--ink3:#6a6f76;--line:#e7e7e2;
   --accent:#1f7a4d;--accent-soft:#e4f1e9;--on-accent:#fff;
   --deal:#d4600f;--deal-soft:#fcefe4;--deal-ink:#924100;--on-deal:#fff;
@@ -36,11 +37,7 @@
   --tint:6%;--shadow:0 1px 2px rgba(20,20,10,.04),0 4px 14px rgba(20,20,10,.05);
   --toph:56px;
 }
-@media (prefers-color-scheme:dark){:root{
-  --bg:#000;--surface:#1c1c1e;--surface2:#2c2c2e;--ink:#f2f1ec;--ink2:#bab8b1;--ink3:#97958e;--line:#2c2c2a;
-  --accent:#5cc28e;--accent-soft:#1c3328;--on-accent:#0c1f15;
-  --deal:#f2913f;--deal-soft:#36240f;--deal-ink:#ffc48f;--on-deal:#2a1405;
-  --warn:#ff8b75;--warn-soft:#3b1d17;--tint:10%;--shadow:none}}
+/* altid lyst tema – også når telefonen står i mørk tilstand */
 
 
 /* kategorifarver (bruges af overskrift og fliser) */
@@ -381,7 +378,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v57";
+const VERSION="v58";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
