@@ -244,19 +244,19 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 
 /* ---------- store skærme: kolonner ---------- */
 .panehead{display:none}
-/* computer: én fane ad gangen i en læsevenlig bredde, menuen lodret i højre side */
+/* computer: én fane ad gangen i en læsevenlig bredde, menuen lodret i venstre side */
 @media (min-width:860px){
-  body{max-width:none;padding:0 248px 32px 24px}
+  body{max-width:none;padding:0 24px 32px 248px}
   .top,.cols{max-width:720px;margin-left:auto;margin-right:auto}
   .top{border-radius:0 0 var(--r-card) var(--r-card)}
-  .tabs{top:0;bottom:0;left:auto;right:0;width:224px;flex-direction:column;justify-content:flex-start;gap:2px;
-    padding:calc(env(safe-area-inset-top) + 72px) 12px 24px;border-top:0;border-left:1px solid var(--line)}
+  .tabs{top:0;bottom:0;left:0;right:auto;width:224px;flex-direction:column;justify-content:flex-start;gap:2px;
+    padding:calc(env(safe-area-inset-top) + 72px) 12px 24px;border-top:0;border-right:1px solid var(--line)}
   .tabs button{flex:0 0 auto;max-width:none;flex-direction:row;justify-content:flex-start;gap:10px;padding:8px 10px;border-radius:10px;font-size:var(--fs-s)}
   .tabs .ic{width:26px;height:26px}
   .tabs button:hover{background:var(--surface2)}
   .tabs button[aria-selected=true]{background:var(--accent-soft)}
   .badge{position:static;margin-left:auto;border:0}
-  .toast{bottom:24px;right:248px}
+  .toast{bottom:24px;left:248px}
   .name,.meta,.meta .mq{white-space:normal}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
@@ -387,7 +387,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v59";
+const VERSION="v60";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
