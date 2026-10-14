@@ -18,14 +18,15 @@ language sql immutable set search_path = public as $$
      and x !~ '(kalkun|kylling|fjerkræ|vegansk|vegetar|plantebaseret|veggie)'
       then 'oksekød (kun fra Al-Rafiden)'
     -- slik kun uden svinegelatine
-    when x ~ '(vingummi|bland.?selv|jelly beans|lakrids|skumfidus|skumbanan|marshmallow|haribo|malaco|matador|winegum|[^a-zæøåäöüé]slik[^a-zæøåäöüé])'
+    when x ~ '(vingummi|jelly beans|lakrids|skumfidus|skumbanan|marshmallow|haribo|malaco|matador|winegum|[^a-zæøåäöüé]slik[^a-zæøåäöüé])'
      and x !~ '(vegan|veggie|gelatinefri|uden gelatine|katjes|halal)'
       then 'slik med gelatine'
     -- kaffe kun Merrild Rød
     when x ~ '([^a-zæøåäöüé]kaffe[^a-zæøåäöüé]|kaffebønner|filterkaffe|formalet kaffe|hele bønner)'
      and x !~ 'merrild'
       then 'kaffe (kun Merrild Rød)'
-    when x ~ 'merrild' and x ~ '(lys|mørk|espresso|instant|kapsl|pods|decaf|koffeinfri)' and x !~ 'rød'
+    when x ~ 'merrild' and x !~ 'rød'
+     and (x ~ '(lys|mørk|espresso|kapsl|pods|decaf|koffeinfri)' or (x ~ 'instant' and x !~ '(formalet|filter|bønner)'))
       then 'kaffe (kun Merrild Rød)'
     else null end
   from t
