@@ -128,6 +128,12 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .autolist .dot{width:10px;height:10px;border-radius:50%;margin-top:5px;flex:none;background:var(--accent)}
 .autolist .st{font-size:var(--fs-xs);font-weight:700;color:var(--accent)}
 .autolist li.bad{background:var(--warn-soft)}.autolist li.bad .dot{background:var(--warn)}.autolist li.bad .st,.autolist li.bad>div span{color:var(--warn)}
+.prep .prepbtns{display:flex;gap:8px;margin:0 20px 4px;flex-wrap:wrap}.prep .prepbtns .btn.pri{flex:1}
+.prep .grp{margin:0 0 6px}
+.prep .prepbtns.end{position:sticky;bottom:calc(58px + env(safe-area-inset-bottom));z-index:5;margin:8px 0 0;padding:10px 20px;background:var(--surface);border-top:1px solid var(--line)}
+@media (min-width:860px){.prep .prepbtns.end{bottom:0}}.prep .sublbl{margin:4px 20px 6px;font-size:var(--fs-xs);font-weight:700;color:var(--ink2)}
+.pick{width:30px;height:30px;flex:0 0 30px;border-radius:50%;border:2px solid var(--ink3);display:grid;place-items:center;color:transparent;background:var(--surface)}
+.pick svg{width:16px;height:16px}.pick[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .olist{list-style:none;margin:0 20px 10px;padding:0;display:flex;flex-direction:column;gap:4px}
 .olist li{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 10px;border-radius:var(--r-ctl);background:var(--surface2);font-size:var(--fs-s);font-weight:600}
 .olist li .on{flex:1;min-width:0}.olist li button{width:36px;height:32px;border-radius:8px;display:grid;place-items:center;color:var(--ink2);font-size:16px}
@@ -326,6 +332,7 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
       <ul class="tiles ac" id="ac" hidden></ul>
       <div class="hint" id="hint"></div>
     </section>
+    <section class="card more prep" id="prepCard" hidden></section>
     <div id="stores"></div>
     <div class="foot"><button class="btn ghost" id="clearDone">Ryd afkrydsede</button></div>
   </div>
@@ -425,7 +432,7 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v71";
+const VERSION="v72";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -637,7 +644,7 @@ async function refresh(){
   items=a.data; offers=o.data||[]; dishes=ds.data||[]; bought={}; (b.data||[]).forEach(x=>{if(x.at)bought[x.key]=String(x.at).slice(0,10)}); learnTrips(b.data||[]);
   if(bo&&!bo.error&&bo.data){orderManual={}; bo.data.forEach(x=>orderManual[x.store]=x.cats)}
   if(la&&!la.error&&la.data)lalt=la.data; if(ls&&!ls.error&&ls.data)lsoeg=ls.data; applyLidl();
-  changed(); netState(); return true;
+  changed(); netState(); dedupe(); return true;
 }
 async function loadData(){
   if(loaded)return; loaded=true;
@@ -646,7 +653,7 @@ async function loadData(){
     .on("postgres_changes",{event:"*",schema:"public",table:"items"},p=>{
       if(p.eventType==="DELETE")items=items.filter(i=>i.id!==p.old.id);
       else{const i=items.findIndex(x=>x.id===p.new.id); if(i>=0)items[i]=p.new; else items.push(p.new)}
-      changed()})
+      changed(); if(p.eventType==="INSERT")dedupe()})
     .on("postgres_changes",{event:"*",schema:"public",table:"offers"},async()=>{const r=await sb.from("offers").select("*").gte("valid_to",today()); if(r.data){offers=r.data; changed()}})
     .on("postgres_changes",{event:"*",schema:"public",table:"products"},p=>{if(p.new&&p.new.key){addProduct(p.new); changed()}})
     .on("postgres_changes",{event:"*",schema:"public",table:"dishes"},async()=>{const r=await sb.from("dishes").select("*").order("name_da"); if(r.data){dishes=r.data; changed()}})
@@ -671,6 +678,22 @@ async function addItem(text,qty,entry,storeOverride,note){
     category:entry.cat||"an",note:note||null,suggested:false,checked:false,added_dev:DEV,created_at:new Date().toISOString()};
   items.push(it); changed();
   const {created_at,...row}=it; send({kind:"insert",table:"items",row});
+}
+/* samme vare tilføjet fra to telefoner på samme tid (eller uden net): læg rækkerne sammen.
+   Den ældste række beholdes med det største antal; varianter (note) holdes adskilt. Alle telefoner kan gøre det – det giver samme resultat. */
+function dedupe(){
+  const groups=new Map();
+  items.forEach(i=>{if(i.checked||!i.key)return; const k=i.key+"|"+(i.note||""); if(!groups.has(k))groups.set(k,[]); groups.get(k).push(i)});
+  let merged=null;
+  groups.forEach(g=>{if(g.length<2)return;
+    g.sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||""))||String(a.id).localeCompare(String(b.id)));
+    const keep=g[0], rest=g.slice(1), ch={};
+    const q=Math.max(...g.map(i=>qn(i.qty)||1)); if(q!==(qn(keep.qty)||1))ch.qty=String(q);
+    const chosen=rest.find(i=>i.store&&i.store!=="Lidl"); if((keep.store||"Lidl")==="Lidl"&&chosen)ch.store=chosen.store;
+    if(Object.keys(ch).length)patch(keep.id,ch);
+    remove(rest.map(i=>i.id),true); merged=keep.name_da||keep.text;
+  });
+  if(merged)toast(`${merged} stod der to gange – lagt sammen`);
 }
 function patch(id,ch){
   const it=items.find(i=>i.id===id); if(!it)return;
@@ -1056,12 +1079,63 @@ function setHead(){
 const desktop=()=>matchMedia("(min-width:860px)").matches;
 /* render: indkøbslisten altid, de andre faner kun når de vises */
 function render(){
-  renderList(); counts();
+  renderList(); renderPrep(); counts();
   ["offers","dishes","sugg","more"].forEach(n=>dirty.add(n));
   if(tab!=="list")renderPane(tab);
   setHead();
 }
 function renderPane(n){if(n==="list"||!dirty.has(n))return; dirty.delete(n); ({offers:renderOffers,dishes:renderDishes,sugg:renderSugg,more:renderMore})[n]()}
+/* ---------- Ugens indkøb: det, der efter jeres købsrytme slipper op inden næste tur ----------
+   Intet kommer på listen af sig selv: varerne vises valgt på forhånd, og I godkender med ét tryk. */
+const PREP_H=7;
+let prepOpen=false, prepPick=null;
+function prepRows(){
+  const on=onListKeys();
+  // en vare, I ikke har købt i langt længere tid end normalt, er nok skiftet ud – den foreslås ikke her (men kan findes i Forslag)
+  const stopped=e=>{const t=daysSince(lastBought(e)); if(t==null||!e.gaps||!e.gaps.length)return false;
+    return t>1.5*(e.every||7)&&e.gaps.filter(g=>g>t).length/e.gaps.length<0.2};
+  const r=CATALOG.filter(e=>!on.has(e.key)&&!stopped(e)).map(e=>({e,p:dueProb(e,PREP_H)})).filter(x=>x.p>=0.3)
+    .sort((a,b)=>(b.p-a.p)||((b.e.n||0)-(a.e.n||0)));
+  return {sure:r.filter(x=>x.p>=0.5).slice(0,40), maybe:r.filter(x=>x.p<0.5).slice(0,12)};
+}
+function prepSkip(days){try{localStorage.setItem("indkob-prep-skip",JSON.stringify({keys:prepRows().sure.map(x=>x.e.key),until:new Date(Date.now()+days*864e5).toISOString().slice(0,10)}))}catch(e){}}
+function prepSkipped(sure){
+  let s=null; try{s=JSON.parse(localStorage.getItem("indkob-prep-skip")||"null")}catch(e){}
+  return !!(s&&s.until>=today()&&sure.every(x=>s.keys.includes(x.e.key)));
+}
+function prepStore(e){const d=bestElsewhere(e.key,e.store); return d&&started(d)&&worthStores().has(d.store)?d.store:undefined}
+function renderPrep(){
+  const c=$("#prepCard"); if(!c)return;
+  const {sure,maybe}=prepRows();
+  if(!loadedOrCached||(!prepOpen&&(sure.length<3||prepSkipped(sure)))){c.hidden=true; return}
+  c.hidden=false; c.replaceChildren();
+  const h=el("div","head"), hb=el("div","hb"); hb.append(el("h2",null,"Ugens indkøb"),el("div","hs","Blerja e javës")); h.append(hb); c.append(h);
+  if(!prepOpen){
+    c.append(el("p","mtxt",`${sure.length} varer slipper snart op efter jeres købsrytme.`));
+    const b=el("div","prepbtns"), go=el("button","btn pri","Gennemgå"), no=el("button","btn ghost","Ikke nu");
+    go.onclick=()=>{prepOpen=true; prepPick=new Set(sure.map(x=>x.e.key)); renderPrep()};
+    no.onclick=()=>{prepSkip(3); renderPrep()};
+    b.append(go,no); c.append(b); return;
+  }
+  c.append(el("p","mtxt","Fjern det, I ikke skal bruge. Intet kommer på listen, før I trykker på knappen."));
+  const mk=({e})=>{const on_=prepPick.has(e.key), t=el("button","pick"); t.type="button"; t.setAttribute("aria-pressed",on_); t.setAttribute("aria-label",(on_?"Fravælg ":"Vælg ")+e.da); t.append(svgEl("check"));
+    t.onclick=ev=>{ev.stopPropagation(); on_?prepPick.delete(e.key):prepPick.add(e.key); renderPrep()};
+    const ds=daysSince(lastBought(e)), st=prepStore(e);
+    return tile({cat:catOf(e.cat),name:e.da,alt:e.sq,meta:[e.every?`hver ${e.every}. dag`:"",ds==null?"":`sidst for ${ds} d. siden`,st?strong(st,"ok"):""],act:t,onTap:()=>t.onclick(new Event("click"))})};
+  if(sure.length){c.append(el("div","sublbl","Slipper op inden en uge"));
+    CATS.forEach(k=>{const arr=sure.filter(x=>catOf(x.e.cat)===k.id); if(arr.length)c.append(group(k.id,arr.length,arr.map(mk)))})}
+  if(maybe.length){c.append(el("div","sublbl","Måske")); c.append(tilesList(maybe.map(mk)))}
+  const picked=[...sure,...maybe].filter(x=>prepPick.has(x.e.key));
+  const sum=picked.reduce((a,{e})=>a+(lineCost(e.key,prepStore(e)||e.store||"Lidl",e.qty||1)||0),0);
+  const b=el("div","prepbtns end"), go=el("button","btn pri",picked.length?`Læg ${picked.length} ${picked.length===1?"vare":"varer"} på listen${sum>0?` · ca. ${kr(Math.round(sum))}`:""}`:"Vælg mindst én vare"), cl=el("button","btn ghost","Luk");
+  go.disabled=!picked.length;
+  go.onclick=()=>{const before=new Set(items.map(i=>i.id)); picked.forEach(({e})=>addItem(e.da,e.qty||1,e,prepStore(e)));
+    prepOpen=false; prepPick=null; prepSkip(5); renderPrep();
+    toast(`${picked.length} ${picked.length===1?"vare":"varer"} lagt på listen`,()=>{try{localStorage.removeItem("indkob-prep-skip")}catch(e){} remove(items.filter(i=>!before.has(i.id)).map(i=>i.id),true)})};
+  cl.onclick=()=>{prepOpen=false; prepPick=null; prepSkip(1); renderPrep()};
+  b.append(go,cl); c.append(b);
+  const tb=document.querySelector(".tabs"); if(tb&&innerWidth<860)b.style.bottom=(tb.offsetHeight-1)+"px";
+}
 /* ---------- Mere: notifikationer, kvitteringer, konto ---------- */
 let kvitStat=null, orderStore="Lidl", alarms=[], alarmHits=[], alarmPick=null, alarmLoaded=false;
 async function loadAlarms(){
@@ -1459,12 +1533,25 @@ function renderSugg(){
 let openDish=null, editingDish=null, dishKind="ret";
 const ingName=(k,x)=>(BYKEY[k]&&BYKEY[k].da)||(x&&x.da)||k.replace(/^[ux]:/,"");
 const dishGroup=d=>d.kind==="madpakke"?"madpakke":(d.tags||[]).includes("kosova")?"kosova":(d.tags||[]).includes("sund")?"sund":"hverdag";
+/* en ret lægger kun det på listen, der mangler: står der 1 løg, og retten skal bruge 3, bliver det til 3 */
+function dishNeeds(d){
+  const out=[];
+  (d.items||[]).forEach(x=>{const e=BYKEY[x.key]; if(!e&&!x.da)return; const need=qn(x.qty)||1;
+    const have=items.find(i=>i.key===x.key&&!i.checked);
+    if(!have)out.push({x,e,add:need,have:null}); else if(qn(have.qty)<need)out.push({x,e,add:round2(need-qn(have.qty)),have,before:have.qty})});
+  return out;
+}
 function addDish(d){
-  const on=onListKeys(), miss=(d.items||[]).filter(x=>!on.has(x.key)&&(BYKEY[x.key]||x.da));
+  const miss=dishNeeds(d);
   if(!miss.length){toast(`Alt til ${d.name_da} er allerede på listen`);return}
-  miss.forEach(x=>BYKEY[x.key]?addItem(BYKEY[x.key].da,x.qty||1,BYKEY[x.key]):addItem(x.da,x.qty||1));
-  const keys=new Set(miss.map(x=>x.key));
-  toast(`${d.name_da}: ${miss.length} ${miss.length===1?"vare":"varer"} lagt på listen`,()=>remove(items.filter(i=>!i.checked&&keys.has(i.key)).map(i=>i.id),true));
+  const before=new Set(items.map(i=>i.id));
+  miss.forEach(m=>m.have?patch(m.have.id,{qty:String(round2(qn(m.have.qty)+m.add))}):m.e?addItem(m.e.da,m.add,m.e):addItem(m.x.da,m.add));
+  const nNew=miss.filter(m=>!m.have).length, nUp=miss.length-nNew;
+  const msg=[nNew?`${nNew} ${nNew===1?"vare":"varer"} lagt på listen`:"",nUp?`${nUp} fik flere`:""].filter(Boolean).join(", ");
+  toast(`${d.name_da}: ${msg}`,()=>{
+    remove(items.filter(i=>!before.has(i.id)).map(i=>i.id),true);
+    miss.filter(m=>m.have).forEach(m=>patch(m.have.id,{qty:m.before}));
+  });
 }
 async function saveDish(d){
   const row={name_da:d.name_da,name_sq:d.name_sq,items:d.items,kind:d.kind||"ret",link:d.link||null,tags:d.tags||[]};
@@ -1489,14 +1576,16 @@ function renderDishes(){
   [...new Set(mine.map(dishGroup))].sort((a,b)=>order.indexOf(a)-order.indexOf(b)).forEach(g=>{
     const lis=[], arr=mine.filter(d=>dishGroup(d)===g);
     arr.forEach(d=>{
-      const its=d.items||[], miss=its.filter(x=>!on.has(x.key)).length;
+      const its=d.items||[], needs=dishNeeds(d), miss=needs.length, needBy=new Map(needs.map(m=>[m.x.key,m]));
       const act=miss?addBtn(`Læg det, der mangler til ${d.name_da}, på listen`,()=>addDish(d)):onListMark();
       lis.push(tile({cat:"dish",name:d.name_da,alt:d.name_sq&&d.name_sq!==d.name_da?d.name_sq:null,wrap:true,meta:[miss?strong(`Mangler ${miss}`):strong("Alt på listen","ok"),d.link?"opskrift":"",its.map(x=>ingName(x.key,x)).join("\u00A0· ")],
         act,onTap:()=>{openDish=openDish===d.id?null:d.id; editingDish=null; renderDishes()}}));
       if(openDish===d.id){
         const s=el("li","sheet"), ch=el("div","chips");
-        its.forEach(x=>{const k=x.key, isOn=on.has(k), c=el("button","chip"+(isOn?" added":""),ingName(k,x)); c.type="button";
-          if(isOn){c.disabled=true; c.prepend(svgEl("check"))} else {c.append(el("b",null,"+")); c.onclick=()=>{const e=BYKEY[k]; if(e)addItem(e.da,1,e); else addItem(x.da||ingName(k,x),1); toast(`${ingName(k,x)} lagt på listen`)}}
+        its.forEach(x=>{const k=x.key, m=needBy.get(k), isOn=!m, c=el("button","chip"+(isOn?" added":""),ingName(k,x)); c.type="button";
+          if(isOn){c.disabled=true; c.prepend(svgEl("check"))} else {c.append(el("b",null,m.have?`+${String(m.add).replace(".",",")}`:"+")); c.onclick=()=>{
+            if(m.have){patch(m.have.id,{qty:String(round2(qn(m.have.qty)+m.add))}); toast(`${ingName(k,x)}: ${String(round2(qn(m.have.qty))).replace(".",",")} på listen`)}
+            else{const e=BYKEY[k]; if(e)addItem(e.da,m.add,e); else addItem(x.da||ingName(k,x),m.add); toast(`${ingName(k,x)} lagt på listen`)}}}
           ch.append(c)});
         const btns=el("div","btns"), dl=el("button","btn danger",mp?"Slet madpakke":"Slet ret"), ed=el("button","btn","Rediger");
         dl.onclick=()=>deleteDish(d); ed.onclick=()=>{editingDish={...d,items:[...(d.items||[])],tags:[...(d.tags||[])]}; renderDishes()};
