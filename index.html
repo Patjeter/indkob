@@ -273,17 +273,14 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
   .toast{bottom:24px;left:248px}
   .name,.meta,.meta .mq{white-space:normal}
 }
-/* telefon: feltet til at tilføje varer sidder i bunden over menuen, hvor tommelfingeren er */
-@media (max-width:859px){
-  #addCard{position:fixed;left:12px;right:12px;bottom:var(--addb,calc(env(safe-area-inset-bottom) + 64px));z-index:19;margin:0;
-    display:flex;flex-direction:column;box-shadow:0 -4px 20px rgba(20,20,10,.10)}
-  #addCard #ac{order:-2;max-height:min(50vh,420px);overflow:auto}
-  #addCard .hint{order:-1}
-  #addCard .hint:empty{display:none}
-  body[data-tab=list]{padding-bottom:calc(var(--addb,64px) + 84px)}
-  body.typing .tabs{display:none}
-  body[data-tab=list] .toast{bottom:calc(var(--addb,64px) + 72px)}
-}
+/* telefon: menuen i bunden skjules, mens man skriver, så den ikke lægger sig over tastaturet */
+@media (max-width:859px){ body.typing .tabs{display:none} }
+/* søgning: feltet står øverst; mens der står noget i det, vises kun forslagene – ikke listen */
+body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
+.acnote{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 20px 6px;font-size:var(--fs-s);color:var(--ink3)}
+.acnote[hidden]{display:none}
+.field .clear{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;color:var(--ink3);flex:0 0 28px}
+.field .clear[hidden]{display:none}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -316,9 +313,10 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
     <section class="card notify failed" id="failedBox" hidden role="alert"></section>
     <section class="card" id="addCard">
       <form class="fieldrow" id="addForm" autocomplete="off">
-        <label class="field"><span data-ic="search"></span><input id="addInput" placeholder="Skriv en vare" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+        <label class="field"><span data-ic="search"></span><input id="addInput" placeholder="Skriv en vare" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false"><button type="button" class="clear" id="addClear" aria-label="Ryd søgning" hidden>✕</button></label>
         <button class="btn pri icon" aria-label="Tilføj" data-ic="plus"></button>
       </form>
+      <div class="acnote" id="acNote" hidden><span>Forslag – tryk + for at lægge på listen</span></div>
       <ul class="tiles ac" id="ac" hidden></ul>
       <div class="hint" id="hint"></div>
     </section>
@@ -415,7 +413,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v68";
+const VERSION="v69";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -503,10 +501,11 @@ function multiScore(e,f){
 function suggestFor(text){
   const f=fold(text); if(!f)return [];
   const score=e=>{let best=0; for(const w of [e.sq,e.da,...(e.alias||[])]){const x=fold(w); if(!x)continue;
-      if(x===f)best=Math.max(best,4); else if(x.startsWith(f))best=Math.max(best,3); else if(x.split(" ").some(p=>p.startsWith(f)))best=Math.max(best,2); else if(f.length>=4&&x.includes(f))best=Math.max(best,1)}
+      if(x===f)best=Math.max(best,4); else if(x.startsWith(f))best=Math.max(best,3); else if(x.split(" ").some(p=>p.startsWith(f)||(f.length>=3&&p.endsWith(f))))best=Math.max(best,2); else if(f.length>=4&&x.includes(f))best=Math.max(best,1)}
     return best};
   const catHit=new Set(f.length>=3?CATS.filter(c=>[c.da,c.sq].some(n=>fold(n).split(" ").some(w=>w.startsWith(f)))).map(c=>c.id):[]);
-  return CATALOG.map(e=>[Math.max(score(e),multiScore(e,f),catHit.has(e.cat)?1.5:0),e]).filter(x=>x[0]>0).sort((a,b)=>(b[0]-a[0])||((b[1].n||0)-(a[1].n||0))).slice(0,10).map(x=>x[1]);
+  // det I køber ofte, kommer først blandt gode match (rugbrød før brødkasse)
+  return CATALOG.map(e=>{const s=Math.max(score(e),multiScore(e,f),catHit.has(e.cat)?1.5:0); return [s?s+Math.min(e.n||0,60)/30:0,e]}).filter(x=>x[0]>0).sort((a,b)=>(b[0]-a[0])||((b[1].n||0)-(a[1].n||0))).slice(0,10).map(x=>x[1]);
 }
 const unitOf=k=>(k&&BYKEY[k]&&BYKEY[k].unit)||"";
 const stepOf=k=>(k&&BYKEY[k]&&BYKEY[k].step)||1;
@@ -1295,6 +1294,7 @@ function renderAc(){
     if(N<lh.length){const m=el("li","lmore"); m.append(lidlMore(lh.length,()=>{lidlAllAc=true; renderAc()})); box.append(m)}
   }
   box.hidden=!list.length&&!lh.length;
+  const sv=!!v.trim(); document.body.classList.toggle("searching",sv); $("#acNote").hidden=!sv||box.hidden; $("#addClear").hidden=!sv;
   $("#hint").textContent=v&&!list.length?(lh.length?"Ikke blandt jeres varer. Vælg en fra Lidl, eller tryk + for at tilføje den som ny vare.":"Ny vare – tryk + for at tilføje. Tryk bagefter på varen for at vælge kategori og butik."):"";
 }
 let lidlAllAc=false, lidlAllSugg=false;
@@ -1458,6 +1458,7 @@ function renderDishForm(){
    HÆNDELSER
    ========================================================= */
 $("#addInput").addEventListener("input",()=>{lidlAllAc=false; renderAc()});
+$("#addClear").onclick=()=>{$("#addInput").value=""; renderAc(); $("#addInput").focus()};
 $("#addForm").addEventListener("submit",ev=>{ev.preventDefault();
   let v=$("#addInput").value.trim(); if(!v)return;
   let qty=null, note=null;
