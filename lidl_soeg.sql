@@ -1,7 +1,6 @@
 -- v50: Lidls sortiment kan søges i appen
--- Visning over prisregistret (lidl_products) med familiens faste regler lagt på i databasen:
---   aldrig svinekød (svage ord som pølse/salami kun ok med kylling/kalkun/fisk …), aldrig oksekød,
---   slik kun når det står gelatinefrit/vegansk/halal, ingen non-food (værktøj, tøj, blomster …),
+-- Visning over prisregistret (lidl_products) med familiens faste regler fra familie_regel() (familie_regler.sql)
+--   og uden non-food (værktøj, tøj, blomster …),
 --   og kun varer med en pris, der gælder nu (fast pris / førpris, eller et tilbud der ikke er udløbet).
 -- security_invoker: RLS på lidl_products gælder stadig ("kun familien").
 -- Kør i Supabase → SQL Editor.
@@ -32,14 +31,8 @@ select pkey, heading, brand, own_brand, size_from, unit, qty_si, si_unit,
    and coalesce(upper(brand), '') !~ '^(SILVERCREST|PARKSIDE|LIVARNO|LUPILU|CRIVIT|ESMARA|LIVERGY|PEPPERTS|MELINERA|AURIOL|ERNESTO|POWERFIX|ULTIMATE SPEED|MIOMARE|TRONIC|ZOOFARI)'
    and hl !~ '(brændende kærlighed|flamingoblomst|krysantemum|lyng|lilje|orkidé|potteplante|plantebeskyttelse|knæpude|julestjerne|tulipan|buket|skriveartik|julekalenderbog|møllehjul)'
    and not (brand is null and hl ~ '^roser?$')
-   -- svinekød
-   and hl !~ '(svin|skinke|bacon|flæsk|medister|rullepølse|hamburgerryg|kamsteg|nakkefilet|nakkekotelet|ribbensteg|spareribs|pepperoni|serrano|prosciutto|chorizo|leverpostej|frikadelle|wienerpølse|grillpølse|hotdogpølse|spegepølse|mortadella|kassler|pulled pork|porchetta|(^|[^a-zæøåäöüé])gris($|[^a-zæøåäöüé]))'
-   and not (hl ~ '(pølse|salami|postej|paté|pate|frankfurter|pålæg)' and hl !~ '(kylling|kalkun|fjerkræ|fisk|laks|tun|reje|vegansk|vegetar|plantebaseret|veggie)')
-   -- oksekød (kun fra slagteren)
-   and hl !~ '(okse|kalv|entrecote|rumpsteak|ribeye|tournedos|culotte|flanksteak|cevapcici|roastbeef|pastrami|angus|wagyu)'
-   and not (hl ~ '(hakket kød|hakkebøf|burgerbøf|hamburgerbøf)' and hl !~ '(kalkun|kylling|fjerkræ|vegansk|vegetar|plantebaseret|veggie)')
-   -- slik med gelatine
-   and not (hl ~ '(vingummi|bland.?selv|jelly beans|lakrids|skumfidus|marshmallow|haribo|malaco|matador|winegum|(^|[^a-zæøåäöüé])slik)' and hl !~ '(vegan|veggie|gelatinefri|uden gelatine|katjes|halal)');
+   -- familiens faste regler (svinekød, oksekød, gelatine, kaffe) – samme kontrol som tilbuddene
+   and public.familie_regel(heading) is null;
 
 revoke all on public.lidl_soeg from anon;
 grant select on public.lidl_soeg to authenticated;

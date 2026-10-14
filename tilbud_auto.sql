@@ -115,12 +115,7 @@ end $$;
 -- 4) Match mod overvågningslisten med familiens faste regler
 create or replace function public.match_offers_test() returns jsonb
 language plpgsql security invoker set search_path = public as $$
-declare
-  -- svinekød: stærke ord blokerer altid; "svage" ord (pølse, salami, postej …) kun ok når der står kylling/kalkun/fisk …
-  strong text := '(svin|skinke|bacon|flæsk|medister|rullepølse|hamburgerryg|kamsteg|nakkefilet|nakkekotelet|ribbensteg|spareribs|pepperoni|serrano|prosciutto|chorizo|leverpostej|frikadelle|wienerpølse|grillpølse|hotdogpølse|spegepølse|mortadella|kassler|pulled pork|porchetta|(^|[^a-zæøåäöüé])gris($|[^a-zæøåäöüé]))';
-  weak   text := '(pølse|salami|postej|paté|pate|frankfurter)';
-  safe   text := '(kylling|kalkun|fjerkræ|fisk|laks|tun|reje|vegansk|vegetar|plantebaseret|veggie)';
-  beef   text := '(okse|kalv|entrecote|rumpsteak|ribeye|tournedos|culotte|flanksteak|cevapcici|hakket kød|hakkebøf|burgerbøf|hamburgerbøf|roastbeef|pastrami|angus|wagyu)';
+-- familiens faste regler ligger i familie_regel() (familie_regler.sql), som skal køres først
 begin
   delete from offer_test;
   insert into offer_test (key, name, offer_id, store, heading, price, pre_price, size, offer_unit, ref_unit, saving, valid_from, valid_to, status, reason)
@@ -142,9 +137,7 @@ begin
   ), r as (
     select m.*,
       case
-        when txt ~ strong then 'svinekød'
-        when txt ~ weak and txt !~ safe then 'svinekød (ikke angivet)'
-        when txt ~ beef then 'oksekød'
+        when familie_regel(txt) is not null then familie_regel(txt)   -- samme regler overalt (familie_regler.sql)
         when req is not null and txt !~ req then 'mangler krav (' || left(req, 30) || ')'
         when ou is null then 'mængde ukendt'
         -- kg og liter regnes som samme enhed (fx sauce i kg eller l)
@@ -172,7 +165,8 @@ begin
     'varer_med_tilbud', (select count(*) from offer_test where status = 'valgt'),
     'kandidater', (select count(*) from offer_test where status in ('valgt','kandidat')),
     'afvist_svinekød', (select count(*) from offer_test where reason like 'svinekød%'),
-    'afvist_oksekød', (select count(*) from offer_test where reason = 'oksekød'),
+    'afvist_oksekød', (select count(*) from offer_test where reason like 'oksekød%'),
+    'afvist_slik_kaffe', (select count(*) from offer_test where reason like 'slik%' or reason like 'kaffe%'),
     'afvist_mængde', (select count(*) from offer_test where reason in ('mængde ukendt','anden pakkestørrelse') or reason like 'anden enhed%'),
     'afvist_pris', (select count(*) from offer_test where reason in ('ikke billigere','mistænkeligt billig','under 1,50 kr. sparet')));
 end $$;

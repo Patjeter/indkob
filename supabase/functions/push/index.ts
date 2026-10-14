@@ -86,8 +86,9 @@ export async function handle(req: Request, sb: any, deliver: (sub: Sub, payload:
   // kun databasens egne planlagte kørsler må starte afsendelse (se cron_secret.sql)
   const { data: cs } = await sb.from("cron_secret").select("secret").eq("id", 1).maybeSingle();
   if (!cs?.secret || req.headers.get("x-cron-secret") !== cs.secret) return Response.json({ error: "ikke tilladt" }, { status: 401 });
-  let alarm = false;
-  try { alarm = !!(await req.json())?.alarm; } catch { /* tom krop: almindelig liste-besked */ }
+  let body: { alarm?: boolean; alert?: string } = {};
+  try { body = (await req.json()) || {}; } catch { /* tom krop: almindelig liste-besked */ }
+  const alarm = !!body.alarm;
   const isGone = (e: unknown) => [404, 410].includes((e as { statusCode?: number }).statusCode || 0);
   // 1) genforsøg, der er klar: kun til den telefon, der fejlede
   let retried = 0;
@@ -106,6 +107,20 @@ export async function handle(req: Request, sb: any, deliver: (sub: Sub, payload:
         await sb.from("push_retry").delete().eq("id", d.id);
       }
     }
+  }
+  // 2) driftsadvarsel (se drift.sql): kun til dem, der har valgt dansk
+  if (typeof body.alert === "string" && body.alert.trim()) {
+    const { data: subs } = await sb.from("push_subs").select("endpoint,p256dh,auth,dev,lang,email");
+    let sent = 0;
+    for (const sub of ((subs || []) as Sub[]).filter((x) => x.lang !== "sq")) {
+      const payload = { title: "Indkøb: tjek automatikken", body: body.alert.slice(0, 240), n: 0 };
+      try { await deliver(sub, payload); sent++; }
+      catch (e) {
+        if (isGone(e)) await sb.from("push_subs").delete().eq("endpoint", sub.endpoint);
+        else await sb.from("push_retry").insert({ endpoint: sub.endpoint, payload });
+      }
+    }
+    return Response.json({ alert: true, sent, retried });
   }
   const { data: claimed, error } = alarm ? await sb.rpc("prisalarm_claim") : await sb.rpc("push_claim");
   if (error) return Response.json({ error: error.message }, { status: 500 });

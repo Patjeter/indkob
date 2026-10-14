@@ -178,6 +178,9 @@ create table if not exists public.lidl_alt (
   own_heading text, own_price numeric, own_size text, own_unit numeric, own_save numeric,
   updated date not null default current_date
 );
+-- v71: bedre kvalitet til samme pris – økologisk variant hos Lidl, når I ikke allerede køber økologisk
+alter table public.lidl_alt add column if not exists eco_heading text, add column if not exists eco_price numeric,
+  add column if not exists eco_size text, add column if not exists eco_extra numeric;
 alter table public.lidl_alt enable row level security;
 drop policy if exists "kun familien" on public.lidl_alt;
 create policy "kun familien" on public.lidl_alt for select to authenticated using (public.is_family());
@@ -191,7 +194,7 @@ declare c_norm int; c_own int;
 begin
   delete from lidl_alt;
   insert into lidl_alt (key, normal_heading, normal_price, normal_size, normal_unit, normal_fam,
-                        own_heading, own_price, own_size, own_unit, own_save)
+                        own_heading, own_price, own_size, own_unit, own_save, eco_heading, eco_price, eco_size, eco_extra)
   with w as (
     select w.*, lower(translate(split_part(coalesce(c.data->'prod'->>0, w.name), ' ', 1), 'ÆØÅÄÖÜÉ', 'æøåäöüé')) as fw
       from watch w join catalog c on c.key = w.key where w.active
@@ -204,8 +207,8 @@ begin
       from w join lp on lp.hl ~ w.inc and (w.exc is null or lp.hl !~ w.exc) and (w.req is null or lp.hl ~ w.req)
        and (case when lp.si_unit in ('kg','l') then 'kg' else lp.si_unit end) = (case when w.ref_si in ('kg','l') then 'kg' else w.ref_si end)
        and lp.qty_si between w.ref_qty * 0.4 and w.ref_qty * 3
-       -- samme sikkerhedsregler som tilbuddene: aldrig svin eller okse
-       and lp.hl !~ '(svin|skinke|bacon|flæsk|medister|rullepølse|hamburgerryg|kamsteg|spegepølse|leverpostej|frikadelle|pepperoni|chorizo|okse|kalv|entrecote|rumpsteak|cevapcici|roastbeef)'
+       -- samme faste regler som tilbuddene (familie_regler.sql)
+       and familie_regel(lp.heading) is null
   ), nrm as (            -- jeres eget produkt hos Lidl
     select distinct on (key) * from m where length(fw) >= 3 and position(fw in hl) > 0
        -- sikkerhedstjek: ligger prisen langt fra det, I plejer at betale, er det næppe samme produkt
@@ -213,21 +216,30 @@ begin
      order by key, normal_seen desc, unit_price
   ), own as (            -- billigste Lidl-eget alternativ
     select distinct on (key) * from m where own_brand order by key, unit_price
+  ), eco as (            -- billigste økologiske variant
+    select distinct on (key) * from m where hl ~ '(øko|økologisk)' order by key, unit_price
   ), x as (
     select w.key, w.ref_qty,
            n.heading nh, n.normal_price np, coalesce(n.size_from::text,'') || coalesce(n.unit,'') ns, n.unit_price nu, n.own_brand n_own, n.pkey npk,
            o.heading oh, o.normal_price op, coalesce(o.size_from::text,'') || coalesce(o.unit,'') os, o.unit_price ou, o.pkey opk,
+           e.heading eh, e.normal_price ep, coalesce(e.size_from::text,'') || coalesce(e.unit,'') es, e.unit_price eu,
+           (coalesce(lower(n.heading),'') ~ '(øko|økologisk)' or coalesce(w.req,'') ~ 'øko') as fam_eco,
            coalesce(n.unit_price, w.ref_price / nullif(w.ref_qty,0)) fam_unit
-      from w left join nrm n on n.key = w.key left join own o on o.key = w.key
+      from w left join nrm n on n.key = w.key left join own o on o.key = w.key left join eco e on e.key = w.key
   )
   select key, nh, np, ns, nu, round(nu * ref_qty, 2),
          case when show_own then oh end, case when show_own then op end, case when show_own then os end, case when show_own then ou end,
-         case when show_own then round((fam_unit - ou) * ref_qty, 2) end
+         case when show_own then round((fam_unit - ou) * ref_qty, 2) end,
+         case when show_eco then eh end, case when show_eco then ep end, case when show_eco then es end,
+         case when show_eco then round((eu - fam_unit) * ref_qty, 2) end
     from (select x.*, (oh is not null and coalesce(n_own, false) = false and opk is distinct from npk
-                       and ou <= fam_unit * 0.9 and (fam_unit - ou) * ref_qty >= 1.5) as show_own from x) y
-   where nh is not null or show_own;
+                       and ou <= fam_unit * 0.9 and (fam_unit - ou) * ref_qty >= 1.5) as show_own,
+                      -- "samme pris": højst 5 % eller 2 kr. dyrere pr. køb end det, I plejer
+                      (eh is not null and not fam_eco and eu <= fam_unit * 1.05 and (eu - fam_unit) * ref_qty <= 2) as show_eco from x) y
+   where nh is not null or show_own or show_eco;
   select count(*) filter (where normal_price is not null), count(*) filter (where own_price is not null) into c_norm, c_own from lidl_alt;
-  return jsonb_build_object('lidl_pris_på_jeres_vare', c_norm, 'lidls_eget_alternativ', c_own);
+  return jsonb_build_object('lidl_pris_på_jeres_vare', c_norm, 'lidls_eget_alternativ', c_own,
+                            'øko_til_samme_pris', (select count(*) from lidl_alt where eco_heading is not null));
 end $$;
 revoke all on function public.lidl_alt_refresh() from public, anon, authenticated;
 
