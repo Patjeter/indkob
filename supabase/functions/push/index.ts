@@ -2,6 +2,7 @@
 // og prisalarmer, når en vare er på tilbud under familiens egen grænse.
 // Kaldes hvert minut af pg_cron (se push.sql), men kun når der er varer, der venter,
 // og hver morgen med {"alarm":true} (se prisalarm.sql), når der er nye fund.
+// {"handle":id} / {"handle_svar":id,...} sendes straks fra handle.sql: "Kan du handle nu?" og svaret.
 // Hemmelighed: VAPID_PRIVATE_KEY (Edge Functions → Secrets). SUPABASE_URL og SUPABASE_SERVICE_ROLE_KEY sætter Supabase selv.
 import webpush from "npm:web-push@3.6.7";
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
@@ -80,13 +81,47 @@ export function plan(claimed: Item[], subs: Sub[], family: { email: string; name
   return out;
 }
 
+type Req = { id: string; asked_by: string; asked_name: string | null; n: number | null; taken_name: string | null;
+  answers: { email: string; name: string | null; svar: string }[] };
+
+/** Ren funktion (testes lokalt): "Kan du handle nu?" og svarene på det (se handle.sql) */
+export function planHandle(r: Req, subs: Sub[], svar?: { email: string; svar: string }) {
+  const low = (s: string | null | undefined) => (s || "").toLowerCase(), asker = low(r.asked_by);
+  const out: { sub: Sub; payload: Record<string, unknown> }[] = [];
+  const url = APP + "?svar=" + r.id, tag = "handle-" + r.id;
+  if (!svar) {                                                  // spørgsmålet: til alle andre end den, der spurgte
+    for (const s of subs) {
+      if (low(s.email) === asker) continue;
+      const sq = s.lang === "sq", who = r.asked_name || (sq ? "Dikush" : "Nogen"), n = r.n || 0;
+      out.push({ sub: s, payload: { tag, url, n: 0,
+        title: sq ? `${who} pyet: a mund të bësh blerjet tani?` : `${who} spørger: kan du handle nu?`,
+        body: sq ? `${n} ${n === 1 ? "artikull" : "artikuj"} në listë. Shtyp për t'u përgjigjur.` : `${n} ${n === 1 ? "vare" : "varer"} på listen. Tryk for at svare.`,
+        actions: sq ? [{ action: "ja", title: "E marr unë" }, { action: "nej", title: "Jo" }]
+                    : [{ action: "ja", title: "Jeg tager den" }, { action: "nej", title: "Nej" }] } });
+    }
+    return out;
+  }
+  const who = r.answers.slice().reverse().find((a) => low(a.email) === low(svar.email))?.name || "";
+  const ja = svar.svar === "ja";
+  for (const s of subs) {
+    const me = low(s.email);
+    if (me === low(svar.email)) continue;                         // ikke til den, der svarede
+    if (me !== asker && !ja) continue;                            // et nej går kun til den, der spurgte
+    const sq = s.lang === "sq";
+    out.push({ sub: s, payload: { tag, url: APP, n: 0,
+      title: ja ? (sq ? `${who} i merr blerjet` : `${who} tager indkøbet`) : (sq ? `${who} nuk mund të blejë tani` : `${who} kan ikke handle nu`),
+      body: ja ? (sq ? "Nuk ke nevojë të blesh." : "Du behøver ikke handle.") : (sq ? "Pyet dikë tjetër ose bli vetë." : "Spørg en anden, eller handl selv.") } });
+  }
+  return out;
+}
+
 /** Selve kørslen (testes lokalt med en falsk database og falsk afsendelse) */
 // deno-lint-ignore no-explicit-any
 export async function handle(req: Request, sb: any, deliver: (sub: Sub, payload: unknown) => Promise<unknown>) {
   // kun databasens egne planlagte kørsler må starte afsendelse (se cron_secret.sql)
   const { data: cs } = await sb.from("cron_secret").select("secret").eq("id", 1).maybeSingle();
   if (!cs?.secret || req.headers.get("x-cron-secret") !== cs.secret) return Response.json({ error: "ikke tilladt" }, { status: 401 });
-  let body: { alarm?: boolean; alert?: string } = {};
+  let body: { alarm?: boolean; handle?: string; handle_svar?: string; email?: string; svar?: string } = {};
   try { body = (await req.json()) || {}; } catch { /* tom krop: almindelig liste-besked */ }
   const alarm = !!body.alarm;
   const isGone = (e: unknown) => [404, 410].includes((e as { statusCode?: number }).statusCode || 0);
@@ -108,19 +143,24 @@ export async function handle(req: Request, sb: any, deliver: (sub: Sub, payload:
       }
     }
   }
-  // 2) driftsadvarsel (se drift.sql): kun til dem, der har valgt dansk
-  if (typeof body.alert === "string" && body.alert.trim()) {
-    const { data: subs } = await sb.from("push_subs").select("endpoint,p256dh,auth,dev,lang,email");
+  // 2) "Kan du handle nu?" (handle.sql): spørgsmål eller svar
+  const rid = body.handle || body.handle_svar;
+  if (rid) {
+    const [{ data: r }, { data: subs }] = await Promise.all([
+      sb.from("handle_req").select("id,asked_by,asked_name,n,taken_name,answers").eq("id", rid).maybeSingle(),
+      sb.from("push_subs").select("endpoint,p256dh,auth,dev,lang,email"),
+    ]);
+    if (!r) return Response.json({ error: "ukendt forespørgsel" }, { status: 404 });
+    const msgs = planHandle(r as Req, (subs || []) as Sub[], body.handle_svar ? { email: body.email || "", svar: body.svar || "" } : undefined);
     let sent = 0;
-    for (const sub of ((subs || []) as Sub[]).filter((x) => x.lang !== "sq")) {
-      const payload = { title: "Indkøb: tjek automatikken", body: body.alert.slice(0, 240), n: 0 };
-      try { await deliver(sub, payload); sent++; }
+    for (const m of msgs) {
+      try { await deliver(m.sub, m.payload); sent++; }
       catch (e) {
-        if (isGone(e)) await sb.from("push_subs").delete().eq("endpoint", sub.endpoint);
-        else await sb.from("push_retry").insert({ endpoint: sub.endpoint, payload });
+        if (isGone(e)) await sb.from("push_subs").delete().eq("endpoint", m.sub.endpoint);
+        else await sb.from("push_retry").insert({ endpoint: m.sub.endpoint, payload: m.payload });
       }
     }
-    return Response.json({ alert: true, sent, retried });
+    return Response.json({ handle: true, sent, retried });
   }
   const { data: claimed, error } = alarm ? await sb.rpc("prisalarm_claim") : await sb.rpc("push_claim");
   if (error) return Response.json({ error: error.message }, { status: 500 });

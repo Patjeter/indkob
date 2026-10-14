@@ -1,4 +1,4 @@
-const C="indkob-v74";
+const C="indkob-v75";
 const SHELL=["./","index.html","supabase.js?v=2.45.4","config.js?v=49","manifest.webmanifest","icon.svg","icon-192.png","kvit-parse.js?v=51"];
 self.addEventListener("install",e=>e.waitUntil(caches.open(C).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener("activate",e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim())));
@@ -13,11 +13,17 @@ self.addEventListener("fetch",e=>{
 self.addEventListener("push",e=>{
   let d={}; try{d=e.data?e.data.json():{}}catch(x){d={title:"Indkøb",body:e.data?e.data.text():""}}
   e.waitUntil(Promise.all([
-    self.registration.showNotification(d.title||"Indkøb",{body:d.body||"",icon:"icon-192.png",badge:"icon-192.png",tag:"indkob-"+Date.now(),data:{url:"./"}}),
-    self.navigator&&self.navigator.setAppBadge?self.navigator.setAppBadge(d.n||1).catch(()=>{}):null]));
+    self.registration.showNotification(d.title||"Indkøb",{body:d.body||"",icon:"icon-192.png",badge:"icon-192.png",tag:d.tag||"indkob-"+Date.now(),renotify:!!d.tag,
+      data:{url:d.url||"./"},actions:Array.isArray(d.actions)?d.actions.slice(0,2):[]}),
+    d.n===0?null:self.navigator&&self.navigator.setAppBadge?self.navigator.setAppBadge(d.n||1).catch(()=>{}):null]));
 });
+// "Kan du handle nu?": knapperne (Android) eller et tryk åbner appen med spørgsmålet (?svar=id&a=ja|nej)
 self.addEventListener("notificationclick",e=>{
   e.notification.close();
+  let url=(e.notification.data&&e.notification.data.url)||"./";
+  if(e.action==="ja"||e.action==="nej")url+=(url.includes("?")?"&":"?")+"a="+e.action;
   e.waitUntil(self.clients.matchAll({type:"window",includeUncontrolled:true}).then(cs=>{
-    const c=cs.find(x=>x.url.startsWith(self.registration.scope)); return c?c.focus():self.clients.openWindow("./")}));
+    const c=cs.find(x=>x.url.startsWith(self.registration.scope));
+    if(c){c.postMessage({type:"svar",url}); return c.focus()}
+    return self.clients.openWindow(url)}));
 });

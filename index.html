@@ -134,6 +134,9 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 @media (min-width:860px){.prep .prepbtns.end{bottom:0}}.prep .sublbl{margin:4px 20px 6px;font-size:var(--fs-xs);font-weight:700;color:var(--ink2)}
 .pick{width:30px;height:30px;flex:0 0 30px;border-radius:50%;border:2px solid var(--ink3);display:grid;place-items:center;color:transparent;background:var(--surface)}
 .pick svg{width:16px;height:16px}.pick[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.handle{gap:4px;background:var(--accent-soft)}.handle .hq{font-size:var(--fs-m,17px);font-weight:700}.handle .hsq{font-size:var(--fs-s);color:var(--ink2)}
+.handle .hmeta{font-size:var(--fs-s);color:var(--ink2)}.handle .btns{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}.handle .btns .btn.pri{flex:1}
+.handle.wait{background:var(--surface)}.handle.no{background:var(--warn-soft)}
 .olist{list-style:none;margin:0 20px 10px;padding:0;display:flex;flex-direction:column;gap:4px}
 .olist li{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 10px;border-radius:var(--r-ctl);background:var(--surface2);font-size:var(--fs-s);font-weight:600}
 .olist li .on{flex:1;min-width:0}.olist li button{width:36px;height:32px;border-radius:8px;display:grid;place-items:center;color:var(--ink2);font-size:16px}
@@ -323,6 +326,7 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
     <div id="demo" class="demo" hidden>Demo: listen gemmes kun på denne enhed. Data er opfundne.</div>
     <section class="card notify kvit" id="kvitImport" hidden aria-live="polite"></section>
     <section class="card notify failed" id="failedBox" hidden role="alert"></section>
+    <section class="card notify handle" id="handleCard" hidden aria-live="polite"></section>
     <section class="card" id="addCard">
       <form class="fieldrow" id="addForm" autocomplete="off">
         <label class="field"><span data-ic="search"></span><input id="addInput" placeholder="Skriv en vare" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false"><button type="button" class="clear" id="addClear" aria-label="Ryd søgning" hidden>✕</button></label>
@@ -334,7 +338,7 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
     </section>
     <section class="card more prep" id="prepCard" hidden></section>
     <div id="stores"></div>
-    <div class="foot"><button class="btn ghost" id="clearDone">Ryd afkrydsede</button></div>
+    <div class="foot"><button class="btn ghost" id="askShop" hidden>Spørg om nogen kan handle</button><button class="btn ghost" id="clearDone">Ryd afkrydsede</button></div>
   </div>
 
   <div class="pane" id="pane-offers" hidden>
@@ -432,7 +436,7 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v74";
+const VERSION="v75";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -648,12 +652,14 @@ async function refresh(){
 }
 async function loadData(){
   if(loaded)return; loaded=true;
-  await flush(); await refresh(); kvitShow();
+  await flush(); await refresh(); kvitShow(); await loadHandle();
+  if(/[?&]svar=/.test(location.search)){svarFromUrl(location.href); history.replaceState(null,"",location.pathname)}
   sb.channel("indkob")
     .on("postgres_changes",{event:"*",schema:"public",table:"items"},p=>{
       if(p.eventType==="DELETE")items=items.filter(i=>i.id!==p.old.id);
       else{const i=items.findIndex(x=>x.id===p.new.id); if(i>=0)items[i]=p.new; else items.push(p.new)}
       changed(); if(p.eventType==="INSERT")dedupe()})
+    .on("postgres_changes",{event:"*",schema:"public",table:"handle_req"},()=>loadHandle())
     .on("postgres_changes",{event:"*",schema:"public",table:"offers"},async()=>{const r=await sb.from("offers").select("*").gte("valid_to",today()); if(r.data){offers=r.data; changed()}})
     .on("postgres_changes",{event:"*",schema:"public",table:"products"},p=>{if(p.new&&p.new.key){addProduct(p.new); changed()}})
     .on("postgres_changes",{event:"*",schema:"public",table:"dishes"},async()=>{const r=await sb.from("dishes").select("*").order("name_da"); if(r.data){dishes=r.data; changed()}})
@@ -1079,12 +1085,72 @@ function setHead(){
 const desktop=()=>matchMedia("(min-width:860px)").matches;
 /* render: indkøbslisten altid, de andre faner kun når de vises */
 function render(){
-  renderList(); renderPrep(); counts();
+  renderList(); renderPrep(); renderHandle(); counts();
   ["offers","dishes","sugg","more"].forEach(n=>dirty.add(n));
   if(tab!=="list")renderPane(tab);
   setHead();
 }
 function renderPane(n){if(n==="list"||!dirty.has(n))return; dirty.delete(n); ({offers:renderOffers,dishes:renderDishes,sugg:renderSugg,more:renderMore})[n]()}
+/* ---------- "Kan du handle nu?" (handle.sql): spørg de andre, svar "Jeg tager den" eller "Nej" ---------- */
+let hreqs=[], myEmail="", hDismiss=new Set();
+try{hDismiss=new Set(JSON.parse(localStorage.getItem("indkob-hdismiss")||"[]"))}catch(e){}
+const hm=t=>new Date(t).toLocaleTimeString("da-DK",{hour:"2-digit",minute:"2-digit"});
+async function loadHandle(){
+  if(!(live&&sb))return;
+  try{if(!myEmail){const {data}=await sb.auth.getSession(); myEmail=((data&&data.session&&data.session.user&&data.session.user.email)||"").toLowerCase()}
+    const {data,error}=await sb.from("handle_req").select("*").gte("created_at",new Date(Date.now()-3*36e5).toISOString()).order("created_at",{ascending:false}).limit(5);
+    if(!error&&data)hreqs=data}catch(e){}
+  renderHandle();
+}
+async function askShop(){
+  if(!(live&&sb))return; const b=$("#askShop"); b.disabled=true;
+  try{const {data,error}=await sb.rpc("handle_spoerg",{dev:DEV}); if(error)throw error;
+    toast("Spørgsmålet er sendt til de andre",async()=>{await sb.rpc("handle_luk",{rid:data}); loadHandle()})}
+  catch(e){toast(/lige spurgt/.test(e.message||"")?"Du har lige spurgt – vent lidt på svar":"Kunne ikke sende spørgsmålet")}
+  b.disabled=false; loadHandle();
+}
+async function answerShop(id,svar){
+  try{const {data,error}=await sb.rpc("handle_svar",{rid:id,svar}); if(error)throw error;
+    if(data&&data.ok===false&&data.grund==="lukket")toast(data.taget_af?`${data.taget_af} har allerede taget den`:"Spørgsmålet er lukket");
+    else toast(svar==="ja"?"Du tager indkøbet – de andre har fået besked":"Svaret er sendt")}
+  catch(e){toast("Kunne ikke sende svaret")}
+  loadHandle();
+}
+function renderHandle(){
+  const c=$("#handleCard"), ask=$("#askShop"); if(!c)return;
+  ask.hidden=!(live&&sb&&items.some(i=>!i.checked));
+  const r=hreqs.find(x=>!hDismiss.has(x.id)&&(!x.closed||x.taken_by)); c.replaceChildren();
+  if(!r||!myEmail){c.hidden=true; return}
+  c.hidden=false; c.className="card notify handle";
+  const mine=(r.asked_by||"").toLowerCase()===myEmail, ans=r.answers||[], myAns=ans.filter(a=>(a.email||"").toLowerCase()===myEmail).pop();
+  const btns=el("div","btns"), btn=(t,cls,fn)=>{const b=el("button","btn"+(cls?" "+cls:""),t); b.onclick=fn; btns.append(b); return b};
+  const dismiss=()=>{hDismiss.add(r.id); try{localStorage.setItem("indkob-hdismiss",JSON.stringify([...hDismiss].slice(-20)))}catch(e){} renderHandle()};
+  if(r.taken_by){
+    const me=(r.taken_by||"").toLowerCase()===myEmail;
+    c.append(el("div","hq",me?"Du tager indkøbet":`${r.taken_name||"En anden"} tager indkøbet`),el("div","hsq",me?"Ti i merr blerjet":`${r.taken_name||"Dikush"} i merr blerjet`),
+      el("div","hmeta",`Svarede kl. ${hm(r.taken_at)}`+(mine?"":` · ${r.asked_name||""} spurgte kl. ${hm(r.created_at)}`)));
+    btn("Luk","ghost",dismiss);
+  } else if(mine){
+    c.classList.add("wait");
+    c.append(el("div","hq","Du har spurgt, om nogen kan handle"),el("div","hsq","Ke pyetur nëse dikush mund të bëjë blerjet"),
+      el("div","hmeta",`Kl. ${hm(r.created_at)} · `+(ans.length?ans.map(a=>`${a.name}: ${a.svar==="ja"?"tager den":"nej"}`).join(" · "):"venter på svar")));
+    btn("Træk tilbage","ghost",async()=>{await sb.rpc("handle_luk",{rid:r.id}); loadHandle()});
+  } else {
+    c.append(el("div","hq",`${r.asked_name||"Nogen"} spørger: kan du handle nu?`),el("div","hsq",`${r.asked_name||"Dikush"} pyet: a mund të bësh blerjet tani?`),
+      el("div","hmeta",`Kl. ${hm(r.created_at)} · ${r.n||0} varer på listen`+(myAns&&myAns.svar==="nej"?" · du har svaret nej":"")));
+    btn(myAns&&myAns.svar==="nej"?"Jeg tager den alligevel":"Jeg tager den","pri",()=>answerShop(r.id,"ja"));
+    if(!myAns)btn("Nej","",()=>answerShop(r.id,"nej")); else btn("Luk","ghost",dismiss);
+  }
+  c.append(btns);
+}
+$("#askShop").onclick=askShop;
+// svar fra notifikationen (Android viser knapper; ellers åbner et tryk appen med spørgsmålet)
+function svarFromUrl(u){
+  try{const p=new URL(u,location.href).searchParams, id=p.get("svar"), a=p.get("a");
+    if(id&&(a==="ja"||a==="nej"))answerShop(id,a); else if(id)loadHandle()}catch(e){}
+}
+if("serviceWorker" in navigator)navigator.serviceWorker.addEventListener("message",e=>{if(e.data&&e.data.type==="svar")svarFromUrl(e.data.url)});
+
 /* ---------- Ugens indkøb: det, der efter jeres købsrytme slipper op inden næste tur ----------
    Intet kommer på listen af sig selv: varerne vises valgt på forhånd, og I godkender med ét tryk. */
 const PREP_H=7;
@@ -1712,7 +1778,7 @@ if(pushOK){
   addEventListener("load",()=>setTimeout(async()=>{if(pushLang!=="off"&&Notification.permission==="granted"&&sb){try{const s=await pushSub(true); if(s)savePushSub(s)}catch(e){}}},4000));
 }
 const clearBadge=()=>{try{navigator.clearAppBadge&&navigator.clearAppBadge()}catch(e){}};
-clearBadge(); document.addEventListener("visibilitychange",()=>{if(!document.hidden)clearBadge()});
+clearBadge(); document.addEventListener("visibilitychange",()=>{if(!document.hidden){clearBadge(); loadHandle()}});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 $("#ver").textContent=VERSION; showFailed(); setHead(); setTop(); netState(); loadAll();
 </script>

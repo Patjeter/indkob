@@ -8,7 +8,7 @@ En web-app (PWA) for en familie på fire i Kastrup: to voksne og to børn på 11
 
 - App: `index.html` (én fil), `sw.js`, `manifest.webmanifest`. Hostes på GitHub Pages.
 - Database: Supabase (Postgres med række-sikkerhed, login, pg_cron, Edge Function `push`).
-- SQL: `schema.sql`, `push.sql`, `tilbud_auto.sql`, `lidl_priser.sql`, `lidl_soeg.sql`, `kvit.sql`, `dishes_v2.sql`, `butik_orden.sql`, `prisalarm.sql`, `tilbud_for.sql`, `ugeanalyse.sql`, `familie_regler.sql` (én fælles kontrol af familiens regler), `drift.sql` (status for automatikken og morgenbesked, hvis noget er gået i stå).
+- SQL: `schema.sql`, `push.sql`, `tilbud_auto.sql`, `lidl_priser.sql`, `lidl_soeg.sql`, `kvit.sql`, `dishes_v2.sql`, `butik_orden.sql`, `prisalarm.sql`, `tilbud_for.sql`, `ugeanalyse.sql`, `familie_regler.sql` (én fælles kontrol af familiens regler), `drift.sql` (status for automatikken; samles i e-mail søndag aften), `handle.sql` ("Kan du handle nu?" med svar).
 - Edge Function: `supabase/functions/push/index.ts` (web push).
 - Kvitteringer: `lidl-hent.js` (køres i brugerens egen Chrome på lidl.dk) og `kvit-parse.js`.
 
@@ -65,7 +65,7 @@ node audit/tests/demo.test.js
 | `tests/demo.test.js` | Røgtest af demo-tilstand. |
 | `tests/koe-og-tilbud.test.js` | Køen (rækkefølge, afviste ændringer, genforsøg ved netfejl), maks og valgte tilbud. Bruger `tests/mock-supabase.js`. |
 | `tests/afhaengige-aendringer.test.js` | En afvist oprettelse stopper afkrydsning af samme vare; et valgt tilbud vinder over et eksisterende i samme butik. |
-| `tests/push-retry.test.ts` | Push: hemmelighed, genforsøg pr. telefon og at en læsefejl ikke sletter genforsøg (Deno). |
+| `tests/push-retry.test.ts` | Push: hemmelighed, genforsøg pr. telefon, at en læsefejl ikke sletter genforsøg, og "Kan du handle nu?" (Deno). |
 | `CODEX_PROMPT.md` | Færdig opgavetekst til en gennemgang. |
 
 ## Kendte forhold (så de ikke skal genfindes)

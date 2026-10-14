@@ -38,3 +38,18 @@ r=await (await handle(req(),sb,deliver)).json();
 ok(db.push_retry.length===1,"læsefejl: genforsøget beholdes");
 readFail=false; fail.clear(); r=await (await handle(req(),sb,deliver)).json();
 ok(r.retried===1&&db.push_retry.length===0,"næste kørsel leverer det");
+// "Kan du handle nu?": spørgsmål til alle andre, svar til den der spurgte
+db.push_subs.push({endpoint:"S",p256dh:"x",auth:"y",dev:"dS",lang:"sq",email:"v@x"},{endpoint:"E",p256dh:"x",auth:"y",dev:"dE",lang:"da",email:"e@x"}); got.length=0;
+const pays:any[]=[]; const deliver2=(s:any,p:any)=>{got.push(s.endpoint); pays.push(p); return Promise.resolve()};
+db.handle_req=[{id:"h1",asked_by:"v@x",asked_name:"Valentina",n:12,taken_name:null,answers:[]}];
+const hreq=(b:any)=>new Request("http://x",{method:"POST",headers:{"x-cron-secret":"s"},body:JSON.stringify(b)});
+let rh=await (await handle(hreq({handle:"h1"}),sb,deliver2)).json();
+ok(rh.handle===true&&got.sort().join()==="A,B,E","spørgsmål til alle andre end Valentina: "+got.join());
+ok(pays[0].title==="Valentina spørger: kan du handle nu?"&&/12 varer/.test(pays[0].body)&&pays[0].actions.length===2&&/\?svar=h1$/.test(pays[0].url),"tekst og knapper: "+pays[0].title);
+got.length=0; pays.length=0; db.handle_req[0].answers=[{email:"w@x",name:"Besnik",svar:"nej"}];
+await handle(hreq({handle_svar:"h1",email:"w@x",svar:"nej"}),sb,deliver2);
+ok(got.join()==="S"&&pays[0].title==="Besnik nuk mund të blejë tani","nej går kun til Valentina (på albansk): "+pays.map(p=>p.title).join());
+got.length=0; pays.length=0; db.handle_req[0].answers.push({email:"e@x",name:"Enis",svar:"ja"});
+await handle(hreq({handle_svar:"h1",email:"e@x",svar:"ja"}),sb,deliver2);
+ok(got.sort().join()==="A,B,S"&&pays.some(p=>p.title==="Enis i merr blerjet")&&pays.some(p=>p.title==="Enis tager indkøbet"),"ja går til alle andre: "+got.join());
+ok(pays.every(p=>p.tag==="handle-h1"),"samme tag erstatter spørgsmålet");
