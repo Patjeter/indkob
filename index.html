@@ -110,7 +110,9 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .failed{gap:10px;color:var(--warn);background:var(--warn-soft)}.failed .dt{font-size:var(--fs-s);font-weight:600}.notify .seg{margin:10px 0 0}
 .ver{font-size:var(--fs-xs);color:var(--ink3);padding:0 6px}
 .more{padding-bottom:14px}
-.moreback{display:inline-flex;align-items:center;gap:4px;margin:0 4px 8px;padding:6px 4px;font-size:var(--fs-s);font-weight:600;color:var(--accent)}
+.moreback{display:inline-flex;align-items:center;gap:6px;min-height:44px;margin:0 0 10px;padding:0 18px 0 12px;border-radius:22px;
+  background:var(--surface);box-shadow:var(--shadow);font-size:var(--fs-l);font-weight:600;color:var(--accent)}
+.moreback svg{width:18px;height:18px;transform:rotate(180deg)}
 .moreback[hidden]{display:none}
 .morelist{padding:6px 8px}.morerow{cursor:pointer}
 .morerow .mi{width:36px;height:36px;flex:0 0 36px;border-radius:50%;display:grid;place-items:center;color:var(--accent);background:var(--accent-soft);margin-right:2px}
@@ -279,6 +281,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
   #addCard .hint{order:-1}
   #addCard .hint:empty{display:none}
   body[data-tab=list]{padding-bottom:calc(var(--addb,64px) + 84px)}
+  body.typing .tabs{display:none}
   body[data-tab=list] .toast{bottom:calc(var(--addb,64px) + 72px)}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
@@ -337,7 +340,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 
   <div class="pane" id="pane-dishes" hidden>
     <div class="panehead">Retter</div>
-    <button class="moreback" data-back>‹ Mere</button>
+    <button class="moreback" data-back aria-label="Tilbage til Mere"><span data-ic="chev"></span>Tilbage</button>
     <section class="card">
       <div class="segbar" id="dishSegbar"><div class="seg" id="dishSeg"><button data-k="ret" aria-pressed="true">Retter<small>Gatime</small></button><button data-k="madpakke" aria-pressed="false">Madpakker<small>Ushqim për shkollë</small></button></div></div>
       <div id="dishes"></div>
@@ -357,7 +360,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 
   <div class="pane" id="pane-more" hidden>
     <div class="panehead">Mere</div>
-    <button class="moreback" id="moreBack" hidden>‹ Mere</button>
+    <button class="moreback" id="moreBack" hidden aria-label="Tilbage til Mere"><span data-ic="chev"></span>Tilbage</button>
     <section class="card"><ul class="tiles morelist" id="moreMenu"></ul></section>
     <section class="card more mpage" data-page="notify" id="notify">
       <div class="head"><div class="hb"><h2>Notifikationer</h2><div class="hs">Njoftime</div></div></div>
@@ -412,7 +415,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v67";
+const VERSION="v68";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -488,13 +491,22 @@ function match(text){
   for(const [w,c] of INDEX){if(w.length>=4&&f.includes(w))return c}
   return null;
 }
+/* flere ord: hvert ord skal passe til begyndelsen af et ord i varens navne – eller være et sammensat ord,
+   der ender på et af dem (piskefløde → fløde). "uden laktose" betyder laktosefri. */
+const SYN=[[" uden laktose "," laktosefri "],[" laktose fri "," laktosefri "],[" laktosefrie "," laktosefri "],[" økologiske "," øko "],[" økologisk "," øko "]];
+function wordsOf(e){return fold([e.da,e.sq,...(e.alias||[]),...(e.prod||[])].join(" ")).split(" ").filter(Boolean).map(w=>w.startsWith("økolog")?"øko":w)}
+function multiScore(e,f){
+  let q=` ${f} `; SYN.forEach(([a,b])=>{while(q.includes(a))q=q.replace(a,b)}); const toks=q.trim().split(" ").filter(t=>t.length>=2); if(toks.length<2)return 0;
+  const ws=wordsOf(e);
+  return toks.every(t=>ws.some(w=>w.startsWith(t)||(w.length>=4&&t.endsWith(w))))?2.5:0;
+}
 function suggestFor(text){
   const f=fold(text); if(!f)return [];
   const score=e=>{let best=0; for(const w of [e.sq,e.da,...(e.alias||[])]){const x=fold(w); if(!x)continue;
       if(x===f)best=Math.max(best,4); else if(x.startsWith(f))best=Math.max(best,3); else if(x.split(" ").some(p=>p.startsWith(f)))best=Math.max(best,2); else if(f.length>=4&&x.includes(f))best=Math.max(best,1)}
     return best};
   const catHit=new Set(f.length>=3?CATS.filter(c=>[c.da,c.sq].some(n=>fold(n).split(" ").some(w=>w.startsWith(f)))).map(c=>c.id):[]);
-  return CATALOG.map(e=>[Math.max(score(e),catHit.has(e.cat)?1.5:0),e]).filter(x=>x[0]>0).sort((a,b)=>(b[0]-a[0])||((b[1].n||0)-(a[1].n||0))).slice(0,10).map(x=>x[1]);
+  return CATALOG.map(e=>[Math.max(score(e),multiScore(e,f),catHit.has(e.cat)?1.5:0),e]).filter(x=>x[0]>0).sort((a,b)=>(b[0]-a[0])||((b[1].n||0)-(a[1].n||0))).slice(0,10).map(x=>x[1]);
 }
 const unitOf=k=>(k&&BYKEY[k]&&BYKEY[k].unit)||"";
 const stepOf=k=>(k&&BYKEY[k]&&BYKEY[k].step)||1;
@@ -1326,7 +1338,7 @@ let suggFilter="due";
 function renderSugg(){
   const box=$("#sugg"); box.replaceChildren();
   const q=fold($("#suggSearch").value), on=onListKeys(), H=suggFilter==="d30"?30:14;
-  let list=CATALOG.filter(e=>!q||fold(e.da).includes(q)||fold(e.sq).includes(q)||(e.alias||[]).some(a=>fold(a).includes(q)));
+  let list=CATALOG.filter(e=>!q||fold(e.da).includes(q)||fold(e.sq).includes(q)||(e.alias||[]).some(a=>fold(a).includes(q))||multiScore(e,q)>0);
   if(!q&&suggFilter==="due")list=list.filter(e=>isDue(e,14)&&!on.has(e.key));
   if(!q&&suggFilter==="d30")list=list.filter(e=>isDue(e,30)&&!on.has(e.key));
   if(!q&&suggFilter==="top")list=list.filter(e=>(e.n||0)>=2);
@@ -1475,8 +1487,10 @@ $("#moreBack").onclick=()=>{morePage=null; showMorePage()};
 document.querySelectorAll("[data-back]").forEach(b=>b.onclick=()=>goTab("more"));
 const setTop=()=>document.documentElement.style.setProperty("--toph",$(".top").offsetHeight+"px");
 /* tilføj-feltet: lige over menuen, eller lige over tastaturet når det er åbent */
+document.addEventListener("focusin",e=>{if(e.target.matches("input,textarea,select")){document.body.classList.add("typing"); setAddBottom()}});
+document.addEventListener("focusout",()=>setTimeout(()=>{if(!document.activeElement||!document.activeElement.matches("input,textarea,select")){document.body.classList.remove("typing"); setAddBottom()}},120));
 function setAddBottom(){
-  const vv=window.visualViewport, kb=vv?Math.max(0,innerHeight-vv.height-vv.offsetTop):0, tabs=$(".tabs").offsetHeight||64;
+  const vv=window.visualViewport, kb=vv?Math.max(0,innerHeight-vv.height-vv.offsetTop):0, tabs=document.body.classList.contains("typing")?0:($(".tabs").offsetHeight||64);
   document.documentElement.style.setProperty("--addb",(kb>80?kb+8:tabs+8)+"px");
 }
 if(window.visualViewport){visualViewport.addEventListener("resize",setAddBottom); visualViewport.addEventListener("scroll",setAddBottom)}
