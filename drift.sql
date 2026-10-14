@@ -43,7 +43,7 @@ grant execute on function public.status_automatik() to authenticated;
 create or replace function public.drift_tjek() returns text
 language sql stable security invoker set search_path = public as $$
   select nullif(concat_ws(' ',
-    (select 'Den automatiske opdatering fejlede i nat (' || string_agg(f, ', ') || ').' from drift_fejl() f having count(*) > 0),
+    -- en fejlet kørsel i nat vises kun i appen (Mere → Automatik); beskeden er kun for det, familien selv skal gøre noget ved
     (select 'Ingen tilbud fra ' || string_agg(store, ', ') || ' i 2 dage.'
        from drift_kaeder() where coalesce(hentet, '-infinity') < current_date - 1),
     case when coalesce((select max(last_seen) from lidl_products), '-infinity') < current_date - 2
