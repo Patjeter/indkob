@@ -63,6 +63,9 @@ node audit/tests/demo.test.js
 | `db_opsaetning.json` | Udtræk fra den rigtige database den 13. okt. 2026: tabeller og række-sikkerhed, politikker, rettigheder for `anon` og `authenticated`, funktioner (definer, search_path, hvem må kalde), planlagte kørsler (nøgler skjult), antal brugere, omfang og brug pr. uge. Ingen data. Mellemrum i cron-kommandoerne er komprimeret. |
 | `demo.json` | Opfundne varer, tilbud, retter og Lidl-alternativer til demo-tilstand. |
 | `tests/demo.test.js` | Røgtest af demo-tilstand. |
+| `tests/koe-og-tilbud.test.js` | Køen (rækkefølge, afviste ændringer, genforsøg ved netfejl), maks og valgte tilbud. Bruger `tests/mock-supabase.js`. |
+| `tests/afhaengige-aendringer.test.js` | En afvist oprettelse stopper afkrydsning af samme vare; et valgt tilbud vinder over et eksisterende i samme butik. |
+| `tests/push-retry.test.ts` | Push: hemmelighed, genforsøg pr. telefon og at en læsefejl ikke sletter genforsøg (Deno). |
 | `CODEX_PROMPT.md` | Færdig opgavetekst til en gennemgang. |
 
 ## Kendte forhold (så de ikke skal genfindes)

@@ -413,7 +413,7 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v69";
+const VERSION="v70";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -528,6 +528,11 @@ async function runOp(op){
   if(op.kind==="upsert")return t.upsert(op.row);
   if(op.kind==="update")return t.update(op.changes).eq("id",op.id);
   if(op.kind==="delete")return t.delete().in(op.col||"id",op.vals);
+  if(op.kind==="deleteWhere")return t.delete().match(op.match);
+}
+/* hvilke rækker en ændring rører – så en afvist oprettelse også stopper senere ændringer af samme vare */
+function rowIds(op){
+  const r=op.row||{}; return [r.id,r.item_id,op.id,...(op.col&&op.col!=="id"&&op.col!=="item_id"?[]:(op.vals||[]))].filter(Boolean).map(String);
 }
 /* alle ændringer går gennem én kø og sendes én ad gangen i rækkefølge (fx tilføj før afkryds).
    En ændring fjernes først, når serveren har svaret. Afviser serveren den, flyttes den til "failed",
@@ -535,6 +540,9 @@ async function runOp(op){
 let failed=local.load("indkob-failed")||[], retryT=null, retryMs=5000;
 function send(op){
   if(!live)return;
+  // rører ændringen en række, hvis tidligere ændring blev afvist, venter den sammen med den
+  const blocked=new Set(failed.flatMap(f=>rowIds(f.op)));
+  if(rowIds(op).some(x=>blocked.has(x))){failed.push({op,msg:"venter på ændringen før",at:new Date().toISOString()}); local.save("indkob-failed",failed); showFailed(); return}
   queue.push(op); local.save("indkob-queue",queue); netState(); flush();
 }
 function scheduleRetry(){
@@ -548,8 +556,11 @@ async function flush(){
     if(res&&res.error){
       if(isNetErr(res.error)){online=false; scheduleRetry(); break}
       console.error("afvist ændring",queue[0],res.error);
-      failed.push({op:queue[0],msg:String(res.error.message||res.error).slice(0,120),at:new Date().toISOString()});
-      local.save("indkob-failed",failed); showFailed();
+      const bad=queue.shift(), ids=new Set(rowIds(bad));
+      failed.push({op:bad,msg:String(res.error.message||res.error).slice(0,120),at:new Date().toISOString()});
+      // senere ændringer af de samme rækker venter på den afviste (fx afkrydsning af en vare, der ikke blev oprettet)
+      if(ids.size){const keep=[]; queue.forEach(o=>{if(rowIds(o).some(x=>ids.has(x))){failed.push({op:o,msg:"venter på ændringen før",at:new Date().toISOString()}); rowIds(o).forEach(x=>ids.add(x))} else keep.push(o)}); queue=keep}
+      local.save("indkob-queue",queue); local.save("indkob-failed",failed); showFailed(); continue;
     } else retryMs=5000;
     queue.shift(); local.save("indkob-queue",queue);
   }
@@ -557,7 +568,7 @@ async function flush(){
 }
 function showFailed(){
   const box=$("#failedBox"); if(!box)return; box.hidden=!failed.length; box.replaceChildren(); if(!failed.length)return;
-  const t=el("div","dt",`${failed.length} ${failed.length===1?"ændring":"ændringer"} kunne ikke gemmes: ${failed[failed.length-1].msg}`);
+  const t=el("div","dt",`${failed.length} ${failed.length===1?"ændring":"ændringer"} kunne ikke gemmes: ${failed[0].msg}`);
   const again=el("button","btn","Prøv igen"), drop=el("button","btn ghost","Kassér");
   again.onclick=()=>{const ops=failed.map(f=>f.op); failed=[]; local.save("indkob-failed",failed); showFailed(); ops.forEach(send)};
   drop.onclick=()=>{failed=[]; local.save("indkob-failed",failed); showFailed(); refresh()};
@@ -889,7 +900,7 @@ function bestElsewhere(key,store){
   return offersFor(key).filter(o=>o.store!==store&&refOf(o,key)!=null&&+o.price<refOf(o,key))
     .sort((a,b)=>(refOf(b,key)-b.price)-(refOf(a,key)-a.price)||(started(b)-started(a)))[0]||null;
 }
-function sameStore(key,store){return offersFor(key).find(o=>o.store===store&&started(o))||offersFor(key).find(o=>o.store===store)||null}
+function sameStore(key,store){const os=offersFor(key).filter(o=>o.store===store); return os.find(o=>o.source==="valg")||os.find(started)||os[0]||null}
 function unitPrice(key,store){const o=sameStore(key,store); if(o)return +o.price;
   const e=BYKEY[key]; return e&&e.price!=null?e.price:null}
 /* pris for en hel linje: tilbudsprisen gælder højst til "maks", resten til normalpris */
@@ -1155,9 +1166,11 @@ async function fillCompare(box,it){
     const o={store:r.store,price:+r.price,valid_from:r.valid_from,valid_to:r.valid_to,size:r.size,title:r.heading};
     const pu=r.offer_unit!=null&&r.si_unit?`${kr(+r.offer_unit)}/${r.si_unit==="stk"?"stk.":r.si_unit}`:perUnit(o);
     const eq=r.eq_price!=null&&Math.abs(+r.eq_price-+r.price)>=0.5?`svarer til ${kr(+r.eq_price)} for jeres pakke`:"";
-    const here=st===r.store&&sameStore(key,r.store);
+    const cur=st===r.store&&sameStore(key,r.store), here=!!cur&&+cur.price===+r.price&&cur.valid_to===r.valid_to;
     const act=here?el("span","onlist","valgt"):addBtn(`Køb ${e.da||it.text} i ${r.store}`,()=>{
-      if(!sameStore(key,r.store)){const row={key,store:r.store,title:r.heading||null,size:r.size||null,price:+r.price,ref_price:null,valid_from:r.valid_from||null,valid_to:r.valid_to,note:r.maks?`maks ${r.maks}`:null,source:"valg"};
+      {const row={key,store:r.store,title:r.heading||null,size:r.size||null,price:+r.price,ref_price:null,valid_from:r.valid_from||null,valid_to:r.valid_to,note:r.maks?`maks ${r.maks}`:null,source:"valg"};
+        // et tidligere valg for samme vare og butik erstattes; automatikkens tilbud røres ikke
+        offers=offers.filter(o=>!(o.key===key&&o.store===r.store&&o.source==="valg")); send({kind:"deleteWhere",table:"offers",match:{key,store:r.store,source:"valg"}});
         offers.push(row); send({kind:"insert",table:"offers",row})}
       patch(it.id,{store:r.store}); toast(`${e.da||it.text} flyttet til ${r.store}`,()=>patch(it.id,{store:st})); editingItem=null; renderList()});
     if(!here){act.replaceChildren(document.createTextNode("Vælg")); act.classList.add("txt")}

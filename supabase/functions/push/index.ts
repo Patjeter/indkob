@@ -94,8 +94,9 @@ export async function handle(req: Request, sb: any, deliver: (sub: Sub, payload:
   const { data: due } = await sb.from("push_retry").select("id,endpoint,payload,tries").lte("next_at", new Date().toISOString()).limit(50);
   type Due = { id: number; endpoint: string; payload: unknown; tries: number };
   if (due?.length) {
-    const { data: rs } = await sb.from("push_subs").select("endpoint,p256dh,auth,dev,lang,email").in("endpoint", due.map((d: { endpoint: string }) => d.endpoint));
-    for (const d of due as Due[]) {
+    const { data: rs, error: rsErr } = await sb.from("push_subs").select("endpoint,p256dh,auth,dev,lang,email").in("endpoint", due.map((d: { endpoint: string }) => d.endpoint));
+    // kunne abonnementerne ikke læses, venter genforsøgene til næste kørsel (intet slettes)
+    for (const d of (rsErr || !rs ? [] : due) as Due[]) {
       const sub = ((rs || []) as Sub[]).find((x) => x.endpoint === d.endpoint);
       if (!sub) { await sb.from("push_retry").delete().eq("id", d.id); continue; }
       try { await deliver(sub, d.payload); await sb.from("push_retry").delete().eq("id", d.id); retried++; }
