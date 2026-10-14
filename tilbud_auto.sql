@@ -183,7 +183,7 @@ create or replace function public.due_prob(k text, h int default 14) returns num
 language sql stable security invoker set search_path = public as $$
   with c as (select data from catalog where key = k),
   d as (select current_date - greatest((select (data->>'last')::date from c), (select max(at)::date from bought where key = k)) as t),
-  g as (select x::int as g from c, jsonb_array_elements_text(coalesce(c.data->'gaps', '[]'::jsonb)) x)
+  g as (select x::int as g from c, jsonb_array_elements_text(case when jsonb_typeof(c.data->'gaps') = 'array' then c.data->'gaps' else '[]'::jsonb end) x)  -- gaps kan være JSON null (kvit.sql)
   select case
     when (select t from d) is null or (select count(*) from g) < 3 then 0
     when not exists (select 1 from g where g > (select t from d)) then
