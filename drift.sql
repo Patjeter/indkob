@@ -54,14 +54,19 @@ language sql stable security invoker set search_path = public as $$
 $$;
 revoke all on function public.drift_tjek() from public, anon, authenticated;
 
--- hver morgen kl. 7.15 (dansk sommertid): besked, hvis noget er gået i stå
+-- ugens samlede tjek til søndagens e-mail (ugens analyse): tekst, eller null når alt kører.
+-- Ingen besked på telefonen (Besnik, 14/10): alt samles i én e-mail i weekenden.
+create or replace function public.drift_uge() returns text
+language sql stable security invoker set search_path = public as $$
+  select nullif(concat_ws(E'\n',
+    public.drift_tjek(),
+    (select 'Planlagte opdateringer, der fejlede i ugen: ' || string_agg(job || ' (' || n || ' gange)', ', ') || '.'
+       from (select j.jobname job, count(*) n from cron.job_run_details d join cron.job j on j.jobid = d.jobid
+              where d.start_time > now() - interval '7 days' and d.status = 'failed' group by 1) f
+     having count(*) > 0)
+  ), '')
+$$;
+revoke all on function public.drift_uge() from public, anon, authenticated;
+
+-- ingen morgenbesked på telefonen længere (Besnik, 14/10)
 select cron.unschedule('indkob-drift') where exists (select 1 from cron.job where jobname = 'indkob-drift');
-select cron.schedule('indkob-drift', '15 5 * * *', $c$
-  select net.http_post(
-    url     := 'https://onhsmcapojdfzuvcyqsm.supabase.co/functions/v1/push',
-    headers := jsonb_build_object('Content-Type','application/json',
-               'Authorization','Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uaHNtY2Fwb2pkZnp1dmN5cXNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3MzM1NjQsImV4cCI6MjEwNzMwOTU2NH0.abpbVEay_4C4EjAFRkX-vDXJ2TRXc9xe6rSPQDXXIWM',
-               'x-cron-secret', (select secret from public.cron_secret where id = 1)),
-    body    := jsonb_build_object('alert', public.drift_tjek()))
-  where public.drift_tjek() is not null;
-$c$);
