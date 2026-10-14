@@ -8,6 +8,18 @@ language sql stable security invoker set search_path = public as $$
 $$;
 revoke all on function public.drift_kaeder() from public, anon, authenticated;
 
+-- planlagte opgaver, hvis seneste kørsel det sidste døgn fejlede (fx tilbud-vis 14/10)
+create or replace function public.drift_fejl() returns setof text
+language sql stable security invoker set search_path = public as $$
+  select job from (
+    select distinct on (j.jobname) j.jobname as job, d.status
+      from cron.job_run_details d join cron.job j on j.jobid = d.jobid
+     where d.start_time > now() - interval '24 hours'
+     order by j.jobname, d.start_time desc) x
+   where status = 'failed'
+$$;
+revoke all on function public.drift_fejl() from public, anon, authenticated;
+
 -- status til appen (Mere → Automatik); kun familien
 create or replace function public.status_automatik() returns jsonb
 language plpgsql stable security definer set search_path = public as $$
@@ -21,7 +33,8 @@ begin
     'lidl_priser',       (select max(last_seen) from lidl_products),
     'kvit_seneste_koeb', (select max(dato) from kvit),
     'kvit_indlaest',     (select max(indlaest) from kvit),
-    'push_venter',       (select count(*) from push_retry));
+    'push_venter',       (select count(*) from push_retry),
+    'fejl',              (select coalesce(jsonb_agg(f), '[]'::jsonb) from drift_fejl() f));
 end $$;
 revoke all on function public.status_automatik() from public, anon;
 grant execute on function public.status_automatik() to authenticated;
@@ -30,6 +43,7 @@ grant execute on function public.status_automatik() to authenticated;
 create or replace function public.drift_tjek() returns text
 language sql stable security invoker set search_path = public as $$
   select nullif(concat_ws(' ',
+    (select 'Den automatiske opdatering fejlede i nat (' || string_agg(f, ', ') || ').' from drift_fejl() f having count(*) > 0),
     (select 'Ingen tilbud fra ' || string_agg(store, ', ') || ' i 2 dage.'
        from drift_kaeder() where coalesce(hentet, '-infinity') < current_date - 1),
     case when coalesce((select max(last_seen) from lidl_products), '-infinity') < current_date - 2

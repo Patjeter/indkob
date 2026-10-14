@@ -432,7 +432,7 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v72";
+const VERSION="v73";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -1249,6 +1249,7 @@ function autoChecks(){
     {name:"Tilbud i appen", ok:true, txt:`${s.tilbud_nu||0} aktuelle`+(s.tilbud_vist?` · udvalgt ${agoTxt(daysAgo(s.tilbud_vist))}`:"")},
     {name:"Lidls faste priser", ok:lp!=null&&lp<=2, txt:lp==null?"Ikke hentet endnu":`Opdateret ${agoTxt(lp)}`},
     {name:"Lidl Plus-kvitteringer", ok:kv!=null&&kv<=8, txt:(kv==null?"Ikke gemt endnu":`Gemt ${agoTxt(kv)}`)+(kb!=null?` · seneste køb ${agoTxt(kb)}`:"")+(kv!=null&&kv<=8?"":". Log ind på lidl.dk og i appen i Chrome på Macen.")},
+    ...((s.fejl||[]).length?[{name:"Opdatering i nat", ok:false, txt:`Fejlede: ${s.fejl.join(", ")}. Claude kan se nærmere på det.`}]:[]),
     ...(+s.push_venter?[{name:"Beskeder", ok:false, txt:`${s.push_venter} venter på at blive sendt igen`}]:[])];
 }
 function renderAuto(){
