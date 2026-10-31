@@ -66,6 +66,7 @@ node audit/tests/demo.test.js
 | `tests/koe-og-tilbud.test.js` | Køen (rækkefølge, afviste ændringer, genforsøg ved netfejl), maks og valgte tilbud. Bruger `tests/mock-supabase.js`. |
 | `tests/afhaengige-aendringer.test.js` | En afvist oprettelse stopper afkrydsning af samme vare; et valgt tilbud vinder over et eksisterende i samme butik. |
 | `tests/push-retry.test.ts` | Push: hemmelighed, genforsøg pr. telefon, at en læsefejl ikke sletter genforsøg, og "Kan du handle nu?" (Deno). |
+| `tests/sql/` | SQL-funktionerne testet i PGlite med opfundne data (familieregler, Lidl-søgning, prisalarm, automatik, "Kan du handle nu?"). |
 | `CODEX_PROMPT.md` | Færdig opgavetekst til en gennemgang. |
 
 ## Kendte forhold (så de ikke skal genfindes)
