@@ -53,3 +53,8 @@ got.length=0; pays.length=0; db.handle_req[0].answers.push({email:"e@x",name:"En
 await handle(hreq({handle_svar:"h1",email:"e@x",svar:"ja"}),sb,deliver2);
 ok(got.sort().join()==="A,B,S"&&pays.some(p=>p.title==="Enis i merr blerjet")&&pays.some(p=>p.title==="Enis tager indkøbet"),"ja går til alle andre: "+got.join());
 ok(pays.every(p=>p.tag==="handle-h1"),"samme tag erstatter spørgsmålet");
+
+// "Værd at handle i dag": kun telefoner med tur=true
+db.push_subs.forEach((x:any)=>x.tur=x.endpoint==="A"); got.length=0; pays.length=0;
+const rt=await (await handle(hreq({tur:{title:"Værd at handle i dag",body:"Netto sparer 66 kr."}}),sb,deliver2)).json();
+ok(rt.tur===true&&got.join()==="A"&&pays[0].tag==="tur","tur kun til A: "+got.join());

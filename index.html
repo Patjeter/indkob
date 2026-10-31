@@ -104,6 +104,9 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .cat .cn small{margin-left:6px;font-size:var(--fs-s);font-weight:400;color:var(--ink3)}
 .cat .cc{font-size:var(--fs-s);font-weight:400;color:var(--ink3)}
 .empty{padding:16px;text-align:center;font-size:var(--fs-s);color:var(--ink3)}
+.askrow{display:flex;justify-content:center;margin:0 0 10px}.askrow:has(#askShop[hidden]){display:none}
+.askbtn{width:100%;min-height:44px;background:var(--surface);color:var(--accent);border:1px solid var(--accent-soft);border-radius:var(--r-card,16px)}
+.askbtn svg{width:18px;height:18px}
 .foot{display:flex;justify-content:center;align-items:center;gap:4px;margin:4px 0 10px}
 .trip .tripbody{display:flex;flex-direction:column;gap:10px;padding:0 20px 14px}.trip .tripbody .btn{align-self:flex-start}
 .notify{display:flex;flex-direction:column;padding:12px 20px 14px;margin-bottom:10px}
@@ -242,6 +245,10 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chips.stores .chip.on,.chip.always.on{background:var(--accent);color:var(--on-accent)}.chip.always{background:var(--accent-soft);color:var(--accent)}
+.chips.mystores{margin:0 20px 12px}.chips.mystores .chip.on{background:var(--accent);color:var(--on-accent)}
+.adrlist{list-style:none;margin:0 20px 12px;padding:0;display:flex;flex-direction:column;gap:3px;font-size:var(--fs-xs);color:var(--ink2)}.adrlist b{color:var(--ink);font-weight:600}
+.sublbl2{margin:4px 20px 8px;font-size:var(--fs-s);font-weight:700}
+#turBtn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}.turrow{margin-top:12px}
 .chip{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 12px;border-radius:999px;font-size:var(--fs-s);font-weight:600;background:var(--surface2);color:var(--ink)}
 .chip.on{background:var(--accent);color:var(--on-accent)}
 .chip.added{background:var(--accent-soft);color:var(--accent)}
@@ -343,9 +350,10 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
       <ul class="tiles ac" id="ac" hidden></ul>
       <div class="hint" id="hint"></div>
     </section>
+    <div class="askrow"><button class="btn askbtn" id="askShop" hidden><span data-ic="phone"></span>Spørg om nogen kan handle nu</button></div>
     <section class="card more prep" id="prepCard" hidden></section>
     <div id="stores"></div>
-    <div class="foot"><button class="btn ghost" id="askShop" hidden>Spørg om nogen kan handle</button><button class="btn ghost" id="clearDone">Ryd afkrydsede</button></div>
+    <div class="foot"><button class="btn ghost" id="clearDone">Ryd afkrydsede</button></div>
   </div>
 
   <div class="pane" id="pane-offers" hidden>
@@ -389,6 +397,8 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
       <p class="mtxt" id="notifyTxt">Besked på telefonen, når den anden tilføjer varer til listen.</p>
       <div class="seg" id="notifySeg"><button data-l="off" aria-pressed="true">Fra</button><button data-l="da" aria-pressed="false">Dansk</button><button data-l="sq" aria-pressed="false">Shqip</button></div>
       <p class="mtxt dim" id="notifyOff" hidden>Læg appen på hjemmeskærmen og log ind for at få notifikationer.</p>
+      <div class="turrow" id="turRow" hidden><p class="mtxt">Besked på hverdage kl. ca. 14.30, når det er værd at handle i dag: mindst 40 kr. at spare i én af jeres butikker på det, I skal bruge.</p>
+        <div class="mrow"><button class="btn" id="turBtn" aria-pressed="false">Besked om gode ture: fra</button></div></div>
     </section>
     <section class="card more mpage" data-page="swap" id="swapCard"></section>
     <section class="card more mpage" data-page="alarm" id="alarmCard">
@@ -425,7 +435,11 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
       <p class="mtxt dim" id="autoTxt"></p>
     </section>
     <section class="card more mpage" data-page="order" id="orderCard">
-      <div class="head"><div class="hb"><h2>Butikkens rækkefølge</h2><div class="hs">Radha në dyqan</div></div></div>
+      <div class="head"><div class="hb"><h2>Butikker</h2><div class="hs">Dyqanet</div></div></div>
+      <p class="mtxt">De butikker, I handler i. Tilbud og turforslag kommer kun herfra.</p>
+      <div class="chips mystores" id="myStores"></div>
+      <ul class="adrlist" id="storeAdr"></ul>
+      <div class="sublbl2">Butikkens rækkefølge</div>
       <p class="mtxt">Appen lærer rækkefølgen, når I krydser varerne af i butikken. Her kan I selv flytte kategorierne, så listen følger jeres vej.</p>
       <div class="seg" id="orderSeg"></div>
       <p class="mtxt dim" id="orderHow"></p>
@@ -453,7 +467,7 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v77";
+const VERSION="v78";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -625,7 +639,7 @@ function showFailed(){
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&queue.length){online=true; flush()}});
 addEventListener("online",()=>{online=true; flush().then(()=>loaded&&refresh())});
 addEventListener("offline",()=>{online=false; netState()});
-function cacheSoon(){if(live&&loadedOrCached)local.save("indkob-cache",{items,offers,dishes,bought,lalt,lsoeg,trips,orderManual,storePref})}
+function cacheSoon(){if(live&&loadedOrCached)local.save("indkob-cache",{items,offers,dishes,bought,lalt,lsoeg,trips,orderManual,storePref,myStores,lastBuy})}
 let loadedOrCached=false;
 const saveDemo=()=>{if(!live){local.save("indkob-items",items);local.save("indkob-bought",bought);local.save("indkob-dishes",dishes)}};
 function changed(){render(); cacheSoon(); saveDemo()}
@@ -650,7 +664,7 @@ async function loadAll(){
   if(recovering){showAuth("recover");return}
   if(!session){showAuth("login");return}
   hideAuth();
-  const c=local.load("indkob-cache"); if(c){items=c.items||[];offers=c.offers||[];dishes=c.dishes||[];bought=c.bought||{};trips=c.trips||[];orderManual=c.orderManual||{};storePref=c.storePref||{};lalt=c.lalt||[];lsoeg=c.lsoeg||[];applyLidl();applyStorePref();loadedOrCached=true;render()}
+  const c=local.load("indkob-cache"); if(c){items=c.items||[];offers=c.offers||[];dishes=c.dishes||[];bought=c.bought||{};trips=c.trips||[];orderManual=c.orderManual||{};storePref=c.storePref||{};myStores=c.myStores||myStores;lastBuy=c.lastBuy||[];lalt=c.lalt||[];lsoeg=c.lsoeg||[];applyLidl();applyStorePref();loadedOrCached=true;render()}
   else showLoading();
   loadData();
 }
@@ -660,11 +674,12 @@ async function fetchAll(){
   return Promise.all([sb.from("items").select("*").order("created_at"),sb.from("bought").select("key,at,store,item_id").order("at"),sb.from("offers").select("*").gte("valid_to",today()),
     sb.from("products").select("*"),sb.from("catalog").select("data").limit(5000),sb.from("dishes").select("*").order("name_da"),sb.from("lidl_alt").select("*"),
     sb.from("lidl_soeg").select("pkey,heading,own_brand,size_from,unit,qty_si,si_unit,normal_price,offer_price,offer_from,offer_to,price,unit_price"),
-    sb.from("butik_orden").select("store,cats"),sb.from("butik_valg").select("key,store")]);
+    sb.from("butik_orden").select("store,cats"),sb.from("butik_valg").select("key,store"),
+    sb.from("familie_indstilling").select("key,value"),sb.from("seneste_pris").select("key,navn,pris,dato")]);
 }
 async function refresh(){
   let r; try{r=await fetchAll()}catch(e){online=false; netState(); return false}
-  const [a,b,o,pr,cg,ds,la,ls,bo,bv]=r;
+  const [a,b,o,pr,cg,ds,la,ls,bo,bv,fi,sp]=r;
   if(a.error){if(isNetErr(a.error)){online=false;netState();return false} toast("Kunne ikke hente listen"); return false}
   online=true; loadedOrCached=true;
   if(cg.data&&cg.data.length){setCatalog(cg.data.map(x=>x.data)); local.save("indkob-catalog",CATALOG.filter(e=>!e.own))}
@@ -672,7 +687,9 @@ async function refresh(){
   items=a.data; offers=o.data||[]; dishes=ds.data||[]; bought={}; (b.data||[]).forEach(x=>{if(x.at)bought[x.key]=String(x.at).slice(0,10)}); learnTrips(b.data||[]);
   if(bo&&!bo.error&&bo.data){orderManual={}; bo.data.forEach(x=>orderManual[x.store]=x.cats)}
   if(bv&&!bv.error&&bv.data){storePref={}; bv.data.forEach(x=>storePref[x.key]=x.store)} applyStorePref();
-  if(la&&!la.error&&la.data)lalt=la.data; if(ls&&!ls.error&&ls.data)lsoeg=ls.data; applyLidl();
+  if(la&&!la.error&&la.data)lalt=la.data; if(ls&&!ls.error&&ls.data)lsoeg=ls.data;
+  if(fi&&!fi.error&&fi.data){const b=fi.data.find(x=>x.key==="butikker"), a=fi.data.find(x=>x.key==="butik_adresser"); if(b&&Array.isArray(b.value)&&b.value.length)myStores=b.value; if(a&&Array.isArray(a.value))storeAdr=a.value}
+  if(sp&&!sp.error&&sp.data)lastBuy=sp.data; applyLidl();
   changed(); netState(); dedupe(); return true;
 }
 async function loadData(){
@@ -866,9 +883,20 @@ function perUnit(o){
 /* Lidls standardpriser (lidl_alt): jeres produkts aktuelle Lidl-pris og evt. Lidls eget, billigere alternativ */
 let lalt=[], LALT=new Map();
 let lsoeg=[], LSOEG=[], LBYKEY=new Map();
+/* seneste pris pr. vare fra kvitteringerne: pakningen I faktisk købte (ikke et gennemsnit på tværs af pakninger) */
+let lastBuy=[];
+const parseSize=t=>{const m=/(\d+(?:[.,]\d+)?)\s*(kg|g|l|cl|ml|stk)\b/i.exec(t||""); if(!m)return null; let q=+m[1].replace(",","."), u=m[2].toLowerCase();
+  if(u==="g"){q/=1000;u="kg"} else if(u==="ml"){q/=1000;u="l"} else if(u==="cl"){q/=100;u="l"} return q>0?{q,u}:null};
+function unitTxt(e){
+  const x=LALT.get(e.key), lb=e.lastBuy, src=x&&x.normal_fam!=null?{t:x.normal_size||x.normal_heading,p:+x.normal_fam}:lb?{t:lb.navn,p:+lb.pris}:null;
+  const sz=src&&parseSize(src.t); if(!sz||!(src.p>0))return ""; if(sz.u==="stk"&&sz.q<2)return "";
+  return `${kr(src.p/sz.q)}/${sz.u}`;
+}
 function applyLidl(){
   LALT=new Map(lalt.map(x=>[x.key,x]));
   LALT.forEach((x,k)=>{const e=BYKEY[k]; if(!e||x.normal_fam==null)return; if(e.price0===undefined)e.price0=e.price; e.price=+x.normal_fam});
+  lastBuy.forEach(x=>{const e=BYKEY[x.key]; if(!e)return; e.lastBuy=x; const l=LALT.get(x.key); if(l&&l.normal_fam!=null)return;
+    if(e.price0===undefined)e.price0=e.price; e.price=+x.pris});
   // Lidls sortiment (lidl_soeg): søgbart; "det I plejer" og "Lidls eget alternativ" genkendes via lidl_alt
   const usual=new Map(), alt=new Map();
   lalt.forEach(x=>{if(x.normal_heading)usual.set(x.normal_heading,x.key); if(x.own_heading)alt.set(x.own_heading,x.key)});
@@ -977,10 +1005,15 @@ const refOf=(o,key)=>o.ref_price!=null?+o.ref_price:(BYKEY[key]&&BYKEY[key].pric
 // automatikken gemmer ALLE godkendte tilbud (ét pr. vare) og markerer Tilbud-fanens udvalg (featured).
 // Findes de, bruges kun de; tilbudsopgavens rækker bruges så kun til sammenligning.
 const autoOffers=()=>offers.some(o=>o.source==="auto");
-const shownOffers=()=>autoOffers()?offers.filter(o=>o.source==="auto"||o.source==="valg"):offers;
-const featuredOffers=()=>autoOffers()?offers.filter(o=>o.source==="auto"&&o.featured):offers;
+/* jeres butikker (familie_indstilling 'butikker'): tilbud og turforslag kun derfra; et tilbud I selv har valgt, vises altid */
+const ALL_CHAINS=["Lidl","Netto","365discount","REMA 1000","føtex","MENY","SuperBrugsen"];
+let myStores=[...ALL_CHAINS], storeAdr=[];
+const mine=o=>o.source==="valg"||myStores.includes(o.store);
+const shownOffers=()=>(autoOffers()?offers.filter(o=>o.source==="auto"||o.source==="valg"):offers).filter(mine);
+const featuredOffers=()=>(autoOffers()?offers.filter(o=>o.source==="auto"&&o.featured):offers).filter(mine);
+function setMyStores(list){myStores=list; changed(); if(live)send({kind:"upsert",table:"familie_indstilling",row:{key:"butikker",value:list}})}
 /* 50 kr.-reglen på det, I faktisk skal købe: varer på listen lagt sammen pr. kæde, hvor de er billigere end der, hvor de står nu */
-const MIN_TRIP=50;
+const MIN_TRIP=20;   // v78: små besparelser tæller, når I alligevel handler 2–3 gange om ugen
 function tripPlan(){
   const m=new Map();
   items.filter(i=>!i.checked&&i.key).forEach(it=>{
@@ -1014,8 +1047,8 @@ function lineCost(key,store,q,own){
 function pricePart(key,store,showStore,noUsual){
   const own=sameStore(key,store), e=BYKEY[key]||{};
   if(own)return el("span","dl",`${showStore?store+" ":""}tilbud ${kr(own.price)} · ${when(own)}`);
-  const now=null, usual=e.price;
-  const t=now!=null?kr(now)+(usual!=null&&Math.abs(now-usual)>=1&&!noUsual?` · plejer ${kr(usual)}`:""):(usual!=null?kr(usual):"");
+  const now=null, usual=e.price, ut=e.key?unitTxt(e):"";
+  const t=now!=null?kr(now)+(usual!=null&&Math.abs(now-usual)>=1&&!noUsual?` · plejer ${kr(usual)}`:""):(usual!=null?kr(usual)+(ut?` · ${ut}`:""):"");
   return t?(showStore?`${store} ${t}`:t):null;
 }
 /* produktnavnet man skal kigge efter – kun ét, kort */
@@ -1180,7 +1213,7 @@ if("serviceWorker" in navigator)navigator.serviceWorker.addEventListener("messag
 
 /* ---------- Ugens indkøb: det, der efter jeres købsrytme slipper op inden næste tur ----------
    Intet kommer på listen af sig selv: varerne vises valgt på forhånd, og I godkender med ét tryk. */
-const PREP_H=7;
+const PREP_H=3;   // v78: Næste tur – det, der slipper op inden for 3 dage
 let prepOpen=false, prepPick=null;
 function prepRows(){
   const on=onListKeys();
@@ -1202,9 +1235,9 @@ function renderPrep(){
   const {sure,maybe}=prepRows();
   if(!loadedOrCached||(!prepOpen&&(sure.length<3||prepSkipped(sure)))){c.hidden=true; return}
   c.hidden=false; c.replaceChildren();
-  const h=el("div","head"), hb=el("div","hb"); hb.append(el("h2",null,"Ugens indkøb"),el("div","hs","Blerja e javës")); h.append(hb); c.append(h);
+  const h=el("div","head"), hb=el("div","hb"); hb.append(el("h2",null,"Næste tur"),el("div","hs","Blerja e radhës")); h.append(hb); c.append(h);
   if(!prepOpen){
-    c.append(el("p","mtxt",`${sure.length} varer slipper snart op efter jeres købsrytme.`));
+    c.append(el("p","mtxt",`${sure.length} varer slipper op inden for 3 dage efter jeres købsrytme.`));
     const b=el("div","prepbtns"), go=el("button","btn pri","Gennemgå"), no=el("button","btn ghost","Ikke nu");
     go.onclick=()=>{prepOpen=true; prepPick=new Set(sure.map(x=>x.e.key)); renderPrep()};
     no.onclick=()=>{prepSkip(3); renderPrep()};
@@ -1215,7 +1248,7 @@ function renderPrep(){
     t.onclick=ev=>{ev.stopPropagation(); on_?prepPick.delete(e.key):prepPick.add(e.key); renderPrep()};
     const ds=daysSince(lastBought(e)), st=prepStore(e);
     return tile({cat:catOf(e.cat),name:e.da,alt:e.sq,meta:[e.every?`hver ${e.every}. dag`:"",ds==null?"":`sidst for ${ds} d. siden`,st?strong(st,"ok"):""],act:t,onTap:()=>t.onclick(new Event("click"))})};
-  if(sure.length){c.append(el("div","sublbl","Slipper op inden en uge"));
+  if(sure.length){c.append(el("div","sublbl","Slipper op inden for 3 dage"));
     CATS.forEach(k=>{const arr=sure.filter(x=>catOf(x.e.cat)===k.id); if(arr.length)c.append(group(k.id,arr.length,arr.map(mk)))})}
   if(maybe.length){c.append(el("div","sublbl","Måske")); c.append(tilesList(maybe.map(mk)))}
   const picked=[...sure,...maybe].filter(x=>prepPick.has(x.e.key));
@@ -1275,6 +1308,15 @@ async function saveOrder(store,cats){
   if(live&&sb){const r=cats?await sb.from("butik_orden").upsert({store,cats,updated_at:new Date().toISOString()}):await sb.from("butik_orden").delete().eq("store",store);
     if(r&&r.error)toast("Kunne ikke gemme rækkefølgen")}
 }
+function renderMyStores(){
+  const box=$("#myStores"); if(!box)return; box.replaceChildren();
+  ALL_CHAINS.forEach(n=>{const on=myStores.includes(n), c=el("button","chip"+(on?" on":""),n); c.type="button"; c.setAttribute("aria-pressed",on);
+    if(n==="Lidl"){c.disabled=true; c.title="Lidl er jeres hovedbutik"}
+    else c.onclick=()=>{setMyStores(on?myStores.filter(x=>x!==n):[...myStores,n]); renderMyStores()};
+    box.append(c)});
+  const ul=$("#storeAdr"); ul.replaceChildren();
+  storeAdr.forEach(x=>{const li=el("li",null); li.append(el("b",null,x.kaede),document.createTextNode(" · "+x.adresse+(ALL_CHAINS.includes(x.kaede)?"":" · ingen tilbud i appen"))); ul.append(li)});
+}
 function renderOrder(){
   const stores=[...new Set(["Lidl",...items.map(i=>i.store||"Lidl"),...trips.map(t=>t.store),...Object.keys(orderManual)])].sort((a,b)=>(STORE_ORDER.indexOf(a)+1||99)-(STORE_ORDER.indexOf(b)+1||99)).slice(0,4);
   if(!stores.includes(orderStore))orderStore=stores[0];
@@ -1298,7 +1340,7 @@ function moreSummary(p){
     return [n?`${n} øko til samme pris`:"",rows.length?`spar ca. ${kr(Math.round(t/100)*100)} om året`:""].filter(Boolean).join(" · ")||"ingen forslag lige nu"}
   if(p==="alarm")return alarms.length?`${alarms.length} ${alarms.length===1?"alarm":"alarmer"}`:"ingen alarmer endnu";
   if(p==="notify")return !pushOK?"kræver appen på hjemmeskærmen":({off:"slået fra",da:"dansk",sq:"shqip"})[pushLang]||"";
-  if(p==="order"){const so=storeOrder("Lidl"); return so.how==="egen"?"jeres egen rækkefølge":so.how==="lært"?`lært fra ${so.n} ture`:"lærer, når I krydser af"}
+  if(p==="order"){return `${myStores.length} butikker · `+(()=>{const so=storeOrder("Lidl"); return so.how==="egen"?"egen rækkefølge":so.how==="lært"?`rækkefølge lært fra ${so.n} ture`:"lærer rækkefølgen"})()}
   if(p==="ugeretter"){const n=weekDishes().length; return n?`${n} ${n===1?"forslag":"forslag"} ud fra tilbuddene`:"ingen forslag lige nu"}
   if(p==="forbrug"){if(!spend)return live?"henter …":"kun i den rigtige app"; const m=spendMonths(), c=m[m.length-1]; return c?`${monthName(c.m)}: ${kr(Math.round(c.sum))} indtil nu`:"ingen kvitteringer endnu"}
   if(p==="kvit"){const n=(kvitStat||[]).reduce((a,r)=>a+(+r.antal||0),0); return n?`${n} gemt`:"Lidl Plus hentes automatisk"}
@@ -1307,7 +1349,7 @@ function moreSummary(p){
   return "";
 }
 const MORE=[["dishes","Retter og madpakker","Gatime dhe ushqim për shkollë","pot"],["ugeretter","Ugens retter","Ud fra tilbuddene","tag"],["forbrug","Forbrug","Shpenzimet","receipt"],["swap","Bedre valg","Øko til samme pris og billigere mærker","swap"],
-  ["alarm","Prisalarm","Alarm çmimi","bell"],["notify","Notifikationer","Njoftime","phone"],["order","Butikkens rækkefølge","Radha në dyqan","menu"],
+  ["alarm","Prisalarm","Alarm çmimi","bell"],["notify","Notifikationer","Njoftime","phone"],["order","Butikker","Dyqanet","menu"],
   ["kvit","Kvitteringer","Kuponat","receipt"],["auto","Automatik","Automatizimi","clock"],["konto","Konto","Llogaria","user"]];
 function showMorePage(){
   $("#moreMenu").closest(".card").hidden=!!morePage; $("#moreBack").hidden=!morePage;
@@ -1318,7 +1360,7 @@ function showMorePage(){
       li.classList.add("morerow"); ul.append(li)})}
 }
 async function renderMore(){
-  showMorePage(); renderSwaps(); renderOrder(); renderAlarms(); renderAuto(); loadAuto(); renderWeekDishes(); renderSpend(); loadSpend(); if(!alarmLoaded){loadAlarms().then(()=>{renderAlarms(); if(!morePage)showMorePage()})}
+  showMorePage(); renderSwaps(); renderMyStores(); renderOrder(); renderAlarms(); renderAuto(); loadAuto(); renderWeekDishes(); renderSpend(); loadSpend(); if(!alarmLoaded){loadAlarms().then(()=>{renderAlarms(); if(!morePage)showMorePage()})}
   $("#notifySeg").hidden=!pushOK; $("#notifyOff").hidden=pushOK;
   $("#logout").hidden=!live;
   if(live&&sb){
@@ -1867,11 +1909,19 @@ async function setPush(lang){
       if(r&&r.error){pushLang=prev; toast("Kunne ikke slå notifikationer til"); showPushLang(); return}
       toast(lang==="sq"?"Njoftimet u aktivizuan":"Notifikationer slået til");
     }
-    local.save("indkob-push",pushLang); showPushLang();
+    local.save("indkob-push",pushLang); showPushLang(); showTur();
   }catch(e){toast("Kunne ikke slå notifikationer til")}
 }
+let turOn=!!local.load("indkob-tur");
+function showTur(){const b=$("#turBtn"); $("#turRow").hidden=!pushOK||pushLang==="off"; b.setAttribute("aria-pressed",turOn); b.textContent=`Besked om gode ture: ${turOn?"til":"fra"}`}
+async function setTur(on){
+  try{const s=await pushSub(false); if(!s){toast("Slå notifikationer til først"); return}
+    const r=await sb.from("push_subs").update({tur:on}).eq("endpoint",s.endpoint); if(r&&r.error)throw r.error;
+    turOn=on; local.save("indkob-tur",on); showTur(); toast(on?"Du får besked, når det er værd at handle":"Ingen besked om ture")}
+  catch(e){toast("Kunne ikke gemme valget")}
+}
 if(pushOK){
-  showPushLang();
+  showPushLang(); showTur(); $("#turBtn").onclick=()=>setTur(!turOn);
   $("#notifySeg").querySelectorAll("button").forEach(b=>b.onclick=()=>setPush(b.dataset.l));
   // holder abonnementet frisk, hvis telefonen har fornyet det
   addEventListener("load",()=>setTimeout(async()=>{if(pushLang!=="off"&&Notification.permission==="granted"&&sb){try{const s=await pushSub(true); if(s)savePushSub(s)}catch(e){}}},4000));

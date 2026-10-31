@@ -10,6 +10,7 @@ node sqltest6.mjs      # Lidl-søgning og øko-alternativ med familiens regler
 node alarmtest.mjs     # prisalarm: fund, claim, ingen dobbeltbesked
 node drifttest.mjs     # status_automatik, drift_tjek, drift_uge
 node handletest.mjs    # "Kan du handle nu?": spørg, nej, ja, for sent, fremmede afvises
+node turtest.mjs       # turforslag i jeres butikker, besked højst én gang om dagen, seneste pris pr. pakning
 ```
 
 Push-funktionen testes med Deno: `PUSH_TEST=1 deno run -A ../push-retry.test.ts`.

@@ -107,7 +107,7 @@ begin
     returning 1
   ) select count(*) into n from ins;
   delete from tjek_jobs j using net._http_response r where r.id = j.req_id and j.kind = 'off';
-  delete from tjek_offers where valid_to < current_date - 30;
+  delete from tjek_offers where valid_to < current_date - 400;   -- v78: et års tilbud gemmes (normalpriser og tilbudsrytme)
   return jsonb_build_object('tilbud_gemt', n, 'venter', venter,
                             'aktuelle', (select count(*) from tjek_offers where valid_to >= current_date));
 end $$;
