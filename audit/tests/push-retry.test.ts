@@ -58,3 +58,9 @@ ok(pays.every(p=>p.tag==="handle-h1"),"samme tag erstatter spørgsmålet");
 db.push_subs.forEach((x:any)=>x.tur=x.endpoint==="A"); got.length=0; pays.length=0;
 const rt=await (await handle(hreq({tur:{title:"Værd at handle i dag",body:"Netto sparer 66 kr."}}),sb,deliver2)).json();
 ok(rt.tur===true&&got.join()==="A"&&pays[0].tag==="tur","tur kun til A: "+got.join());
+
+// Nødlager: alle telefoner, på telefonens sprog, med link til siden
+got.length=0; pays.length=0;
+const rn=await (await handle(hreq({nod:{da:{title:"Nødlager: brug det snart",body:"Fisk på dåse (12/11) – brug det"},sq:{title:"Rezerva emergjente: përdoreni së shpejti",body:"Peshk në kanaçe (12/11)"}}}),sb,deliver2)).json();
+ok(rn.nod===true&&rn.sent===db.push_subs.length,"nødlager til alle telefoner: "+rn.sent);
+ok(pays.some(p=>p.title==="Nødlager: brug det snart")&&pays.some(p=>p.title==="Rezerva emergjente: përdoreni së shpejti")&&pays.every(p=>p.tag==="nodlager"&&/\?side=nodlager$/.test(p.url)),"dansk/albansk efter telefonens sprog og link til siden");

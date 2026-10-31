@@ -121,7 +121,7 @@ export async function handle(req: Request, sb: any, deliver: (sub: Sub, payload:
   // kun databasens egne planlagte kørsler må starte afsendelse (se cron_secret.sql)
   const { data: cs } = await sb.from("cron_secret").select("secret").eq("id", 1).maybeSingle();
   if (!cs?.secret || req.headers.get("x-cron-secret") !== cs.secret) return Response.json({ error: "ikke tilladt" }, { status: 401 });
-  let body: { alarm?: boolean; handle?: string; handle_svar?: string; email?: string; svar?: string; tur?: { title?: string; body?: string } } = {};
+  let body: { alarm?: boolean; handle?: string; handle_svar?: string; email?: string; svar?: string; tur?: { title?: string; body?: string }; nod?: Record<string, { title?: string; body?: string }> } = {};
   try { body = (await req.json()) || {}; } catch { /* tom krop: almindelig liste-besked */ }
   const alarm = !!body.alarm;
   const isGone = (e: unknown) => [404, 410].includes((e as { statusCode?: number }).statusCode || 0);
@@ -156,6 +156,21 @@ export async function handle(req: Request, sb: any, deliver: (sub: Sub, payload:
       }
     }
     return Response.json({ tur: true, sent, retried });
+  }
+  // 2b) Nødlager (nodlager.sql): noget skal bruges snart – til alle telefoner, på telefonens sprog
+  if (body.nod && typeof body.nod === "object" && body.nod.da && typeof body.nod.da.body === "string") {
+    const { data: subs } = await sb.from("push_subs").select("endpoint,p256dh,auth,dev,lang,email");
+    let sent = 0;
+    for (const sub of (subs || []) as Sub[]) {
+      const t = (sub.lang === "sq" && body.nod.sq && typeof body.nod.sq.body === "string") ? body.nod.sq : body.nod.da;
+      const payload = { title: String(t.title || "Nødlager").slice(0, 80), body: String(t.body).slice(0, 240), n: 0, tag: "nodlager", url: APP + "?side=nodlager" };
+      try { await deliver(sub, payload); sent++; }
+      catch (e) {
+        if (isGone(e)) await sb.from("push_subs").delete().eq("endpoint", sub.endpoint);
+        else await sb.from("push_retry").insert({ endpoint: sub.endpoint, payload });
+      }
+    }
+    return Response.json({ nod: true, sent, retried });
   }
   // 2) "Kan du handle nu?" (handle.sql): spørgsmål eller svar
   const rid = body.handle || body.handle_svar;

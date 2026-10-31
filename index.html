@@ -144,6 +144,14 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .tile.nod.part .check{border-color:var(--accent);background:linear-gradient(90deg,var(--accent) 50%,transparent 50%)}
 .tile.nod .name{white-space:normal}
 .nodtip{margin:2px 0 0;font-size:var(--fs-s);line-height:1.45;color:var(--ink2)}
+.nodsheet{display:flex;flex-direction:column;gap:8px;width:100%;padding-top:8px;margin-top:4px;border-top:1px solid color-mix(in srgb,var(--cc,#7a7f87) 15%,transparent)}
+.nodsheet .nodask{font-size:var(--fs-s);font-weight:600;color:var(--accent)}
+.nodsheet .dr{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.nodsheet .dr label{font-size:var(--fs-s);font-weight:600;color:var(--ink2)}
+.nodsheet input[type=date]{font:inherit;font-size:16px;padding:8px 10px;border-radius:var(--r-ctl);border:1px solid var(--line,#d6d9de);background:var(--surface);color:var(--ink);min-width:0}
+.nodsheet .btns{display:flex;gap:8px;flex-wrap:wrap}
+.tile.nod b.bad{color:var(--warn)}.tile.nod span.miss{color:var(--warn)}
+.nodwarn{gap:6px;background:var(--warn-soft)}.nodwarn .hq{font-size:var(--fs-m,17px);font-weight:700}.nodwarn .hmeta{font-size:var(--fs-s);color:var(--ink2)}
+.nodwarn .btns{display:flex;gap:8px;margin-top:6px}
 .autolist{list-style:none;margin:0 20px 10px;padding:0;display:flex;flex-direction:column;gap:6px}
 .autolist li{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:var(--r-ctl);background:var(--surface2)}
 .autolist li>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.autolist b{font-size:var(--fs-s)}.autolist li>div span{font-size:var(--fs-xs);color:var(--ink2)}
@@ -354,6 +362,7 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
     <section class="card notify kvit" id="kvitImport" hidden aria-live="polite"></section>
     <section class="card notify failed" id="failedBox" hidden role="alert"></section>
     <section class="card notify handle" id="handleCard" hidden aria-live="polite"></section>
+    <section class="card notify nodwarn" id="nodWarn" hidden></section>
     <section class="card" id="addCard">
       <form class="fieldrow" id="addForm" autocomplete="off">
         <label class="field"><span data-ic="search"></span><input id="addInput" placeholder="Skriv en vare" enterkeyhint="done" autocapitalize="off" autocorrect="off" spellcheck="false"><button type="button" class="clear" id="addClear" aria-label="Ryd søgning" hidden>✕</button></label>
@@ -439,7 +448,7 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
     </section>
     <section class="card more mpage" data-page="nodlager" id="nodCard">
       <div class="head"><div class="hb"><h2>Nødlager</h2><div class="hs">Rezerva emergjente</div></div><div class="hr" id="nodN"></div></div>
-      <p class="mtxt">Det, I skal have derhjemme for at klare jer selv uden strøm, vand fra hanen og butikker. Mængderne er til jer fire. Kryds af, hvad I har – det deles med hele familien.</p>
+      <p class="mtxt">Det, I skal have derhjemme for at klare jer selv uden strøm, vand fra hanen og butikker. Mængderne er til jer fire. Kryds af, hvad I har, og skriv datoen for det, der udløber først – så bruger I det i tide og køber nyt. Det deles med hele familien.</p>
       <ul class="nodreco">
         <li><b>Danmark</b><span>3 døgn – minimum</span></li>
         <li><b>Sverige og Norge</b><span>1 uge</span></li>
@@ -448,9 +457,9 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
       </ul>
       <p class="mtxt">Start med 1 uge. Gå til 2 uger med vand, mad og brændsel, når den første uge er på plads.</p>
       <div class="seg" id="nodSeg"><button data-w="1" aria-pressed="true">Mål: 1 uge</button><button data-w="2" aria-pressed="false">Mål: 2 uger</button></div>
-      <div class="seg nodfilt" id="nodFilt"><button data-f="all" aria-pressed="true">Alle</button><button data-f="miss" aria-pressed="false">Mangler</button></div>
+      <div class="seg nodfilt" id="nodFilt"><button data-f="all" aria-pressed="true">Alle</button><button data-f="miss" aria-pressed="false">Mangler</button><button data-f="soon" aria-pressed="false">Brug snart</button></div>
       <div id="nod"></div>
-      <p class="mtxt dim">Tryk på en ting for at læse mere. Kilder: Beredskabsstyrelsen, MSB (Sverige), DSB og Oslo kommune (Norge), BBK og BLE (Tyskland), Røde Kors (USA).</p>
+      <p class="mtxt dim">Tryk på en ting for at skrive holdbarhedsdatoen og læse mere. I får besked på telefonen, når noget skal bruges – som regel en måned før. Kilder: Beredskabsstyrelsen, MSB (Sverige), DSB og Oslo kommune (Norge), BBK og BLE (Tyskland), Røde Kors (USA).</p>
     </section>
     <section class="card more mpage" data-page="kvit" id="kvitInfo">
       <div class="head"><div class="hb"><h2>Kvitteringer</h2><div class="hs">Kuponat</div></div><div class="hr" id="kvitN"></div></div>
@@ -495,7 +504,7 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v80";
+const VERSION="v81";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -704,11 +713,11 @@ async function fetchAll(){
     sb.from("products").select("*"),sb.from("catalog").select("data").limit(5000),sb.from("dishes").select("*").order("name_da"),sb.from("lidl_alt").select("*"),
     sb.from("lidl_soeg").select("pkey,heading,own_brand,size_from,unit,qty_si,si_unit,normal_price,offer_price,offer_from,offer_to,price,unit_price"),
     sb.from("butik_orden").select("store,cats"),sb.from("butik_valg").select("key,store"),
-    sb.from("familie_indstilling").select("key,value"),sb.from("seneste_pris").select("key,navn,pris,dato")]);
+    sb.from("familie_indstilling").select("key,value"),sb.from("seneste_pris").select("key,navn,pris,dato"),sb.from("nodlager").select("key,uger,udloeb,updated_at")]);
 }
 async function refresh(){
   let r; try{r=await fetchAll()}catch(e){online=false; netState(); return false}
-  const [a,b,o,pr,cg,ds,la,ls,bo,bv,fi,sp]=r;
+  const [a,b,o,pr,cg,ds,la,ls,bo,bv,fi,sp,nl]=r;
   if(a.error){if(isNetErr(a.error)){online=false;netState();return false} toast("Kunne ikke hente listen"); return false}
   online=true; loadedOrCached=true;
   if(cg.data&&cg.data.length){setCatalog(cg.data.map(x=>x.data)); local.save("indkob-catalog",CATALOG.filter(e=>!e.own))}
@@ -718,13 +727,13 @@ async function refresh(){
   if(bv&&!bv.error&&bv.data){storePref={}; bv.data.forEach(x=>storePref[x.key]=x.store)} applyStorePref();
   if(la&&!la.error&&la.data)lalt=la.data; if(ls&&!ls.error&&ls.data)lsoeg=ls.data;
   if(fi&&!fi.error&&fi.data){const b=fi.data.find(x=>x.key==="butikker"), a=fi.data.find(x=>x.key==="butik_adresser"), g=fi.data.find(x=>x.key==="maal"), nw=fi.data.find(x=>x.key==="nodlager_uger"); if(g&&g.value)goal=g.value; if(nw&&(+nw.value===1||+nw.value===2))nodWeeks=+nw.value; if(b&&Array.isArray(b.value)&&b.value.length)myStores=b.value; if(a&&Array.isArray(a.value))storeAdr=a.value}
-  if(sp&&!sp.error&&sp.data)lastBuy=sp.data; applyLidl();
+  if(sp&&!sp.error&&sp.data)lastBuy=sp.data; if(nl&&!nl.error&&nl.data)nodRows(nl.data); applyLidl();
   changed(); netState(); dedupe(); return true;
 }
 async function loadData(){
   if(loaded)return; loaded=true;
   await flush(); await refresh(); kvitShow(); await loadHandle();
-  if(/[?&]svar=/.test(location.search)){svarFromUrl(location.href); history.replaceState(null,"",location.pathname)}
+  if(/[?&](svar|side)=/.test(location.search)){svarFromUrl(location.href); history.replaceState(null,"",location.pathname)}
   sb.channel("indkob")
     .on("postgres_changes",{event:"*",schema:"public",table:"items"},p=>{
       if(p.eventType==="DELETE")items=items.filter(i=>i.id!==p.old.id);
@@ -732,7 +741,7 @@ async function loadData(){
       changed(); if(p.eventType==="INSERT")dedupe()})
     .on("postgres_changes",{event:"*",schema:"public",table:"handle_req"},()=>loadHandle())
     .on("postgres_changes",{event:"*",schema:"public",table:"butik_valg"},p=>{if(p.eventType==="DELETE")delete storePref[p.old.key]; else if(p.new&&p.new.key)storePref[p.new.key]=p.new.store; applyStorePref(); changed()})
-    .on("postgres_changes",{event:"*",schema:"public",table:"nodlager"},p=>{if(p.new&&p.new.key){nodHave[p.new.key]=+p.new.uger; nodChanged=p.new.updated_at||nodChanged; renderNod(); if(!morePage)showMorePage()}})
+    .on("postgres_changes",{event:"*",schema:"public",table:"nodlager"},p=>{if(p.new&&p.new.key){nodHave[p.new.key]=+p.new.uger; if(p.new.udloeb)nodDate[p.new.key]=String(p.new.udloeb).slice(0,10); else delete nodDate[p.new.key]; nodChanged=p.new.updated_at||nodChanged; renderNod(); renderNodWarn(); if(!morePage)showMorePage()}})
     .on("postgres_changes",{event:"*",schema:"public",table:"familie_indstilling"},p=>{if(p.new&&p.new.key==="nodlager_uger"&&(+p.new.value===1||+p.new.value===2)){nodWeeks=+p.new.value; renderNod()}})
     .on("postgres_changes",{event:"*",schema:"public",table:"offers"},async()=>{const r=await sb.from("offers").select("*").gte("valid_to",today()); if(r.data){offers=r.data; changed()}})
     .on("postgres_changes",{event:"*",schema:"public",table:"products"},p=>{if(p.new&&p.new.key){addProduct(p.new); changed()}})
@@ -1176,7 +1185,7 @@ function setHead(){
 const desktop=()=>matchMedia("(min-width:860px)").matches;
 /* render: indkøbslisten altid, de andre faner kun når de vises */
 function render(){
-  renderList(); renderPrep(); renderHandle(); counts();
+  renderList(); renderPrep(); renderHandle(); renderNodWarn(); counts();
   ["offers","dishes","sugg","more"].forEach(n=>dirty.add(n));
   if(tab!=="list")renderPane(tab);
   setHead();
@@ -1238,7 +1247,8 @@ $("#askShop").onclick=askShop;
 // svar fra notifikationen (Android viser knapper; ellers åbner et tryk appen med spørgsmålet)
 function svarFromUrl(u){
   try{const p=new URL(u,location.href).searchParams, id=p.get("svar"), a=p.get("a");
-    if(id&&(a==="ja"||a==="nej"))answerShop(id,a); else if(id)loadHandle()}catch(e){}
+    if(id&&(a==="ja"||a==="nej"))answerShop(id,a); else if(id)loadHandle();
+    if(p.get("side")==="nodlager")openNod()}catch(e){}
 }
 if("serviceWorker" in navigator)navigator.serviceWorker.addEventListener("message",e=>{if(e.data&&e.data.type==="svar")svarFromUrl(e.data.url)});
 
@@ -1563,6 +1573,16 @@ const NOD=[
   {k:"vaerktoej",c:"and",da:"Multiværktøj, gaffatape og plastfolie",sq:"Vegël shumëfunksionale, shirit ngjitës dhe najlon",f:1,u:"sæt"},
   {k:"spil",c:"and",da:"Spil, kort og bøger til børnene",sq:"Lojëra, letra dhe libra për fëmijët",f:1,u:"sæt",tip:"Dage uden skærm går hurtigere med noget at lave."},
   {k:"tank",c:"and",da:"Mindst halv tank i bilen",sq:"Të paktën gjysmë rezervuari në makinë",f:1,u:"",tip:"Bilen kan oplade telefoner, give varme og radio – og få jer væk."}];
+/* holdbarhed: maden, vand, medicin, batterier, håndsprit og vådservietter. v = dage før, I får besked; r = "gjort igen" (fx opladet) giver ny dato om r dage */
+const NOD_H={vand:{},rens:{},batterier:{},vaadserv:{},haandsprit:{},foerstehjaelp:{},smerte:{},fastmedicin:{},jod:{},
+  powerbank:{l:"Oplad igen",v:0,r:90,done:"Opladet – næste gang om 3 måneder"}};
+const nodH=x=>x.c==="mad"&&x.k!=="krydderi"?{}:NOD_H[x.k]||null;
+let nodDate={};
+const nodLeft=x=>{const d=nodDate[x.k]; return d?-daysAgo(d):null};
+const nodV=x=>{const h=nodH(x); return h&&h.v!=null?h.v:30};
+const nodSoon=x=>{if(!nodH(x)||!nodGot(x))return false; const l=nodLeft(x); return l!=null&&l<=nodV(x)};
+const nodFmt=d=>{const y=+d.slice(0,4); return y===new Date().getFullYear()?dshort(d):`${dshort(d)} ${y}`};
+const addDays=n=>{const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10)};
 let nodHave={}, nodLoaded=false, nodWeeks=1, nodFilter="all", nodOpen=null, nodChanged=null;
 const nodAmt=(x,w)=>x.u==="kr."?kr(x.w*w):x.u===""?"":fmtQ(x.w?x.w*w:x.f,x.u);
 const nodGot=x=>+(nodHave[x.k]||0);
@@ -1576,13 +1596,23 @@ function nodDeal(x){
     offersFor(e.key).filter(started).forEach(o=>{if(!best||+o.price<+best.price)best=o})});
   return best;
 }
+function nodSave(x){
+  nodChanged=new Date().toISOString(); render(); renderNod(); if(!morePage)showMorePage();
+  if(live)send({kind:"upsert",table:"nodlager",row:{key:x.k,uger:nodGot(x),udloeb:nodDate[x.k]||null,navn:x.da,navn_sq:x.sq,varsel:nodV(x)}});
+  else local.save("indkob-nodlager",{have:nodHave,date:nodDate,weeks:nodWeeks,at:nodChanged});
+}
 function nodSet(x,v){
-  nodHave[x.k]=v; nodChanged=new Date().toISOString(); renderNod(); if(!morePage)showMorePage();
-  if(live)send({kind:"upsert",table:"nodlager",row:{key:x.k,uger:v}}); else local.save("indkob-nodlager",{have:nodHave,weeks:nodWeeks,at:nodChanged});
+  nodHave[x.k]=v; if(!v)delete nodDate[x.k];
+  if(v&&nodH(x)&&!nodDate[x.k])nodOpen=x.k;   // spørg efter datoen, når noget med holdbarhed krydses af
+  nodSave(x);
+}
+function nodSetDate(x,d){if(d)nodDate[x.k]=d; else delete nodDate[x.k]; nodSave(x)}
+function nodUsed(x){   // brugt i hverdagen: læg nyt på listen og slet datoen, indtil det nye er købt
+  if(x.buy)nodAdd(x); delete nodDate[x.k]; nodOpen=x.k; nodSave(x);
 }
 function nodSetWeeks(w){
   nodWeeks=w; renderNod(); if(!morePage)showMorePage();
-  if(live)send({kind:"upsert",table:"familie_indstilling",row:{key:"nodlager_uger",value:w}}); else local.save("indkob-nodlager",{have:nodHave,weeks:nodWeeks,at:nodChanged});
+  if(live)send({kind:"upsert",table:"familie_indstilling",row:{key:"nodlager_uger",value:w}}); else local.save("indkob-nodlager",{have:nodHave,date:nodDate,weeks:nodWeeks,at:nodChanged});
 }
 function nodAdd(x){
   const miss=x.w?Math.max(1,nodWeeks-nodGot(x)):1;
@@ -1591,27 +1621,43 @@ function nodAdd(x){
     addItem(b.t,b.n*miss,e,null,"Nødlager"+(b.s?" · "+b.s:""))});
   toast(`${x.da} lagt på listen`);
 }
+function nodRows(data){nodHave={}; nodDate={}; data.forEach(r=>{nodHave[r.key]=+r.uger; if(r.udloeb)nodDate[r.key]=String(r.udloeb).slice(0,10)}); nodChanged=data.map(r=>r.updated_at).filter(Boolean).sort().pop()||null; nodLoaded=true}
 async function loadNod(){
   if(nodLoaded)return;
-  if(!live){const s=local.load("indkob-nodlager")||{}; nodHave=s.have||{}; nodWeeks=s.weeks||1; nodChanged=s.at||null; nodLoaded=true; renderNod(); return}
+  if(!live){const s=local.load("indkob-nodlager")||{}; nodHave=s.have||{}; nodDate=s.date||{}; nodWeeks=s.weeks||1; nodChanged=s.at||null; nodLoaded=true; renderNod(); return}
   if(!sb)return;
-  try{const {data,error}=await sb.from("nodlager").select("key,uger,updated_at"); if(!error&&data){nodHave={}; data.forEach(r=>{nodHave[r.key]=+r.uger}); nodChanged=data.map(r=>r.updated_at).sort().pop()||null; nodLoaded=true}}catch(e){}
+  try{const {data,error}=await sb.from("nodlager").select("key,uger,udloeb,updated_at"); if(!error&&data)nodRows(data)}catch(e){}
   renderNod(); if(!morePage)showMorePage();
 }
-function nodSummary(){if(!nodLoaded)return live?"henter …":"tjekliste til 1 eller 2 uger"; const n=NOD.filter(nodOk).length; return `${n} af ${NOD.length} på plads · mål ${nodWeeks===1?"1 uge":"2 uger"}`}
+function nodSummary(){if(!nodLoaded)return live?"henter …":"tjekliste til 1 eller 2 uger"; const n=NOD.filter(nodOk).length, s=NOD.filter(nodSoon).length;
+  return (s?`${s} skal bruges snart · `:"")+`${n} af ${NOD.length} på plads · mål ${nodWeeks===1?"1 uge":"2 uger"}`}
+/* besked øverst på indkøbslisten, når noget i nødlageret skal bruges snart */
+let nodWarnHide=null; try{nodWarnHide=localStorage.getItem("indkob-nodwarn")}catch(e){}
+function openNod(){goTab("more"); morePage="nodlager"; nodFilter="soon"; showMorePage(); renderNod(); scrollTo(0,0)}
+function renderNodWarn(){
+  const c=$("#nodWarn"); if(!c)return; const due=NOD.filter(nodSoon).sort((a,b)=>nodLeft(a)-nodLeft(b)), sig=due.map(x=>x.k+nodDate[x.k]).join();
+  c.replaceChildren(); c.hidden=!due.length||sig===nodWarnHide; if(c.hidden)return;
+  const exp=due.filter(x=>nodLeft(x)<0).length;
+  c.append(el("div","hq",exp?"Nødlager: noget er udløbet":"Nødlager: brug det snart"),
+    el("div","hmeta",due.slice(0,4).map(x=>`${x.da.split(/ [(–]/)[0]} (${nodFmt(nodDate[x.k])})`).join(", ")+(due.length>4?` og ${due.length-4} mere`:"")+" – brug det i hverdagen, og køb nyt."));
+  const b=el("div","btns"), go=el("button","btn pri","Se nødlageret"), no=el("button","btn ghost","Skjul");
+  go.onclick=openNod; no.onclick=()=>{nodWarnHide=sig; try{localStorage.setItem("indkob-nodwarn",sig)}catch(e){} renderNodWarn()};
+  b.append(go,no); c.append(b);
+}
 function renderNod(){
   const box=$("#nod"); if(!box)return; box.replaceChildren(); $("#nodN").replaceChildren();
   document.querySelectorAll("#nodSeg button").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.w===nodWeeks)));
   document.querySelectorAll("#nodFilt button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.f===nodFilter)));
+  renderNodWarn();
   if(!nodLoaded){box.append(el("p","mtxt","Henter jeres lager …")); return}
   const ok=NOD.filter(nodOk).length, pct=Math.round(ok/NOD.length*100);
   $("#nodN").append(el("b",null,`${ok}/${NOD.length}`),document.createTextNode("på plads"));
   const g=el("div","goal"), gh=el("div","gh"); gh.append(el("b",null,`${ok} af ${NOD.length} på plads til ${nodWeeks===1?"1 uge":"2 uger"}`),el("span",null,nodChanged?`Sidst ændret ${dshort(String(nodChanged).slice(0,10))}`:""));
   const tr=el("div","gt"), bar=el("span"); bar.style.width=pct+"%"; tr.append(bar);
-  const food=NOD.filter(x=>x.c==="mad"||x.c==="vand").filter(x=>!nodOk(x)).length;
-  g.append(gh,tr,el("div","gm",food?`${food} ${food===1?"ting":"ting"} mangler i vand og mad – start dér.`:"Vand og mad er på plads. Spis det ældste først og køb nyt, så lageret holder sig friskt.")); box.append(g);
+  const food=NOD.filter(x=>x.c==="mad"||x.c==="vand").filter(x=>!nodOk(x)).length, soon=NOD.filter(nodSoon), nod8=NOD.filter(x=>nodH(x)&&nodGot(x)&&!nodDate[x.k]).length;
+  g.append(gh,tr,el("div","gm",soon.length?`${soon.length} ${soon.length===1?"ting skal":"ting skal"} bruges snart: ${soon.slice(0,3).map(x=>x.da.split(/ [(–]/)[0]).join(", ")}${soon.length>3?" …":""}.`:nod8?`Skriv holdbarhedsdato på ${nod8} ${nod8===1?"ting":"ting"}, så I får besked i tide.`:food?`${food} ${food===1?"ting":"ting"} mangler i vand og mad – start dér.`:"Vand og mad er på plads. Spis det ældste først og køb nyt, så lageret holder sig friskt.")); box.append(g);
   NOD_CAT.forEach(([c,icon,da,sq])=>{
-    const all=NOD.filter(x=>x.c===c), show=nodFilter==="miss"?all.filter(x=>!nodOk(x)):all; if(!show.length)return;
+    const all=NOD.filter(x=>x.c===c), show=nodFilter==="miss"?all.filter(x=>!nodOk(x)):nodFilter==="soon"?all.filter(nodSoon):all; if(!show.length)return;
     const cc=({vand:"dr",mad:"ko",hyg:"rh",med:"fg"})[c]||"an", grp=el("div","grp nodgrp c-"+cc), h=el("div","cat"), ci=el("span","ci",icon), cn=el("span","cn",da); cn.append(el("small",null,sq));
     h.append(ci,cn,el("span","cc",`${all.filter(nodOk).length}/${all.length}`)); grp.append(h);
     grp.append(tilesList(show.map(x=>{
@@ -1619,14 +1665,30 @@ function renderNod(){
       const chk=el("button","check"); chk.append(svgEl("check")); chk.setAttribute("aria-label",(have?"Fjern flueben: ":"Har: ")+x.da);
       chk.setAttribute("aria-pressed",String(have)); chk.onclick=()=>nodSet(x,have?0:(x.w?nodWeeks:1));
       const amt=nodAmt(x,nodWeeks), deal=!have&&nodDeal(x);
-      const meta=[amt?strong(amt,have?null:"hl"):null, part?`har til 1 uge – mangler ${nodAmt(x,1)} mere`:"", deal?strong(`tilbud: ${kr(deal.price)} i ${deal.store}`,"ok"):""];
+      const H=nodH(x), d=nodDate[x.k], left=nodLeft(x), soon=nodSoon(x);
+      const dpart=!H||!nodGot(x)?"":!d?el("span","miss","mangler dato"):soon?strong(left<0?`udløbet ${nodFmt(d)}`:`${(H.l||"holdbar til").toLowerCase()} ${nodFmt(d)} – brug det`,"bad"):`${(H.l||"holdbar til").toLowerCase()} ${nodFmt(d)}`;
+      const meta=[amt?strong(amt,have?null:"hl"):null, part?`har til 1 uge – mangler ${nodAmt(x,1)} mere`:"", dpart, deal?strong(`tilbud: ${kr(deal.price)} i ${deal.store}`,"ok"):""];
       let act=null;
       if(!have&&x.buy)act=nodOnList(x)?onListMark():addBtn(`Læg ${x.da} på indkøbslisten`,()=>{nodAdd(x); renderNod()},!!deal);
       const li=tile({cat:cc,cls:"nod"+(have?" har":"")+(part?" part":""),lead:chk,name:x.da,alt:x.sq,wrap:true,meta,act,
-        below:x.tip&&nodOpen===x.k?el("p","nodtip",x.tip):null,onTap:x.tip?()=>{nodOpen=nodOpen===x.k?null:x.k; renderNod()}:null});
+        below:nodOpen===x.k?nodSheet(x):null,onTap:x.tip||(H&&nodGot(x))?()=>{nodOpen=nodOpen===x.k?null:x.k; renderNod()}:null});
       return li})));
     box.append(grp)});
   if(nodFilter==="miss"&&ok===NOD.length)box.append(emptyBox(`Alt er på plads til ${nodWeeks===1?"1 uge":"2 uger"}.`));
+}
+function nodSheet(x){
+  const w=el("div","nodsheet"), H=nodH(x);
+  if(H&&nodGot(x)){
+    if(!nodDate[x.k])w.append(el("div","nodask",H.r?"Hvornår skal det gøres næste gang?":"Skriv datoen for det, der udløber først."));
+    const dr=el("div","dr"), lab=el("label",null,H.l||"Holdbar til"), inp=el("input"); inp.type="date"; inp.value=nodDate[x.k]||""; inp.min="2020-01-01";
+    const id="nd-"+x.k; inp.id=id; lab.htmlFor=id; inp.onchange=()=>nodSetDate(x,inp.value||null); dr.append(lab,inp); w.append(dr);
+    if(nodSoon(x)){const b=el("div","btns");
+      if(H.r){const done=el("button","btn pri",H.done||"Gjort"); done.onclick=()=>nodSetDate(x,addDays(H.r)); b.append(done)}
+      else{const u=el("button","btn pri",x.buy?"Brugt – læg nyt på listen":"Brugt – køb nyt"); u.onclick=()=>nodUsed(x); b.append(u)}
+      w.append(b)}
+  }
+  if(x.tip)w.append(el("p","nodtip",x.tip));
+  return w;
 }
 document.querySelectorAll("#nodSeg button").forEach(b=>b.onclick=()=>nodSetWeeks(+b.dataset.w));
 document.querySelectorAll("#nodFilt button").forEach(b=>b.onclick=()=>{nodFilter=b.dataset.f; renderNod()});
