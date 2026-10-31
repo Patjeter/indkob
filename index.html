@@ -122,6 +122,12 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .alarmset{display:flex;flex-direction:column;gap:6px}.alarmset .row{display:flex;gap:8px;align-items:center}.alarmset .field.price{flex:0 0 110px}
 .alarmset .lbl{font-size:var(--fs-s);font-weight:600;color:var(--ink2)}.alarmset .mq{font-size:var(--fs-xs);color:var(--ink3)}
 #alarmList{margin:0 8px 8px}#alarmList:empty{display:none}
+.spendlist{list-style:none;margin:0 20px 10px;padding:0;display:flex;flex-direction:column;gap:6px}
+.spendlist li{display:grid;grid-template-columns:36px 1fr auto;align-items:center;gap:10px;font-size:var(--fs-s)}
+.spendlist .mn{color:var(--ink2);font-weight:600}.spendlist .sv{font-variant-numeric:tabular-nums;font-weight:600;min-width:72px;text-align:right}
+.spendlist .track{height:10px;border-radius:5px;background:var(--surface2);overflow:hidden}.spendlist .bar{display:block;height:100%;background:color-mix(in srgb,var(--accent) 45%,var(--surface2))}
+.spendlist li.cur .bar{background:var(--accent)}.spendlist li.cur .mn{color:var(--accent)}
+#ugeretter .tiles{margin:0 12px 6px}
 .autolist{list-style:none;margin:0 20px 10px;padding:0;display:flex;flex-direction:column;gap:6px}
 .autolist li{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:var(--r-ctl);background:var(--surface2)}
 .autolist li>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.autolist b{font-size:var(--fs-s)}.autolist li>div span{font-size:var(--fs-xs);color:var(--ink2)}
@@ -398,6 +404,16 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
       </div>
       <p class="mtxt dim" id="alarmPush"></p>
     </section>
+    <section class="card more mpage" data-page="ugeretter" id="ugeretterCard">
+      <div class="head"><div class="hb"><h2>Ugens retter</h2><div class="hs">Gatimet e javës</div></div></div>
+      <p class="mtxt">Jeres egne retter, der passer til ugens tilbud eller bruger det, der allerede står på listen. Et tryk lægger det, der mangler, på listen.</p>
+      <div id="ugeretter"></div>
+    </section>
+    <section class="card more mpage" data-page="forbrug" id="forbrugCard">
+      <div class="head"><div class="hb"><h2>Forbrug</h2><div class="hs">Shpenzimet</div></div><div class="hr" id="forbrugN"></div></div>
+      <div id="forbrug"></div>
+      <p class="mtxt dim">Ud fra Lidl Plus-kvitteringerne. Slagteren og andre butikker er ikke med.</p>
+    </section>
     <section class="card more mpage" data-page="kvit" id="kvitInfo">
       <div class="head"><div class="hb"><h2>Kvitteringer</h2><div class="hs">Kuponat</div></div><div class="hr" id="kvitN"></div></div>
       <p class="mtxt" id="kvitTxt">Lidl Plus-kvitteringerne hentes automatisk søndag og torsdag aften. De bruges til Forslag, og varer I har købt, bliver krydset af.</p>
@@ -437,7 +453,7 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v76";
+const VERSION="v77";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -1283,12 +1299,14 @@ function moreSummary(p){
   if(p==="alarm")return alarms.length?`${alarms.length} ${alarms.length===1?"alarm":"alarmer"}`:"ingen alarmer endnu";
   if(p==="notify")return !pushOK?"kræver appen på hjemmeskærmen":({off:"slået fra",da:"dansk",sq:"shqip"})[pushLang]||"";
   if(p==="order"){const so=storeOrder("Lidl"); return so.how==="egen"?"jeres egen rækkefølge":so.how==="lært"?`lært fra ${so.n} ture`:"lærer, når I krydser af"}
+  if(p==="ugeretter"){const n=weekDishes().length; return n?`${n} ${n===1?"forslag":"forslag"} ud fra tilbuddene`:"ingen forslag lige nu"}
+  if(p==="forbrug"){if(!spend)return live?"henter …":"kun i den rigtige app"; const m=spendMonths(), c=m[m.length-1]; return c?`${monthName(c.m)}: ${kr(Math.round(c.sum))} indtil nu`:"ingen kvitteringer endnu"}
   if(p==="kvit"){const n=(kvitStat||[]).reduce((a,r)=>a+(+r.antal||0),0); return n?`${n} gemt`:"Lidl Plus hentes automatisk"}
   if(p==="auto"){if(!autoStat)return live?"henter status …":"kun i den rigtige app"; const b=autoChecks().filter(c=>!c.ok).length; return b?`${b} ting kræver opmærksomhed`:"alt kører"}
   if(p==="konto")return $("#who").textContent;
   return "";
 }
-const MORE=[["dishes","Retter og madpakker","Gatime dhe ushqim për shkollë","pot"],["swap","Bedre valg","Øko til samme pris og billigere mærker","swap"],
+const MORE=[["dishes","Retter og madpakker","Gatime dhe ushqim për shkollë","pot"],["ugeretter","Ugens retter","Ud fra tilbuddene","tag"],["forbrug","Forbrug","Shpenzimet","receipt"],["swap","Bedre valg","Øko til samme pris og billigere mærker","swap"],
   ["alarm","Prisalarm","Alarm çmimi","bell"],["notify","Notifikationer","Njoftime","phone"],["order","Butikkens rækkefølge","Radha në dyqan","menu"],
   ["kvit","Kvitteringer","Kuponat","receipt"],["auto","Automatik","Automatizimi","clock"],["konto","Konto","Llogaria","user"]];
 function showMorePage(){
@@ -1300,7 +1318,7 @@ function showMorePage(){
       li.classList.add("morerow"); ul.append(li)})}
 }
 async function renderMore(){
-  showMorePage(); renderSwaps(); renderOrder(); renderAlarms(); renderAuto(); loadAuto(); if(!alarmLoaded){loadAlarms().then(()=>{renderAlarms(); if(!morePage)showMorePage()})}
+  showMorePage(); renderSwaps(); renderOrder(); renderAlarms(); renderAuto(); loadAuto(); renderWeekDishes(); renderSpend(); loadSpend(); if(!alarmLoaded){loadAlarms().then(()=>{renderAlarms(); if(!morePage)showMorePage()})}
   $("#notifySeg").hidden=!pushOK; $("#notifyOff").hidden=pushOK;
   $("#logout").hidden=!live;
   if(live&&sb){
@@ -1339,6 +1357,59 @@ function renderAuto(){
 async function loadAuto(){
   if(!(live&&sb))return; try{const {data,error}=await sb.rpc("status_automatik"); if(!error&&data)autoStat=data}catch(e){}
   renderAuto(); if(!morePage)showMorePage();
+}
+/* Ugens retter: familiens egne retter med ingredienser på tilbud (Lidl, eller en kæde der er turen værd) eller allerede på listen */
+function dishDeal(key){
+  const W=worthStores();
+  return offersFor(key).filter(o=>started(o)&&(o.store==="Lidl"||W.has(o.store))).map(o=>({o,save:(famBase(o,key,"Lidl")||0)-(+o.price)}))
+    .filter(x=>x.save>0.5).sort((a,b)=>b.save-a.save)[0]||null;
+}
+function weekDishes(){
+  const on=onListKeys();
+  return dishes.filter(d=>(d.kind||"ret")==="ret").map(d=>{
+    const its=d.items||[], deals=its.map(x=>({x,d:dishDeal(x.key)})).filter(y=>y.d), onl=its.filter(x=>on.has(x.key));
+    return {d,deals,onl,need:dishNeeds(d).length,score:deals.length*2+onl.length+deals.reduce((a,y)=>a+Math.min(y.d.save,20)/20,0)};
+  }).filter(r=>r.deals.length&&r.need>0).sort((a,b)=>b.score-a.score).slice(0,3);
+}
+function renderWeekDishes(){
+  const box=$("#ugeretter"); if(!box)return; box.replaceChildren();
+  const rows=weekDishes(); if(!rows.length){box.append(el("p","mtxt","Ingen af jeres retter passer til ugens tilbud lige nu.")); return}
+  box.append(tilesList(rows.map(({d,deals,onl})=>{
+    const meta=[strong(`${deals.length} på tilbud`,"ok"),onl.length?`${onl.length} står på listen`:"",d.link?"opskrift":""];
+    const below=el("div","deal tip"); below.append(svgEl("tag"),el("span","dt",deals.map(({x,d:o})=>`${ingName(x.key,x)} ${kr(o.o.price)}${o.o.store!=="Lidl"?" i "+o.o.store:""}`).join(" · ")));
+    const li=tile({cat:"dish",name:d.name_da,alt:d.name_sq&&d.name_sq!==d.name_da?d.name_sq:null,wrap:true,meta,below,
+      act:addBtn(`Læg det, der mangler til ${d.name_da}, på listen`,()=>{addDish(d); renderWeekDishes()}),
+      onTap:d.link?()=>window.open(d.link,"_blank","noopener"):null});
+    return li})));
+}
+/* Forbrug pr. måned ud fra kvitteringerne */
+let spend=null;
+const monthName=m=>["januar","februar","marts","april","maj","juni","juli","august","september","oktober","november","december"][+m.slice(5,7)-1].replace(/^./,c=>c.toUpperCase());
+async function loadSpend(){
+  if(!(live&&sb)||spend)return;
+  const from=new Date(); from.setMonth(from.getMonth()-6,1);
+  try{const {data,error}=await sb.from("kvit").select("dato,total,parsed_total").gte("dato",from.toISOString().slice(0,10)); if(!error&&data)spend=data}catch(e){}
+  renderSpend(); if(!morePage)showMorePage();
+}
+function spendMonths(){
+  const m=new Map(); (spend||[]).forEach(r=>{const k=String(r.dato).slice(0,7), v=+(r.total!=null?r.total:r.parsed_total)||0; const x=m.get(k)||{m:k,sum:0,n:0}; x.sum+=v; x.n++; m.set(k,x)});
+  const cur=today().slice(0,7); if(!m.has(cur))m.set(cur,{m:cur,sum:0,n:0});
+  return [...m.values()].sort((a,b)=>a.m.localeCompare(b.m));
+}
+function renderSpend(){
+  const box=$("#forbrug"); if(!box)return; box.replaceChildren(); $("#forbrugN").replaceChildren();
+  if(!spend){box.append(el("p","mtxt",live?"Henter kvitteringerne …":"Forbruget vises kun i den rigtige app, ikke i demo.")); return}
+  const ms=spendMonths(), cur=ms[ms.length-1], prev=ms.slice(0,-1).filter(x=>x.n).slice(-3);
+  const avg=prev.length?prev.reduce((a,x)=>a+x.sum,0)/prev.length:null, day=+today().slice(8,10), dim=new Date(+cur.m.slice(0,4),+cur.m.slice(5,7),0).getDate();
+  const b=el("b",null,kr(Math.round(cur.sum))); $("#forbrugN").append(b,document.createTextNode("indtil nu"));
+  const lines=[`${monthName(cur.m)}: ${kr(Math.round(cur.sum))} på ${cur.n} ${cur.n===1?"kvittering":"kvitteringer"} indtil nu.`];
+  if(avg)lines.push(`Snit de ${prev.length} forrige måneder: ${kr(Math.round(avg))}`);
+  if(avg&&day>=10&&day<=dim-3&&cur.sum>0){const proj=cur.sum/day*dim; lines.push(`Med samme tempo bliver ${monthName(cur.m).toLowerCase()} ca. ${kr(Math.round(proj/100)*100)} – ${proj>avg*1.05?"over":proj<avg*0.95?"under":"omkring"} jeres snit.`)}
+  box.append(el("p","mtxt",lines.join(" ")));
+  const max=Math.max(...ms.map(x=>x.sum),1), ul=el("ul","spendlist");
+  ms.slice(-6).forEach(x=>{const li=el("li",x===cur?"cur":null), bar=el("span","bar"); bar.style.width=Math.round(x.sum/max*100)+"%";
+    li.append(el("span","mn",monthName(x.m).slice(0,3)),el("span","track"),el("span","sv",kr(Math.round(x.sum)))); li.children[1].append(bar); ul.append(li)});
+  box.append(ul);
 }
 function onListKeys(){return new Set(items.filter(i=>!i.checked&&i.key).map(i=>i.key))}
 function counts(){
