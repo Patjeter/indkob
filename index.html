@@ -125,6 +125,10 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .alarmset{display:flex;flex-direction:column;gap:6px}.alarmset .row{display:flex;gap:8px;align-items:center}.alarmset .field.price{flex:0 0 110px}
 .alarmset .lbl{font-size:var(--fs-s);font-weight:600;color:var(--ink2)}.alarmset .mq{font-size:var(--fs-xs);color:var(--ink3)}
 #alarmList{margin:0 8px 8px}#alarmList:empty{display:none}
+.goal{margin:0 20px 12px;padding:10px 12px;border-radius:var(--r-ctl);background:var(--surface2);display:flex;flex-direction:column;gap:6px}
+.goal .gh{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:var(--fs-s)}.goal .gh span{color:var(--ink2);font-size:var(--fs-xs)}
+.goal .gt{height:10px;border-radius:5px;background:var(--surface);overflow:hidden}.goal .gt span{display:block;height:100%;background:var(--accent)}.goal .gt span.over{background:var(--warn)}
+.goal .gm{font-size:var(--fs-s);color:var(--ink2)}
 .spendlist{list-style:none;margin:0 20px 10px;padding:0;display:flex;flex-direction:column;gap:6px}
 .spendlist li{display:grid;grid-template-columns:36px 1fr auto;align-items:center;gap:10px;font-size:var(--fs-s)}
 .spendlist .mn{color:var(--ink2);font-weight:600}.spendlist .sv{font-variant-numeric:tabular-nums;font-weight:600;min-width:72px;text-align:right}
@@ -467,7 +471,7 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v78";
+const VERSION="v79";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -688,7 +692,7 @@ async function refresh(){
   if(bo&&!bo.error&&bo.data){orderManual={}; bo.data.forEach(x=>orderManual[x.store]=x.cats)}
   if(bv&&!bv.error&&bv.data){storePref={}; bv.data.forEach(x=>storePref[x.key]=x.store)} applyStorePref();
   if(la&&!la.error&&la.data)lalt=la.data; if(ls&&!ls.error&&ls.data)lsoeg=ls.data;
-  if(fi&&!fi.error&&fi.data){const b=fi.data.find(x=>x.key==="butikker"), a=fi.data.find(x=>x.key==="butik_adresser"); if(b&&Array.isArray(b.value)&&b.value.length)myStores=b.value; if(a&&Array.isArray(a.value))storeAdr=a.value}
+  if(fi&&!fi.error&&fi.data){const b=fi.data.find(x=>x.key==="butikker"), a=fi.data.find(x=>x.key==="butik_adresser"), g=fi.data.find(x=>x.key==="maal"); if(g&&g.value)goal=g.value; if(b&&Array.isArray(b.value)&&b.value.length)myStores=b.value; if(a&&Array.isArray(a.value))storeAdr=a.value}
   if(sp&&!sp.error&&sp.data)lastBuy=sp.data; applyLidl();
   changed(); netState(); dedupe(); return true;
 }
@@ -1425,12 +1429,13 @@ function renderWeekDishes(){
     return li})));
 }
 /* Forbrug pr. måned ud fra kvitteringerne */
-let spend=null;
+let spend=null, spendCat=[], goal=null;
 const monthName=m=>["januar","februar","marts","april","maj","juni","juli","august","september","oktober","november","december"][+m.slice(5,7)-1].replace(/^./,c=>c.toUpperCase());
 async function loadSpend(){
   if(!(live&&sb)||spend)return;
   const from=new Date(); from.setMonth(from.getMonth()-6,1);
-  try{const {data,error}=await sb.from("kvit").select("dato,total,parsed_total").gte("dato",from.toISOString().slice(0,10)); if(!error&&data)spend=data}catch(e){}
+  try{const [k,f]=await Promise.all([sb.from("kvit").select("dato,total,parsed_total").gte("dato",from.toISOString().slice(0,10)),sb.from("forbrug_kat").select("maaned,cat,kr")]);
+    if(!k.error&&k.data)spend=k.data; if(f&&!f.error&&f.data)spendCat=f.data}catch(e){}
   renderSpend(); if(!morePage)showMorePage();
 }
 function spendMonths(){
@@ -1446,12 +1451,27 @@ function renderSpend(){
   const b=el("b",null,kr(Math.round(cur.sum))); $("#forbrugN").append(b,document.createTextNode("indtil nu"));
   const lines=[`${monthName(cur.m)}: ${kr(Math.round(cur.sum))} på ${cur.n} ${cur.n===1?"kvittering":"kvitteringer"} indtil nu.`];
   if(avg)lines.push(`Snit de ${prev.length} forrige måneder: ${kr(Math.round(avg))}`);
-  if(avg&&day>=10&&day<=dim-3&&cur.sum>0){const proj=cur.sum/day*dim; lines.push(`Med samme tempo bliver ${monthName(cur.m).toLowerCase()} ca. ${kr(Math.round(proj/100)*100)} – ${proj>avg*1.05?"over":proj<avg*0.95?"under":"omkring"} jeres snit.`)}
+  const G=goal&&+goal.pr_maaned;
+  if(G){const proj=day>=7?cur.sum/day*dim:null;
+    box.append(goalBar(cur.sum,G,proj,day,dim));}
+  if(!G&&avg&&day>=10&&day<=dim-3&&cur.sum>0){const proj=cur.sum/day*dim; lines.push(`Med samme tempo bliver ${monthName(cur.m).toLowerCase()} ca. ${kr(Math.round(proj/100)*100)} – ${proj>avg*1.05?"over":proj<avg*0.95?"under":"omkring"} jeres snit.`)}
   box.append(el("p","mtxt",lines.join(" ")));
   const max=Math.max(...ms.map(x=>x.sum),1), ul=el("ul","spendlist");
   ms.slice(-6).forEach(x=>{const li=el("li",x===cur?"cur":null), bar=el("span","bar"); bar.style.width=Math.round(x.sum/max*100)+"%";
     li.append(el("span","mn",monthName(x.m).slice(0,3)),el("span","track"),el("span","sv",kr(Math.round(x.sum)))); li.children[1].append(bar); ul.append(li)});
   box.append(ul);
+  // slik og snacks + drikkevarer for sig (de poster, impulskøb oftest rammer)
+  const catSum=(m,c)=>spendCat.filter(x=>x.maaned===m&&x.cat===c).reduce((a,x)=>a+(+x.kr||0),0);
+  if(spendCat.length){const pm=prev.map(x=>x.m).filter(m=>spendCat.some(x=>x.maaned===m)), avgC=c=>pm.length?pm.reduce((a,m)=>a+catSum(m,c),0)/pm.length:null;
+    const t=[["sn","Slik og snacks"],["dr","Drikkevarer"]].map(([c,n])=>{const a=avgC(c); return `${n}: ${kr(Math.round(catSum(cur.m,c)))}${a!=null?` (snit ${kr(Math.round(a))})`:""}`});
+    box.append(el("p","mtxt",`I ${monthName(cur.m).toLowerCase()} indtil nu – ${t.join(" · ")}.`))}
+}
+function goalBar(sum,G,proj,day,dim){
+  const w=el("div","goal"), left=G-sum, pct=Math.min(100,Math.round(sum/G*100));
+  const head=el("div","gh"); head.append(el("b",null,`Mål: ${kr(G)} om måneden`),el("span",null,goal&&goal.spar?`${kr(goal.spar)} under jeres snit på ${kr(goal.snit)}`:""));
+  const track=el("div","gt"), bar=el("span",sum>G?"over":null); bar.style.width=pct+"%"; track.append(bar);
+  const msg=sum>G?`${kr(Math.round(sum-G))} over målet.`:proj&&day<dim?(proj>G?`${kr(Math.round(left))} tilbage – med samme tempo ender måneden ca. ${kr(Math.round((proj-G)/50)*50)} over målet.`:`${kr(Math.round(left))} tilbage – med samme tempo holder I målet.`):`${kr(Math.round(left))} tilbage af målet.`;
+  w.append(head,track,el("div","gm",msg)); return w;
 }
 function onListKeys(){return new Set(items.filter(i=>!i.checked&&i.key).map(i=>i.key))}
 function counts(){

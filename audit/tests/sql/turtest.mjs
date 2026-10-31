@@ -13,7 +13,8 @@ create table items(id text, key text, checked boolean default false, qty text);
 create table catalog(key text primary key, data jsonb);
 create table offers(id serial, key text, store text, title text, price numeric, ref_price numeric, valid_from date, valid_to date, source text);
 create table lidl_alt(key text, normal_fam numeric);
-create table kvit(tid text primary key, dato timestamptz);
+create table kvit(tid text primary key, dato timestamptz, total numeric, parsed_total numeric);
+create table dishes(id serial, name_da text, kind text, items jsonb);
 create table kvit_linjer(tid text, nr int, navn text, antal numeric, beloeb numeric, key text);`);
 await db.exec(fs.readFileSync(new URL('../../../tur.sql', import.meta.url),"utf8"));
 await q(`insert into catalog values ('kaffe','{"da":"Kaffe","price":59,"every":14,"n":20,"last":"${new Date(Date.now()-12*864e5).toISOString().slice(0,10)}"}'),('maelk','{"da":"Mælk","price":13.5,"every":5,"n":50,"last":"${new Date().toISOString().slice(0,10)}"}'),('ost','{"da":"Ost","price":22,"every":30,"n":2}')`);
@@ -32,3 +33,16 @@ ok((await q("select public.tur_besked() b"))[0].b===null,"under 40 kr.: ingen be
 await q("insert into kvit values ('k1', now()-interval '2 days'),('k0', now()-interval '30 days')");
 await q("insert into kvit_linjer values ('k1',1,'Blåbær 400g',1,52,'bloeber'),('k0',1,'Blåbær 125g',1,18,'bloeber')");
 const s=await q("select * from seneste_pris"); ok(s.length===1&&s[0].navn==='Blåbær 400g'&&+s[0].pris===52,"seneste pris: "+JSON.stringify(s));
+
+// v79: lagerpris, ret og mål
+await q("delete from tur_sendt"); await q("delete from offers");
+for(let i=0;i<6;i++){await q(`insert into kvit values ('h${i}', now()-interval '${20+i*30} days', 300, null)`); await q(`insert into kvit_linjer values ('h${i}',1,'Merrild 400g',1,${i==0?49:59},'kaffe')`);}
+await q(`insert into offers(key,store,title,price,ref_price,valid_from,valid_to,source) values ('kaffe','Lidl','Merrild Rød 400 g',39,59,'${d(-1)}','${d(3)}','auto'),('maelk','Netto','Arla mælk',10,13.5,'${d(-1)}','${d(3)}','auto'),('agurk','Netto','Agurk',5,9,'${d(-1)}','${d(3)}','auto')`);
+await q(`insert into catalog values ('agurk','{"da":"Agurk","price":9}') on conflict do nothing`);
+await q(`insert into dishes(name_da,kind,items) values ('Salat med mælk','ret','[{"key":"maelk","qty":1},{"key":"agurk","qty":1}]'),('Kaffe-ret','madpakke','[{"key":"kaffe"}]')`);
+const lf=await q("select * from lager_forslag()"); ok(lf.length===1&&lf[0].key==='kaffe'&&lf[0].pct===34,"lagerpris kaffe −34 %: "+JSON.stringify(lf));
+const rf=await q("select * from ret_forslag()"); ok(rf.length===1&&rf[0].navn==='Salat med mælk'&&rf[0].paa_tilbud===2,"ret: "+JSON.stringify(rf));
+b=(await q("select public.tur_besked() b"))[0].b; ok(b&&/^Lagerpris: Merrild Rød 400 g 39,00 kr\. i Lidl \(−34 %\)/.test(b.body)&&/Ret: Salat med mælk/.test(b.body),"besked uden tur, med lager og ret: "+(b&&b.body));
+await q("insert into kvit values ('m1', now(), 1200, null)");
+const ms=(await q("select public.maal_status() m"))[0].m; ok(ms.maal==5050&&ms.brugt>=1200,"mål: "+JSON.stringify(ms));
+const fk=await q("select * from forbrug_kat"); ok(fk.length>0,"forbrug_kat: "+fk.length);
