@@ -235,6 +235,7 @@ body.scrolled .top{border-bottom:1px solid var(--line)}
 .seg button small{display:block;font-size:var(--fs-xs);font-weight:400;color:var(--ink3)}
 .seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips.stores .chip.on,.chip.always.on{background:var(--accent);color:var(--on-accent)}.chip.always{background:var(--accent-soft);color:var(--accent)}
 .chip{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 12px;border-radius:999px;font-size:var(--fs-s);font-weight:600;background:var(--surface2);color:var(--ink)}
 .chip.on{background:var(--accent);color:var(--on-accent)}
 .chip.added{background:var(--accent-soft);color:var(--accent)}
@@ -436,7 +437,7 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v75";
+const VERSION="v76";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -503,7 +504,14 @@ function reindex(){
   INDEX=[]; CATALOG.forEach(c=>[c.da,c.sq,...(c.alias||[])].forEach(w=>{const f=fold(w); if(f.length>=2)INDEX.push([f,c])}));
   INDEX.sort((a,b)=>b[0].length-a[0].length);
 }
-function setCatalog(list){CATALOG.length=0; list.forEach(e=>CATALOG.push(e)); reindex()}
+function setCatalog(list){CATALOG.length=0; list.forEach(e=>CATALOG.push(e)); reindex(); applyStorePref()}
+/* "Køb altid i …": familiens faste butik pr. vare (butik_valg.sql) – bruges, næste gang varen tilføjes */
+let storePref={};
+function applyStorePref(){CATALOG.forEach(e=>{if(e.store0===undefined)e.store0=e.store||"Lidl"; e.store=storePref[e.key]||e.store0})}
+function setStorePref(key,store){
+  if(store)storePref[key]=store; else delete storePref[key]; applyStorePref(); changed();
+  if(live)send(store?{kind:"upsert",table:"butik_valg",row:{key,store}}:{kind:"delete",table:"butik_valg",vals:[key],col:"key"});
+}
 function addProduct(p){const i=CATALOG.findIndex(c=>c.key===p.key); const e={key:p.key,da:p.da,sq:p.sq||p.da,cat:p.cat||"an",store:p.store||"Lidl",alias:[],own:true};
   if(i>=0)Object.assign(CATALOG[i],e); else CATALOG.push(e); reindex()}
 function match(text){
@@ -601,7 +609,7 @@ function showFailed(){
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&queue.length){online=true; flush()}});
 addEventListener("online",()=>{online=true; flush().then(()=>loaded&&refresh())});
 addEventListener("offline",()=>{online=false; netState()});
-function cacheSoon(){if(live&&loadedOrCached)local.save("indkob-cache",{items,offers,dishes,bought,lalt,lsoeg,trips,orderManual})}
+function cacheSoon(){if(live&&loadedOrCached)local.save("indkob-cache",{items,offers,dishes,bought,lalt,lsoeg,trips,orderManual,storePref})}
 let loadedOrCached=false;
 const saveDemo=()=>{if(!live){local.save("indkob-items",items);local.save("indkob-bought",bought);local.save("indkob-dishes",dishes)}};
 function changed(){render(); cacheSoon(); saveDemo()}
@@ -626,7 +634,7 @@ async function loadAll(){
   if(recovering){showAuth("recover");return}
   if(!session){showAuth("login");return}
   hideAuth();
-  const c=local.load("indkob-cache"); if(c){items=c.items||[];offers=c.offers||[];dishes=c.dishes||[];bought=c.bought||{};trips=c.trips||[];orderManual=c.orderManual||{};lalt=c.lalt||[];lsoeg=c.lsoeg||[];applyLidl();loadedOrCached=true;render()}
+  const c=local.load("indkob-cache"); if(c){items=c.items||[];offers=c.offers||[];dishes=c.dishes||[];bought=c.bought||{};trips=c.trips||[];orderManual=c.orderManual||{};storePref=c.storePref||{};lalt=c.lalt||[];lsoeg=c.lsoeg||[];applyLidl();applyStorePref();loadedOrCached=true;render()}
   else showLoading();
   loadData();
 }
@@ -636,17 +644,18 @@ async function fetchAll(){
   return Promise.all([sb.from("items").select("*").order("created_at"),sb.from("bought").select("key,at,store,item_id").order("at"),sb.from("offers").select("*").gte("valid_to",today()),
     sb.from("products").select("*"),sb.from("catalog").select("data").limit(5000),sb.from("dishes").select("*").order("name_da"),sb.from("lidl_alt").select("*"),
     sb.from("lidl_soeg").select("pkey,heading,own_brand,size_from,unit,qty_si,si_unit,normal_price,offer_price,offer_from,offer_to,price,unit_price"),
-    sb.from("butik_orden").select("store,cats")]);
+    sb.from("butik_orden").select("store,cats"),sb.from("butik_valg").select("key,store")]);
 }
 async function refresh(){
   let r; try{r=await fetchAll()}catch(e){online=false; netState(); return false}
-  const [a,b,o,pr,cg,ds,la,ls,bo]=r;
+  const [a,b,o,pr,cg,ds,la,ls,bo,bv]=r;
   if(a.error){if(isNetErr(a.error)){online=false;netState();return false} toast("Kunne ikke hente listen"); return false}
   online=true; loadedOrCached=true;
   if(cg.data&&cg.data.length){setCatalog(cg.data.map(x=>x.data)); local.save("indkob-catalog",CATALOG.filter(e=>!e.own))}
   (pr.data||[]).forEach(addProduct);
   items=a.data; offers=o.data||[]; dishes=ds.data||[]; bought={}; (b.data||[]).forEach(x=>{if(x.at)bought[x.key]=String(x.at).slice(0,10)}); learnTrips(b.data||[]);
   if(bo&&!bo.error&&bo.data){orderManual={}; bo.data.forEach(x=>orderManual[x.store]=x.cats)}
+  if(bv&&!bv.error&&bv.data){storePref={}; bv.data.forEach(x=>storePref[x.key]=x.store)} applyStorePref();
   if(la&&!la.error&&la.data)lalt=la.data; if(ls&&!ls.error&&ls.data)lsoeg=ls.data; applyLidl();
   changed(); netState(); dedupe(); return true;
 }
@@ -660,6 +669,7 @@ async function loadData(){
       else{const i=items.findIndex(x=>x.id===p.new.id); if(i>=0)items[i]=p.new; else items.push(p.new)}
       changed(); if(p.eventType==="INSERT")dedupe()})
     .on("postgres_changes",{event:"*",schema:"public",table:"handle_req"},()=>loadHandle())
+    .on("postgres_changes",{event:"*",schema:"public",table:"butik_valg"},p=>{if(p.eventType==="DELETE")delete storePref[p.old.key]; else if(p.new&&p.new.key)storePref[p.new.key]=p.new.store; applyStorePref(); changed()})
     .on("postgres_changes",{event:"*",schema:"public",table:"offers"},async()=>{const r=await sb.from("offers").select("*").gte("valid_to",today()); if(r.data){offers=r.data; changed()}})
     .on("postgres_changes",{event:"*",schema:"public",table:"products"},p=>{if(p.new&&p.new.key){addProduct(p.new); changed()}})
     .on("postgres_changes",{event:"*",schema:"public",table:"dishes"},async()=>{const r=await sb.from("dishes").select("*").order("name_da"); if(r.data){dishes=r.data; changed()}})
@@ -703,6 +713,7 @@ function dedupe(){
 }
 function patch(id,ch){
   const it=items.find(i=>i.id===id); if(!it)return;
+  if(ch.store!==undefined&&ch.store_fixed===undefined&&it.store_fixed)ch.store_fixed=false;   // flyttet af et tilbud: ikke længere et fast valg
   Object.assign(it,ch); changed(); send({kind:"update",table:"items",id,changes:ch});
 }
 function toggle(it){
@@ -1348,7 +1359,7 @@ function listTile(it){
   if(it.key&&!it.checked){
     d=bestElsewhere(it.key,st);
     if(d)below=dealLine(d,it.key,qn(it.qty),()=>{patch(it.id,{store:d.store}); toast(`${a} flyttet til ${d.store}`,()=>patch(it.id,{store:st}))},true);
-    else if(st!==home&&!offersFor(it.key).some(o=>o.store===st)&&!e.own){
+    else if(st!==home&&!it.store_fixed&&!offersFor(it.key).some(o=>o.store===st)&&!e.own){
       below=el("div","deal warn"); below.append(el("span","dt",`Tilbuddet i ${st} er udløbet`)); const m=el("button","mv","Flyt til "+home); m.onclick=()=>patch(it.id,{store:home}); below.append(m)}
   }
   if(!below&&it.key&&!it.checked&&st==="Lidl")below=lidlTip(it.key,it);
@@ -1401,16 +1412,24 @@ function itemSheet(it){
   const nf=el("label","field"); const ni=el("input"); ni.placeholder=e0.forms?"Udskæring eller bemærkning":"Bemærkning"; ni.value=it.note||""; nf.append(ni);
   const sel=(opts,val)=>{const f=el("label","field"), s=el("select"); opts.forEach(([v,t])=>{const o=el("option",null,t); o.value=v; if(v===val)o.selected=true; s.append(o)}); f.append(s); return [f,s]};
   const [cf,cs]=sel(CATS.map(c=>[c.id,`${c.icon} ${c.da}`]),catOf(it.category));
-  const [sf,ss]=sel([...new Set([...STORE_ORDER,it.store||"Lidl"])].map(n=>[n,n]),it.store||"Lidl");
+  // butik: ét tryk flytter varen; "Køb altid her" husker det for næste gang
+  const cur=it.store||"Lidl", stores=[...new Set([...STORE_ORDER,cur])], sch=el("div","chips stores");
+  stores.forEach(n=>{const c=el("button","chip"+(n===cur?" on":""),n); c.type="button"; c.setAttribute("aria-pressed",n===cur);
+    c.onclick=()=>{if(n===cur)return; const was=!!it.store_fixed; patch(it.id,{store:n,store_fixed:true}); toast(`${names(it)[0]} flyttet til ${n}`,()=>patch(it.id,{store:cur,store_fixed:was}))}; sch.append(c)});
+  s.append(el("span","lbl","Butik"),sch);
+  if(it.key){const pref=storePref[it.key], always=pref===cur, def=(e0.store0||"Lidl");
+    if(always||cur!==def){const a=el("button","chip always"+(always?" on":""),always?`Købes altid i ${cur} ✓`:`Køb altid i ${cur}`); a.type="button"; a.setAttribute("aria-pressed",always);
+      a.onclick=()=>{setStorePref(it.key,always?null:cur); toast(always?`${names(it)[0]}: ikke længere fast butik`:`${names(it)[0]} lægges fremover i ${cur}`)};
+      const row=el("div","chips"); row.append(a); s.append(row)}}
   s.append(el("span","lbl","Mængde"),qr);
   if(e0.forms){const ch=el("div","chips"); e0.forms.forEach(f=>{const c=el("button","chip"+(ni.value===f?" on":""),f); c.type="button";
     c.onclick=()=>{ni.value=ni.value===f?"":f; ch.querySelectorAll(".chip").forEach(x=>x.classList.toggle("on",x.textContent===ni.value))}; ch.append(c)});
     s.append(el("span","lbl","Udskæring"),ch)}
-  s.append(nf,el("span","lbl","Kategori og butik"),cf,sf);
+  s.append(nf,el("span","lbl","Kategori"),cf);
   if(it.key&&!e0.own){const cmp=el("div","cmp"); s.append(el("span","lbl","Tilbud på varen lige nu"),cmp); fillCompare(cmp,it)}
   const btns=el("div","btns"), no=el("button","btn ghost","Luk"), ok=el("button","btn pri","Gem");
   no.onclick=()=>{editingItem=null; renderList()};
-  ok.onclick=()=>{const cat=cs.value, store=ss.value; editingItem=null; patch(it.id,{category:cat,store,qty:String(qn(qi.value)),note:ni.value.trim()||null});
+  ok.onclick=()=>{const cat=cs.value, store=it.store||"Lidl"; editingItem=null; patch(it.id,{category:cat,qty:String(qn(qi.value)),note:ni.value.trim()||null});
     if(it.key&&(e0.own||!e0.n))saveProduct({key:it.key,da:e0.da||it.text,sq:e0.sq,cat,store})};
   btns.append(no,ok); s.append(btns); return s;
 }
@@ -1482,7 +1501,7 @@ function renderList(){
     wrap.append(card);
   });
   const expired=items.filter(i=>{if(i.checked||!i.key)return false; const e=BYKEY[i.key]||{}, st=i.store||"Lidl", home=e.store||"Lidl";
-    return st!==home&&!e.own&&!offersFor(i.key).some(o=>o.store===st)});
+    return st!==home&&!i.store_fixed&&!e.own&&!offersFor(i.key).some(o=>o.store===st)});
   if(grand>0||expired.length||unknown){
     const h=el("div","head"); h.append(el("span","av","Σ")); const hb=el("div","hb"); hb.append(el("h2",null,"Hele listen"),el("div","hs","Gjithsej")); h.append(hb);
     const r=el("div","hr"); r.append(el("b",null,kr(Math.round(grand))),document.createTextNode(unknown?`+ ${unknown} uden pris`:"anslået")); h.append(r); sum.append(h);
@@ -1740,6 +1759,15 @@ function setAddBottom(){
 if(window.visualViewport){visualViewport.addEventListener("resize",setAddBottom); visualViewport.addEventListener("scroll",setAddBottom)}
 addEventListener("resize",setAddBottom); setTimeout(setAddBottom,0);
 if("ResizeObserver" in window)new ResizeObserver(setAddBottom).observe($(".tabs"),{box:"border-box"});
+/* iPhone: når tastaturet lukker, kan menuen i bunden blive hængende midt på skærmen (fast position regnet ud fra
+   den formindskede skærm). Når tastaturet er væk, tvinges menuen til at blive placeret forfra. */
+let tabsFixT=0;
+function fixTabs(){clearTimeout(tabsFixT); tabsFixT=setTimeout(()=>{
+  const vv=window.visualViewport; if(document.body.classList.contains("typing")||(vv&&innerHeight-vv.height>80))return;
+  const t=$(".tabs"); t.style.display="none"; void t.offsetHeight; t.style.display=""; scrollTo(scrollX,scrollY)},350)}
+document.addEventListener("focusout",fixTabs);
+if(window.visualViewport)visualViewport.addEventListener("resize",fixTabs);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)fixTabs()});
 if("ResizeObserver" in window)new ResizeObserver(()=>{const h=$("#segbar").offsetHeight; if(h)document.documentElement.style.setProperty("--segh",h+"px")}).observe($("#segbar"));
 if("ResizeObserver" in window)new ResizeObserver(()=>{const h=$("#dishSegbar").offsetHeight; if(h)document.documentElement.style.setProperty("--dsegh",h+"px")}).observe($("#dishSegbar"));
 addEventListener("resize",setTop);
