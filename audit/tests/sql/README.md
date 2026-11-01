@@ -11,7 +11,7 @@ node alarmtest.mjs     # prisalarm: fund, claim, ingen dobbeltbesked
 node drifttest.mjs     # status_automatik, drift_tjek, drift_uge
 node handletest.mjs    # "Kan du handle nu?": spørg, nej, ja, for sent, fremmede afvises
 node turtest.mjs       # turforslag i jeres butikker, besked højst én gang om dagen, seneste pris pr. pakning
-node nodlagertest.mjs   # nødlager: kun familien, hvem ændrede, højst 2 uger, realtime, besked før holdbarhed udløber (én gang pr. dato)
+node nodlagertest.mjs   # nødlager: kun familien, holdbarhed og besked (én gang pr. dato), billigste pris (Lidl eller tilbud i jeres butikker), turlinje
 ```
 
 Push-funktionen testes med Deno: `PUSH_TEST=1 deno run -A ../push-retry.test.ts`.

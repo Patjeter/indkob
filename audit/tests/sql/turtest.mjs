@@ -15,7 +15,10 @@ create table offers(id serial, key text, store text, title text, price numeric, 
 create table lidl_alt(key text, normal_fam numeric);
 create table kvit(tid text primary key, dato timestamptz, total numeric, parsed_total numeric);
 create table dishes(id serial, name_da text, kind text, items jsonb);
-create table kvit_linjer(tid text, nr int, navn text, antal numeric, beloeb numeric, key text);`);
+create table kvit_linjer(tid text, nr int, navn text, antal numeric, beloeb numeric, key text);
+create table nod_tilbud_sendt(offer_id text primary key, sendt date not null default current_date);
+create table nod_stub(tekst text, ids text[]); insert into nod_stub values (null, null);
+create function nod_tilbud(out tekst text, out ids text[]) language sql as $$ select tekst, ids from nod_stub $$;`);
 await db.exec(fs.readFileSync(new URL('../../../tur.sql', import.meta.url),"utf8"));
 await q(`insert into catalog values ('kaffe','{"da":"Kaffe","price":59,"every":14,"n":20,"last":"${new Date(Date.now()-12*864e5).toISOString().slice(0,10)}"}'),('maelk','{"da":"Mælk","price":13.5,"every":5,"n":50,"last":"${new Date().toISOString().slice(0,10)}"}'),('ost','{"da":"Ost","price":22,"every":30,"n":2}')`);
 await q(`insert into items values ('1','maelk',false,'2')`);
@@ -46,3 +49,9 @@ b=(await q("select public.tur_besked() b"))[0].b; ok(b&&/^Lagerpris: Merrild Rø
 await q("insert into kvit values ('m1', now(), 1200, null)");
 const ms=(await q("select public.maal_status() m"))[0].m; ok(ms.maal==5050&&ms.brugt>=1200,"mål: "+JSON.stringify(ms));
 const fk=await q("select * from forbrug_kat"); ok(fk.length>0,"forbrug_kat: "+fk.length);
+
+// v82: nødlager-tilbud i turbeskeden – også alene, og hvert tilbud kun én gang
+await q("delete from tur_sendt"); await q("delete from offers");
+await q("update nod_stub set tekst='Nødlager: hakkede tomater 6 kr. i Netto.', ids=array['o1']");
+b=(await q("select public.tur_besked() b"))[0].b; ok(b&&b.body==='Nødlager: hakkede tomater 6 kr. i Netto.',"nødlager alene giver besked: "+JSON.stringify(b));
+ok((await q("select offer_id from nod_tilbud_sendt"))[0].offer_id==='o1',"tilbuddet huskes som sendt");

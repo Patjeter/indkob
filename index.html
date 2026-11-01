@@ -455,11 +455,11 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
         <li><b>Tyskland</b><span>10 dage</span></li>
         <li><b>Røde Kors i USA</b><span>2 uger hjemme</span></li>
       </ul>
-      <p class="mtxt">Start med 1 uge. Gå til 2 uger med vand, mad og brændsel, når den første uge er på plads.</p>
+      <p class="mtxt">Start med 1 uge. Gå til 2 uger med vand, mad og brændsel, når den første uge er på plads. Appen viser den billigste pris lige nu – Lidls faste pris eller et tilbud i jeres butikker – og nævner gode tilbud i beskeden "Værd at handle i dag".</p>
       <div class="seg" id="nodSeg"><button data-w="1" aria-pressed="true">Mål: 1 uge</button><button data-w="2" aria-pressed="false">Mål: 2 uger</button></div>
       <div class="seg nodfilt" id="nodFilt"><button data-f="all" aria-pressed="true">Alle</button><button data-f="miss" aria-pressed="false">Mangler</button><button data-f="soon" aria-pressed="false">Brug snart</button></div>
       <div id="nod"></div>
-      <p class="mtxt dim">Tryk på en ting for at skrive holdbarhedsdatoen og læse mere. I får besked på telefonen, når noget skal bruges – som regel en måned før. Kilder: Beredskabsstyrelsen, MSB (Sverige), DSB og Oslo kommune (Norge), BBK og BLE (Tyskland), Røde Kors (USA).</p>
+      <p class="mtxt dim">Tryk på en ting for at skrive holdbarhedsdatoen og læse mere. I får besked på telefonen, når noget skal bruges – som regel en måned før. Kilder: Beredskabsstyrelsen, MSB (Sverige), DSB og Oslo kommune (Norge), BBK og BLE (Tyskland), Røde Kors (USA) og erfaringer fra Ukraine, Spanien (2025), Sarajevo og Texas (2021).</p>
     </section>
     <section class="card more mpage" data-page="kvit" id="kvitInfo">
       <div class="head"><div class="hb"><h2>Kvitteringer</h2><div class="hs">Kuponat</div></div><div class="hr" id="kvitN"></div></div>
@@ -504,7 +504,7 @@ body.searching #pane-list>*:not(#addCard):not(.panehead){display:none!important}
 <script src="kvit-parse.js?v=51"></script>
 <script>
 "use strict";
-const VERSION="v81";
+const VERSION="v82";
 /* =========================================================
    GRUNDLAG
    ========================================================= */
@@ -1402,7 +1402,7 @@ function showMorePage(){
       li.classList.add("morerow"); ul.append(li)})}
 }
 async function renderMore(){
-  showMorePage(); renderSwaps(); renderMyStores(); renderOrder(); renderAlarms(); renderAuto(); loadAuto(); renderWeekDishes(); renderSpend(); loadSpend(); renderNod(); loadNod(); if(!alarmLoaded){loadAlarms().then(()=>{renderAlarms(); if(!morePage)showMorePage()})}
+  showMorePage(); renderSwaps(); renderMyStores(); renderOrder(); renderAlarms(); renderAuto(); loadAuto(); renderWeekDishes(); renderSpend(); loadSpend(); renderNod(); loadNod(); loadNodPris(); if(!alarmLoaded){loadAlarms().then(()=>{renderAlarms(); if(!morePage)showMorePage()})}
   $("#notifySeg").hidden=!pushOK; $("#notifyOff").hidden=pushOK;
   $("#logout").hidden=!live;
   if(live&&sb){
@@ -1517,7 +1517,8 @@ function goalBar(sum,G,proj,day,dim){
    BLE/BBK Tyskland (10 dage, 2.200 kcal), Røde Kors USA (2 uger hjemme). Maden giver ca. 8.000 kcal om dagen for jer fire. */
 const NOD_CAT=[["vand","💧","Vand","Ujë"],["mad","🥫","Mad","Ushqim"],["varme","🔥","Madlavning og varme","Gatim dhe ngrohje"],
   ["lys","🔦","Lys, strøm og radio","Dritë, energji dhe radio"],["hyg","🧻","Hygiejne og nødtoilet","Higjienë dhe tualet emergjence"],
-  ["med","🩹","Medicin og førstehjælp","Ilaçe dhe ndihmë e parë"],["pen","💳","Penge og papirer","Para dhe dokumente"],["and","🧰","Andet","Të tjera"]];
+  ["med","🩹","Medicin og førstehjælp","Ilaçe dhe ndihmë e parë"],["pen","💳","Penge og papirer","Para dhe dokumente"],["and","🧰","Andet","Të tjera"],
+  ["erf","🧭","Fra dem, der har prøvet det","Nga ata që e kanë provuar"]];
 const NOD=[
   {k:"vand",c:"vand",da:"Drikkevand",sq:"Ujë i pijshëm",w:84,u:"l",buy:[{t:"Kildevand",n:10,s:"6 × 1,5 l",p:{cat:"dr",sq:"Ujë burimi"}}],
     tip:"3 l pr. person pr. dag til drikke og mad. Vand fra hanen i rene dunke er lige så godt – stil det mørkt og køligt, og skift det en gang om året. Sverige anbefaler 3–5 l."},
@@ -1532,7 +1533,7 @@ const NOD=[
   {k:"groent",c:"mad",da:"Grøntsager på dåse (majs, ærter, gulerødder)",sq:"Perime në kanaçe (misër, bizele, karota)",w:6,u:"dåser",buy:[{t:"Majs på dåse",n:6,p:{cat:"ko",sq:"Misër në kanaçe"}}]},
   {k:"frugt",c:"mad",da:"Tørret frugt og frugt på dåse",sq:"Fruta të thata dhe komposto",w:1.5,u:"kg",buy:[{t:"Rosiner",n:3,s:"500 g"}],tip:"Vitaminer og noget sødt til børnene."},
   {k:"noedder",c:"mad",da:"Nødder og peanutbutter",sq:"Arra dhe gjalpë kikiriku",w:1,u:"kg",buy:[{t:"Peanutbutter",n:2,s:"500 g"}],tip:"Mange kalorier på lidt plads."},
-  {k:"maelk",c:"mad",da:"Holdbar mælk – en tredjedel laktosefri",sq:"Qumësht afatgjatë – një e treta pa laktozë",w:6,u:"l",buy:[{t:"Holdbar mælk",n:4,s:"1 l",p:{cat:"ko",sq:"Qumësht afatgjatë"}},{t:"Laktosefri holdbar mælk",n:2,s:"1 l",p:{cat:"ko",sq:"Qumësht afatgjatë pa laktozë"}}],tip:"UHT-mælk holder et halvt år uden køl. Den laktosefri er til Besnik."},
+  {k:"maelk",c:"mad",da:"Holdbar mælk – en tredjedel laktosefri",sq:"Qumësht afatgjatë – një e treta pa laktozë",w:6,u:"l",buy:[{t:"Holdbar mælk",n:4,s:"1 l",p:{cat:"ko",sq:"Qumësht afatgjatë"}},{t:"Laktosefri holdbar mælk",id:"maelk-lf",n:2,s:"1 l",p:{cat:"ko",sq:"Qumësht afatgjatë pa laktozë"}}],tip:"UHT-mælk holder et halvt år uden køl. Den laktosefri er til Besnik."},
   {k:"olie",c:"mad",da:"Olie",sq:"Vaj",w:0.5,u:"l",buy:[{t:"Rapsolie",n:1,s:"1 l"}]},
   {k:"soedt",c:"mad",da:"Honning, syltetøj og chokolade",sq:"Mjaltë, reçel dhe çokollatë",w:1,u:"kg",buy:[{t:"Syltetøj",n:2,s:"glas",p:{cat:"ko",sq:"Reçel"}}],tip:"Energi og godt humør. Slik kun uden svinegelatine."},
   {k:"supper",c:"mad",da:"Supper og færdigretter på dåse eller pose",sq:"Supa dhe gatime të gatshme",w:6,u:"stk",buy:[{t:"Suppe på dåse",n:6,p:{cat:"ko",sq:"Supë në kanaçe"}}],tip:"Kun uden svin – tjek varedeklarationen."},
@@ -1546,33 +1547,41 @@ const NOD=[
   {k:"sovepose",c:"varme",da:"Sovepose til hver",sq:"Thes gjumi për secilin",f:4,u:"stk",tip:"Uden strøm om vinteren bliver huset hurtigt koldt. Saml jer i ét rum."},
   {k:"uld",c:"varme",da:"Varmt tøj, uldundertøj, huer og tæpper",sq:"Rroba të ngrohta, të brendshme leshi, kapele dhe batanije",f:1,u:"sæt"},
   {k:"slukker",c:"varme",da:"Brandtæppe og pulverslukker",sq:"Batanije zjarri dhe fikës",f:1,u:"sæt",tip:"Flere stearinlys og gasblus giver større risiko for brand."},
-  {k:"coalarm",c:"varme",da:"Røgalarm og CO-alarm på batteri",sq:"Alarm tymi dhe alarm CO me bateri",f:1,u:"sæt",tip:"CO-alarmen advarer mod kulilte, hvis I laver mad eller varmer op med gas, sprit eller stearinlys indendørs."},
+  {k:"coalarm",c:"varme",da:"Røgalarm og CO-alarm på batteri",sq:"Alarm tymi dhe alarm CO me bateri",f:1,u:"sæt",tip:"CO-alarmen advarer mod kulilte, hvis I laver mad eller varmer op med gas, sprit eller stearinlys indendørs. Under strømsvigtet i Texas i 2021 blev hundredvis forgiftet af kulilte fra grill, generator eller bil i garagen – brug dem aldrig indendørs."},
   {k:"lygte",c:"lys",da:"Pandelampe eller lommelygte til hver",sq:"Llambë koke ose elektrik dore për secilin",f:4,u:"stk",tip:"Pandelamper giver frie hænder – også til børnene."},
   {k:"batterier",c:"lys",da:"Batterier (AA og AAA)",sq:"Bateri (AA dhe AAA)",w:12,u:"stk",buy:[{t:"Batterier",n:1,s:"pakke"}],tip:"Til lygter og radio. Tjek, hvilke størrelser jeres ting bruger."},
   {k:"powerbank",c:"lys",da:"Powerbanks, opladte",sq:"Powerbank të karikuara",f:2,u:"stk",tip:"Oplad dem hver tredje måned."},
   {k:"solcelle",c:"lys",da:"Solcellelader",sq:"Karikues diellor",f:1,u:"stk",tip:"Holder telefon, lygter og radio i gang, når strømmen er væk i mere end et par dage."},
   {k:"stearin",c:"lys",da:"Stearinlys og fyrfadslys",sq:"Qirinj",w:10,u:"stk",buy:[{t:"Stearinlys",n:1,s:"pakke",p:{cat:"nf",sq:"Qirinj"}}],tip:"Aldrig uden opsyn – og hav brandtæppe klar."},
-  {k:"radio",c:"lys",da:"Radio på batteri, håndsving eller solcelle",sq:"Radio me bateri, dorezë ose diellor",f:1,u:"stk",tip:"FM og helst DAB. Myndighederne informerer via DR, også når net og mobil er nede. Bilradioen virker også."},
+  {k:"radio",c:"lys",da:"Radio på batteri, håndsving eller solcelle",sq:"Radio me bateri, dorezë ose diellor",f:1,u:"stk",tip:"FM og helst DAB. Myndighederne informerer via DR, også når net og mobil er nede. Da strømmen gik i Spanien i april 2025, samledes folk om batteriradioer – det var den eneste nyhedskilde. Bilradioen virker også."},
   {k:"toiletpapir",c:"hyg",da:"Toiletpapir",sq:"Letër higjienike",w:8,u:"ruller",buy:[{t:"Toiletpapir",n:1,s:"pakke"}]},
   {k:"vaadserv",c:"hyg",da:"Vådservietter",sq:"Peceta të lagura",w:3,u:"pk.",buy:[{t:"Vådservietter",n:3,s:"pakke"}],tip:"Erstatter vask, når der ikke er vand i hanen."},
   {k:"haandsprit",c:"hyg",da:"Håndsprit",sq:"Dezinfektues duarsh",f:2,u:"fl.",buy:[{t:"Håndsprit",n:2,s:"flaske"}]},
   {k:"spand",c:"hyg",da:"Spand med låg til nødtoilet",sq:"Kovë me kapak për tualet emergjence",f:1,u:"stk",tip:"Uden vand kan toilettet ikke skylles. Sæt en dobbelt pose i spanden eller over toiletkummen."},
   {k:"saekke",c:"hyg",da:"Kraftige affaldssække",sq:"Qese të forta mbeturinash",w:30,u:"stk",buy:[{t:"Affaldsposer",n:1,s:"kraftige, rulle"}],tip:"Til nødtoilet og affald. Pres luften ud, bind dobbeltknude og læg posen i skraldespanden udenfor."},
-  {k:"kattegrus",c:"hyg",da:"Kattegrus eller savsmuld",sq:"Rërë mace ose tallash",w:5,u:"kg",buy:[{t:"Kattegrus",n:1,s:"pose",p:{cat:"nf",sq:"Rërë mace"}}],tip:"Et lag i posen efter hvert besøg binder fugt og lugt."},
+  {k:"kattegrus",c:"hyg",da:"Kattegrus eller savsmuld",sq:"Rërë mace ose tallash",w:5,u:"kg",buy:[{t:"Kattegrus",n:1,s:"pose",p:{cat:"nf",sq:"Rërë mace"}}],tip:"Til nødtoilettet: uden vand i hanen kan toilettet ikke skylles. Et lag kattegrus (eller savsmuld) i posen efter hvert besøg suger urinen og binder lugten, så posen kan bindes til og bæres ud. Ca. 5 kg pr. uge til fire."},
   {k:"handsker",c:"hyg",da:"Engangshandsker",sq:"Doreza njëpërdorimshe",f:1,u:"pk."},
   {k:"bind",c:"hyg",da:"Bind og tamponer",sq:"Peceta higjienike dhe tampona",f:1,u:"pk."},
   {k:"saebe",c:"hyg",da:"Sæbe, tandpasta og tandbørster",sq:"Sapun, pastë dhe furça dhëmbësh",f:1,u:"sæt"},
   {k:"foerstehjaelp",c:"med",da:"Førstehjælpskasse",sq:"Kuti e ndihmës së parë",f:1,u:"stk",tip:"Plaster, forbinding, saks, pincet og termometer."},
   {k:"smerte",c:"med",da:"Smerte- og feberstillende til voksne og børn",sq:"Ilaçe kundër dhimbjeve dhe ethes për të rritur dhe fëmijë",f:1,u:"sæt",tip:"Børnene skal have den rigtige styrke til deres alder."},
   {k:"fastmedicin",c:"med",da:"Fast medicin til en måned",sq:"Ilaçet e përhershme për një muaj",f:1,u:"sæt",tip:"Kun hvis nogen tager fast medicin. Sverige anbefaler en måneds forbrug."},
-  {k:"jod",c:"med",da:"Jodtabletter",sq:"Tableta jodi",f:1,u:"pk.",tip:"Til børn og voksne under 40. Fås på apoteket og tages kun, når myndighederne siger det."},
-  {k:"kontanter",c:"pen",da:"Kontanter i små sedler og mønter",sq:"Para në dorë në kartmonedha të vogla dhe monedha",w:1500,u:"kr.",tip:"Når kortbetaling ikke virker. Sverige anbefaler nok til en uges indkøb – I bruger ca. 1.300 kr. om ugen i Lidl."},
+  {k:"jod",c:"med",da:"Jodtabletter – 1 pakke à 10 stk. (65 mg)",sq:"Tableta jodi – 1 paketë me 10 copë (65 mg)",f:1,u:"pk.",tip:"Kaliumiodid 65 mg, 10 tabletter, kun på apoteket (ca. 120 kr.). Det er én dosis, ikke en kur: børn 3–12 år 1 tablet, fra 12 år 2 tabletter. Over 40 år behøver ikke. Én pakke rækker til jer alle – også ved 2 uger. Tages kun, når Sundhedsstyrelsen siger det."},
+  {k:"kontanter",c:"pen",da:"Kontanter i små sedler og mønter",sq:"Para në dorë në kartmonedha të vogla dhe monedha",w:1500,u:"kr.",tip:"Når kortbetaling ikke virker. Under strømsvigtet i Spanien i 2025 kunne folk med kun kort ikke betale bus eller mad. Sverige anbefaler nok til en uges indkøb – I bruger ca. 1.300 kr. om ugen i Lidl."},
   {k:"kort",c:"pen",da:"Fysiske betalingskort, og I kan PIN-koderne",sq:"Karta fizike pagese, dhe i dini PIN-et",f:2,u:"stk",tip:"Gerne fra to forskellige banker."},
   {k:"papirer",c:"pen",da:"Kopi af pas, sundhedskort og forsikring",sq:"Kopje e pasaportave, kartave shëndetësore dhe sigurimit",f:1,u:"sæt",tip:"I en vandtæt pose sammen med kontanterne."},
   {k:"telefonliste",c:"pen",da:"Telefonliste, kort og mødested på papir",sq:"Listë telefonash, hartë dhe vend takimi në letër",f:1,u:"sæt",tip:"Hvem ringer I til, og hvor mødes I, hvis net og mobil er nede – fx ved skolen."},
   {k:"vaerktoej",c:"and",da:"Multiværktøj, gaffatape og plastfolie",sq:"Vegël shumëfunksionale, shirit ngjitës dhe najlon",f:1,u:"sæt"},
   {k:"spil",c:"and",da:"Spil, kort og bøger til børnene",sq:"Lojëra, letra dhe libra për fëmijët",f:1,u:"sæt",tip:"Dage uden skærm går hurtigere med noget at lave."},
-  {k:"tank",c:"and",da:"Mindst halv tank i bilen",sq:"Të paktën gjysmë rezervuari në makinë",f:1,u:"",tip:"Bilen kan oplade telefoner, give varme og radio – og få jer væk."}];
+  {k:"bil",c:"and",da:"Elbilen ladet mindst halvt op",sq:"Makina elektrike e karikuar të paktën përgjysmë",f:1,u:"",tip:"Lad op, når der varsles storm. Elbilen kan oplade telefoner via USB og give varme og radio uden udstødning. Har den V2L (stik til 230 V), kan den drive små apparater – se i manualen."},
+  {k:"termo",c:"erf",da:"Termokander",sq:"Termose",f:2,u:"stk",tip:"Kog vand én gang om morgenen, og hold det varmt hele dagen til te, grød og vask. Sparer brændsel. Brugt i ukrainske hjem under strømafbrydelserne."},
+  {k:"varmedunk",c:"erf",da:"Varmedunke til hver",sq:"Shishe me ujë të nxehtë për secilin",f:4,u:"stk",tip:"Ukrainernes nemmeste og sikreste varme i sengen – holder 4–5 timer. Sov i ét rum, gerne i et telt eller en hule af tæpper, så varmen bliver hos jer."},
+  {k:"frys",c:"erf",da:"Vandflasker i fryseren",sq:"Shishe uji në ngrirës",f:6,u:"stk",tip:"Fyld den tomme plads i fryseren med plastflasker vand (ikke glas). Når strømmen går, holder de maden kold i timevis og bliver til drikkevand. Råd fra Kyiv og fra den svenske myndighed MSB."},
+  {k:"badekar",c:"erf",da:"Plan: fyld badekar og gryder ved varsel",sq:"Plan: mbushni vaskën dhe tenxheret kur paralajmërohet",f:1,u:"",tip:"Vand til toilet og vask, når hanen stopper. Under belejringen af Sarajevo hentede folk vand under beskydning, og mange blev syge af urent vand."},
+  {k:"naboer",c:"erf",da:"Aftal med naboerne",sq:"Merreni vesh me fqinjët",f:1,u:"",tip:"Hvem har gasblus, hvem har brug for hjælp, hvem tjekker de ældre? Overlevende fra Sarajevo fremhæver, at naboer, der delte arbejdet, gjorde det til at holde ud."},
+  {k:"kursus",c:"erf",da:"Førstehjælpskursus til de voksne",sq:"Kurs i ndihmës së parë për të rriturit",f:1,u:"",tip:"Evner holder, når lageret slipper op. Det er det råd, der går igen hos dem, der har været igennem krig og kriser."},
+  {k:"cykel",c:"erf",da:"Cykler i stand med lygter",sq:"Biçikleta në gjendje të mirë me drita",f:1,u:"sæt",tip:"Da strømmen gik i Spanien i 2025, stod metro og tog stille, og mange gik i timevis. I Sarajevo kom man sikrest rundt på cykel."},
+  {k:"ekstrahyg",c:"erf",da:"Ekstra sæbe og tandpasta",sq:"Sapun dhe pastë dhëmbësh shtesë",f:1,u:"sæt",tip:"I Sarajevo var sæbe og tandpasta så eftertragtede, at folk byttede mad for dem. Det holder humøret oppe – og kan gives til andre."}];
 /* holdbarhed: maden, vand, medicin, batterier, håndsprit og vådservietter. v = dage før, I får besked; r = "gjort igen" (fx opladet) giver ny dato om r dage */
 const NOD_H={vand:{},rens:{},batterier:{},vaadserv:{},haandsprit:{},foerstehjaelp:{},smerte:{},fastmedicin:{},jod:{},
   powerbank:{l:"Oplad igen",v:0,r:90,done:"Opladet – næste gang om 3 måneder"}};
@@ -1591,10 +1600,24 @@ const nodOk=x=>x.w?nodGot(x)>=nodWeeks:nodGot(x)>0;
 const nodEntry=b=>b.p?null:match(b.t);
 function nodBuyKey(b){const e=nodEntry(b); return e?e.key:"u:"+fold(b.t)}
 function nodOnList(x){return (x.buy||[]).every(b=>{const k=nodBuyKey(b); return items.some(i=>!i.checked&&i.key===k)})}
-function nodDeal(x){
-  let best=null; (x.buy||[]).forEach(b=>{const e=nodEntry(b); if(!e)return;
-    offersFor(e.key).filter(started).forEach(o=>{if(!best||+o.price<+best.price)best=o})});
-  return best;
+/* billigste pris lige nu (nod_priser() i nodlager.sql): Lidls faste pris eller et tilbud i jeres butikker */
+let nodPris={}, nodPrisAt=0;
+const bid=(x,b)=>b.id||x.k;
+function nodBest(x){return (x.buy||[]).map(b=>nodPris[bid(x,b)]).filter(Boolean)[0]||null}
+function nodPrisTxt(r){
+  const u=r.si==="stk"?"":` (${kr(r.unit_price)}/${r.si})`;
+  return r.kilde==="tilbud"?`billigst: ${kr(r.price)} i ${r.store} – tilbud${u}`:`billigst: ${kr(r.price)} i Lidl${u}`;
+}
+const nodGood=r=>r&&r.kilde==="tilbud"&&(r.lidl_unit?+r.unit_price<=+r.lidl_unit*0.9:r.pre_price&&+r.price<=+r.pre_price*0.85);
+function nodCost(x){   // ca. pris for det, der mangler, til billigste pris
+  if(nodOk(x)||!x.buy)return null; const miss=x.w?Math.max(1,nodWeeks-nodGot(x)):1; let sum=0, any=false;
+  x.buy.forEach(b=>{const r=nodPris[bid(x,b)]; if(!r)return; any=true;
+    sum+=r.si==="stk"?b.n*miss*(+r.price):(+r.uge)*(r.fast?1:miss)*(+r.unit_price)});
+  return any?sum:null;
+}
+async function loadNodPris(){
+  if(!(live&&sb)||Date.now()-nodPrisAt<10*60e3)return; nodPrisAt=Date.now();
+  try{const {data,error}=await sb.rpc("nod_priser"); if(!error&&data){nodPris={}; data.forEach(r=>nodPris[r.key]=r); renderNod()}}catch(e){}
 }
 function nodSave(x){
   nodChanged=new Date().toISOString(); render(); renderNod(); if(!morePage)showMorePage();
@@ -1618,7 +1641,8 @@ function nodAdd(x){
   const miss=x.w?Math.max(1,nodWeeks-nodGot(x)):1;
   (x.buy||[]).forEach(b=>{let e=nodEntry(b);
     if(!e){const key="u:"+fold(b.t); if(!BYKEY[key])saveProduct({key,da:b.t,sq:(b.p&&b.p.sq)||b.t,cat:(b.p&&b.p.cat)||"an",store:"Lidl"}); e=BYKEY[key]}
-    addItem(b.t,b.n*miss,e,null,"Nødlager"+(b.s?" · "+b.s:""))});
+    const r=nodPris[bid(x,b)], st=r&&r.kilde==="tilbud"&&myStores.includes(r.store)?r.store:null;
+    addItem(b.t,b.n*miss,e,st,"Nødlager"+(r?` · ${r.heading} ${kr(r.price)}${st?" (tilbud)":""}`:b.s?" · "+b.s:""))});
   toast(`${x.da} lagt på listen`);
 }
 function nodRows(data){nodHave={}; nodDate={}; data.forEach(r=>{nodHave[r.key]=+r.uger; if(r.udloeb)nodDate[r.key]=String(r.udloeb).slice(0,10)}); nodChanged=data.map(r=>r.updated_at).filter(Boolean).sort().pop()||null; nodLoaded=true}
@@ -1655,7 +1679,10 @@ function renderNod(){
   const g=el("div","goal"), gh=el("div","gh"); gh.append(el("b",null,`${ok} af ${NOD.length} på plads til ${nodWeeks===1?"1 uge":"2 uger"}`),el("span",null,nodChanged?`Sidst ændret ${dshort(String(nodChanged).slice(0,10))}`:""));
   const tr=el("div","gt"), bar=el("span"); bar.style.width=pct+"%"; tr.append(bar);
   const food=NOD.filter(x=>x.c==="mad"||x.c==="vand").filter(x=>!nodOk(x)).length, soon=NOD.filter(nodSoon), nod8=NOD.filter(x=>nodH(x)&&nodGot(x)&&!nodDate[x.k]).length;
-  g.append(gh,tr,el("div","gm",soon.length?`${soon.length} ${soon.length===1?"ting skal":"ting skal"} bruges snart: ${soon.slice(0,3).map(x=>x.da.split(/ [(–]/)[0]).join(", ")}${soon.length>3?" …":""}.`:nod8?`Skriv holdbarhedsdato på ${nod8} ${nod8===1?"ting":"ting"}, så I får besked i tide.`:food?`${food} ${food===1?"ting":"ting"} mangler i vand og mad – start dér.`:"Vand og mad er på plads. Spis det ældste først og køb nyt, så lageret holder sig friskt.")); box.append(g);
+  const costs=NOD.map(nodCost).filter(v=>v!=null), cost=costs.reduce((a,v)=>a+v,0);
+  g.append(gh,tr,el("div","gm",soon.length?`${soon.length} ${soon.length===1?"ting skal":"ting skal"} bruges snart: ${soon.slice(0,3).map(x=>x.da.split(/ [(–]/)[0]).join(", ")}${soon.length>3?" …":""}.`:nod8?`Skriv holdbarhedsdato på ${nod8} ${nod8===1?"ting":"ting"}, så I får besked i tide.`:food?`${food} ${food===1?"ting":"ting"} mangler i vand og mad – start dér.`:"Vand og mad er på plads. Spis det ældste først og køb nyt, så lageret holder sig friskt."));
+  if(costs.length)g.append(el("div","gm",`Det, der mangler af mad og forbrugsvarer, koster ca. ${kr(Math.round(cost/10)*10)} til de billigste priser lige nu${costs.length<NOD.filter(x=>x.buy&&!nodOk(x)).length?" (nogle varer uden pris)":""}.`));
+  box.append(g);
   NOD_CAT.forEach(([c,icon,da,sq])=>{
     const all=NOD.filter(x=>x.c===c), show=nodFilter==="miss"?all.filter(x=>!nodOk(x)):nodFilter==="soon"?all.filter(nodSoon):all; if(!show.length)return;
     const cc=({vand:"dr",mad:"ko",hyg:"rh",med:"fg"})[c]||"an", grp=el("div","grp nodgrp c-"+cc), h=el("div","cat"), ci=el("span","ci",icon), cn=el("span","cn",da); cn.append(el("small",null,sq));
@@ -1664,12 +1691,12 @@ function renderNod(){
       const have=nodOk(x), part=x.w&&nodGot(x)>0&&!have;
       const chk=el("button","check"); chk.append(svgEl("check")); chk.setAttribute("aria-label",(have?"Fjern flueben: ":"Har: ")+x.da);
       chk.setAttribute("aria-pressed",String(have)); chk.onclick=()=>nodSet(x,have?0:(x.w?nodWeeks:1));
-      const amt=nodAmt(x,nodWeeks), deal=!have&&nodDeal(x);
       const H=nodH(x), d=nodDate[x.k], left=nodLeft(x), soon=nodSoon(x);
+      const amt=nodAmt(x,nodWeeks), best=nodBest(x), deal=(!have||soon)&&best;
       const dpart=!H||!nodGot(x)?"":!d?el("span","miss","mangler dato"):soon?strong(left<0?`udløbet ${nodFmt(d)}`:`${(H.l||"holdbar til").toLowerCase()} ${nodFmt(d)} – brug det`,"bad"):`${(H.l||"holdbar til").toLowerCase()} ${nodFmt(d)}`;
-      const meta=[amt?strong(amt,have?null:"hl"):null, part?`har til 1 uge – mangler ${nodAmt(x,1)} mere`:"", dpart, deal?strong(`tilbud: ${kr(deal.price)} i ${deal.store}`,"ok"):""];
+      const meta=[amt?strong(amt,have?null:"hl"):null, part?`har til 1 uge – mangler ${nodAmt(x,1)} mere`:"", dpart, deal?(nodGood(deal)?strong(nodPrisTxt(deal),"ok"):nodPrisTxt(deal)):""];
       let act=null;
-      if(!have&&x.buy)act=nodOnList(x)?onListMark():addBtn(`Læg ${x.da} på indkøbslisten`,()=>{nodAdd(x); renderNod()},!!deal);
+      if(!have&&x.buy)act=nodOnList(x)?onListMark():addBtn(`Læg ${x.da} på indkøbslisten`,()=>{nodAdd(x); renderNod()},nodGood(deal));
       const li=tile({cat:cc,cls:"nod"+(have?" har":"")+(part?" part":""),lead:chk,name:x.da,alt:x.sq,wrap:true,meta,act,
         below:nodOpen===x.k?nodSheet(x):null,onTap:x.tip||(H&&nodGot(x))?()=>{nodOpen=nodOpen===x.k?null:x.k; renderNod()}:null});
       return li})));

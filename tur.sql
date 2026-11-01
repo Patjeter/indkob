@@ -2,6 +2,7 @@
 --  1) jeres butikker (familie_indstilling 'butikker'): tilbud og turforslag kun fra dem
 --  2) seneste pris pr. vare fra kvitteringerne (pakningen I faktisk købte), så listen ikke viser et gennemsnit
 --  3) besked på telefonen, når det er værd at handle i dag (tilvalg pr. telefon: push_subs.tur)
+-- v82: turbeskeden nævner også gode tilbud til nødlageret (kræver nodlager.sql).
 -- Kør i Supabase → SQL Editor. Kræver schema.sql, push.sql, cron_secret.sql, tilbud_auto.sql, lidl_priser.sql, kvit.sql.
 
 -- 1) familiens indstillinger
@@ -151,12 +152,13 @@ revoke all on public.tur_sendt from anon, authenticated;
 -- Samme forslag som i går sendes ikke igen.
 create or replace function public.tur_besked() returns jsonb
 language plpgsql volatile security invoker set search_path = public as $$
-declare b record; l record; r record; v_tekst text; v_trip boolean;
+declare b record; l record; r record; nt record; v_tekst text; v_trip boolean;
 begin
   select * into b from tur_forslag() limit 1;
   v_trip := found and b.spar >= 40;
   select * into l from lager_forslag() limit 1;
-  if not v_trip and l is null then return null; end if;        -- intet værd at tage ud for
+  select * into nt from nod_tilbud();                          -- v82: gode tilbud til nødlageret (nodlager.sql)
+  if not v_trip and l is null and nt.tekst is null then return null; end if;        -- intet værd at tage ud for
   if v_trip then
     v_tekst := format('%s sparer %s kr. på %s %s, fx %s', b.store, round(b.spar), b.n,
                       case when b.n = 1 then 'vare' else 'varer' end, b.top);
@@ -169,10 +171,13 @@ begin
   if found and r.paa_tilbud >= 2 then
     v_tekst := concat_ws(' ', v_tekst, format('Ret: %s (%s på tilbud).', r.navn, r.ingredienser));
   end if;
+  v_tekst := concat_ws(' ', v_tekst, nt.tekst);
   v_tekst := left(v_tekst, 240);
   if exists (select 1 from tur_sendt t where t.dato = current_date - 1 and t.tekst = v_tekst)
      or exists (select 1 from tur_sendt t where t.dato = current_date) then return null; end if;
   insert into tur_sendt (dato, tekst) values (current_date, v_tekst);
+  insert into nod_tilbud_sendt (offer_id) select unnest(nt.ids) on conflict do nothing;
+  delete from nod_tilbud_sendt s where s.sendt < current_date - 60;
   delete from tur_sendt t where t.dato < current_date - 30;
   return jsonb_build_object('title', 'Værd at handle i dag', 'body', v_tekst);
 end $$;

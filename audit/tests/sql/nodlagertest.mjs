@@ -11,7 +11,11 @@ create table public.familie_indstilling(key text primary key, value jsonb not nu
 create schema cron; create table cron.job(jobname text, schedule text, command text);
 create function cron.schedule(n text, s text, c text) returns int language sql as $$ insert into cron.job values (n,s,c); select 1 $$;
 create function cron.unschedule(n text) returns boolean language sql as $$ delete from cron.job where jobname=n; select true $$;
-create table public.cron_secret(id int, secret text);`);
+create table public.cron_secret(id int, secret text);
+create function auth.role() returns text language sql as $$ select 'authenticated' $$;
+create function public.familie_regel(t text) returns text language sql as $$ select case when t ~* 'svin' then 'svin' end $$;
+create table public.lidl_soeg(heading text, normal_price numeric, qty_si numeric, si_unit text);
+create table public.tjek_offers(id text primary key, store text, heading text, description text, price numeric, pre_price numeric, qty_si numeric, si_unit text, valid_from date, valid_to date);`);
 const sql=fs.readFileSync(new URL('../../../nodlager.sql', import.meta.url),"utf8");
 await db.exec(sql); await db.exec(sql);   // kan køres to gange
 ok((await q("select value from familie_indstilling where key='nodlager_uger'"))[0].value===1,"mål 1 uge som standard");
@@ -37,3 +41,27 @@ ok(/Fisk/.test((await q("select public.nod_varsel() m"))[0].m.da.body),"ny dato:
 await q("update nodlager set udloeb=current_date where key='powerbank'");
 ok(/Powerbanks, opladte \(/.test((await q("select public.nod_varsel() m"))[0].m.da.body),"powerbank på dagen (varsel 0)");
 ok((await q("select count(*)::int n from cron.job where jobname='indkob-nodlager' and command like '%nod_varsel%'"))[0].n===1,"daglig kørsel planlagt");
+
+// billigste pris (v82)
+await q("insert into familie_indstilling values ('butikker','[\"Lidl\",\"Netto\"]')");
+await q(`insert into lidl_soeg values ('COMBINO Spaghetti',8.95,1,'kg'),('Hakkede tomater',7.95,0.4,'kg'),('FRESHONA Søde majs',8.95,0.45,'kg'),('Pastasauce',20,0.5,'kg')`);
+const dd=n=>new Date(Date.now()+n*864e5).toISOString().slice(0,10);
+await q(`insert into tjek_offers values
+ ('o1','Netto','ØGO hakkede tomater',null,6,9,0.4,'kg','${dd(-1)}','${dd(3)}'),
+ ('o2','føtex','Hakkede tomater',null,3,9,0.4,'kg','${dd(-1)}','${dd(3)}'),
+ ('o3','Netto','Spaghetti',null,9.5,null,1,'kg','${dd(-1)}','${dd(3)}'),
+ ('o4','Netto','Kikærter med svinekød',null,1,5,0.4,'kg','${dd(-1)}','${dd(3)}'),
+ ('o5','Netto','Kikærter',null,6,9,0.25,'kg','${dd(5)}','${dd(9)}')`);
+const pr=Object.fromEntries((await q("select * from nod_priser()")).map(r=>[r.key,r]));
+ok(pr.tomat&&pr.tomat.store==='Netto'&&+pr.tomat.price===6&&+pr.tomat.lidl_unit===19.88,"tomater: Netto 6 kr. (føtex ikke jeres butik): "+JSON.stringify(pr.tomat));
+ok(pr.pasta&&pr.pasta.kilde==='lidl'&&+pr.pasta.price===8.95,"pasta: Lidls faste pris er billigst");
+ok(!pr.boenner,"ingen kikærter: svin afvist, fremtidigt tilbud tælles ikke");
+ok(!pr.groent||pr.groent.kilde==='lidl',"majs fra Lidl");
+let nt=(await q("select * from nod_tilbud()"))[0];
+ok(nt.tekst==='Nødlager: hakkede tomater og passata 6 kr. i Netto.'&&nt.ids.join()==='o1',"turlinje: "+nt.tekst);
+await q("insert into nodlager(key,uger) values ('tomat',2) on conflict (key) do update set uger=2, udloeb=null");
+ok((await q("select * from nod_tilbud()"))[0].tekst===null,"har tomater nok: ingen linje");
+await q("update nodlager set udloeb=current_date+5 where key='tomat'");
+ok(/tomater/.test((await q("select * from nod_tilbud()"))[0].tekst||''),"tomater skal snart skiftes: med igen");
+await q("insert into nod_tilbud_sendt values ('o1')");
+ok((await q("select * from nod_tilbud()"))[0].tekst===null,"samme tilbud nævnes kun én gang");
